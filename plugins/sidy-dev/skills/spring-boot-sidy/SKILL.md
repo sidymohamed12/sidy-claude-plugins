@@ -7,7 +7,7 @@ description: "Conventions back-end Spring Boot de Sidy : Clean Architecture (Unc
 
 Avant d'écrire du code dans un projet existant : lire une feature complète déjà faite et en reproduire exactement les patterns (nommage, découpage des packages, gestion d'erreurs, tests). Les fichiers fournis par l'utilisateur sont canoniques : les utiliser tels quels.
 
-Cible : dernière version stable de **Spring Boot** et **Java LTS**. Si le projet existant est sur une version antérieure, s'aligner sur sa version.
+Cible (nouveau projet, nov. 2026) : **Spring Boot 4.2.0**, **Java 25** (LTS), **Jackson 3** (`tools.jackson`), **Spring Security 7.2**. Versions hors BOM à épingler ensemble : springdoc **3.2.1**, Bucket4j **8.23.0** (`com.bucket4j:bucket4j_jdk17-*`), ShedLock **7.11.0**, MapStruct **1.6.3**, Lombok **1.18.48**. Si le projet existant est plus ancien, s'aligner sur sa ligne et ne pas mélanger les majeures (ex. springdoc 2.x seulement sur Boot 3.5).
 
 ## Fichiers de référence (à lire quand la tâche les concerne)
 
@@ -19,6 +19,7 @@ Cible : dernière version stable de **Spring Boot** et **Java LTS**. Si le proje
 | `references/clean-code.md` | **tout code à écrire, relire ou refactorer** : noms, fonctions, formatage, objets, erreurs, tests (3 lois du TDD, F.I.R.S.T.), classes et façades, SOLID, heuristiques |
 | `references/sonar.md` | **tout code à écrire ou relire** : catalogue des règles Sonar à respecter (`equals`/`hashCode`, tests, streams, code inutilisé, conception des classes, concurrence) |
 | `references/api-docs.md` | **tout controller, DTO web ou documentation d'API** : interface `XxxController` + implémentation `XxxControllerImpl`, Swagger complet, records de documentation |
+| `references/versions.md` | **nouveau projet ou montée de version** : catalogue Boot 4.2 / Java 25 / springdoc / Bucket4j / ShedLock / Jackson 3 |
 
 Un nouveau projet impose de lire `securite.md` et `infra.md`. `clean-code.md` et `sonar.md` se lisent avant d'écrire ou de relire du code, `api-docs.md` avant de toucher à un controller.
 
@@ -88,10 +89,10 @@ Poser en un seul bloc, en sautant ce qui est déjà précisé. Ne jamais décide
 
 Livrer, dès le départ, tout ce socle (détails dans les références) :
 
-- `pom.xml` / `build.gradle` : `web`, `validation`, `data-jpa`, `security`, `actuator`, `data-redis`, `cache`, Flyway (+ module PostgreSQL), driver `postgresql`, `springdoc-openapi`, `mapstruct`, `lombok` (limité, voir §3), `bucket4j`, `shedlock`, tests (`test`, Testcontainers PostgreSQL et Redis, `awaitility` pour remplacer `Thread.sleep`), `jacoco`.
+- `pom.xml` / `build.gradle` : parent Boot **4.2.0** ; starters **sans version** : `webmvc` (ou `web`), `validation`, `data-jpa`, `security`, `actuator`, `data-redis`, `cache`, **`spring-boot-starter-flyway`** + `flyway-database-postgresql` (runtime, sans version), driver `postgresql` ; hors BOM : springdoc **3.2.1**, MapStruct **1.6.3**, Lombok **1.18.48**, Bucket4j **8.23.0** (`bucket4j_jdk17-core` + `bucket4j_jdk17-lettuce`), ShedLock **7.11.0** (`shedlock-spring` + `shedlock-provider-jdbc-template`) ; tests : `test`, Testcontainers, `awaitility`, `jacoco`. **Pas** de `jackson-databind` 2.x ni de `spring-boot-jackson2` sauf migration temporaire écrite.
 - `application.yml`, `application-dev.yml`, `application-test.yml`, `application-prod.yml`, `logback-spring.xml`, `.env.example`, `.gitignore` (dont `.env`).
-- Migration Flyway `V1__init.sql` et migration de la table `shedlock`.
-- Configuration : `SecurityConfig`, CORS, `RateLimitFilter`, `OriginCheckFilter`, `SpaCsrfTokenRequestHandler`, `BrowserNavigationBlockFilter`, `CacheConfig`, `SchedulingConfig`, bean `Clock` UTC, handler d'erreurs global, OpenAPI.
+- Migration Flyway `V1__init.sql` et migration de la table `shedlock` (avec `GRANT` vers le rôle applicatif via placeholder `${app_role}`).
+- Configuration : `SecurityConfig` (CSRF : préférer `csrf.spa()` Security 7 + matcher Sidy), CORS, `RateLimitFilter`, `OriginCheckFilter`, `BrowserNavigationBlockFilter`, `CacheConfig` (**JsonMapper** Jackson 3, pas `ObjectMapper` Jackson 2), `SchedulingConfig`, bean `Clock` UTC, handler d'erreurs global, OpenAPI.
 - `Dockerfile`, `.dockerignore`, `docker-compose.dev.yml`, `docker-compose.mid-dev.yml`, `docker-compose.prod.yml`.
 - `docs/` avec `adr/` (premier ADR : choix d'architecture), `http/`, `diagrams/`, `flows/`.
 - Spring : `spring.jpa.hibernate.ddl-auto=validate`, `spring.jpa.open-in-view=false`, configuration typée avec `@ConfigurationProperties` sur un `record` validé (jamais de `@Value` éparpillés), secrets uniquement via variables d'environnement.
@@ -342,7 +343,7 @@ Utiliser un pattern quand il résout un vrai problème (jamais pour décorer) et
 
 ## 9. Persistance, PostgreSQL et Flyway
 
-- **Flyway toujours** : `src/main/resources/db/migration`, fichiers `V{n}__description_en_snake_case.sql`. **Ne jamais modifier une migration déjà appliquée** : en créer une nouvelle. Aucune migration destructive sans accord explicite.
+- **Flyway toujours** : starter Boot + module PostgreSQL, `src/main/resources/db/migration`, fichiers `V{n}__description_en_snake_case.sql`. **Ne jamais modifier une migration déjà appliquée**. Socle YAML : `validate-on-migrate: true`, `clean-disabled: true`, `lock-retry-count: 50`, `postgresql.transactional-lock: false` (requis pour `CREATE INDEX CONCURRENTLY` + fichier `.sql.conf` avec `executeInTransaction=false`). Placeholder `app_role: ${spring.datasource.username:app}` pour les `GRANT`. En prod : compte Flyway distinct (`FLYWAY_USER` / `FLYWAY_PASSWORD`), idéalement one-shot `migrate` puis app avec `FLYWAY_ENABLED=false`. Aucune migration destructive sans accord explicite.
 - Contraintes (`NOT NULL`, `UNIQUE`, `FOREIGN KEY`, `CHECK`) et index définis en SQL, pas laissés à Hibernate (`ddl-auto=validate`, pas de `@Table(indexes = …)`).
 - **Indexation, à traiter dans chaque migration qui touche le schéma** :
   - **Index sur chaque clé étrangère** (PostgreSQL ne les crée pas) ;

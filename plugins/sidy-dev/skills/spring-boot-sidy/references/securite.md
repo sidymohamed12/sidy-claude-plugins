@@ -41,7 +41,9 @@ La protection CSRF est **toujours traitée explicitement**, jamais désactivée 
 | Toute requête modifiante (`POST`, `PUT`, `PATCH`, `DELETE`)                                 | Vérification `Origin` / `Sec-Fetch-Site` (couche supplémentaire, couvre aussi le _login CSRF_).                                                                                |
 | Clients mobile                                                                              | Jetons dans le corps de la réponse, stockage sécurisé, **aucun cookie** : hors CSRF.                                                                                           |
 
-Configuration Spring Security (Spring Security 6+ ; vérifier l'API exacte selon la version du projet) :
+Configuration Spring Security (Spring Security **7** / Boot **4.2** ; vérifier l'API exacte selon la version du projet).
+
+Sur Security 7, préférer `csrf.spa()` (cookie `XSRF-TOKEN` + handler SPA) plutôt que de recopier `SpaCsrfTokenRequestHandler`. Appeler `spa()` **avant** tout autre réglage de repository si besoin, puis le matcher Sidy. L'exemple ci-dessous garde le matcher ; sur une 7.x on peut remplacer le handler manuel par `.spa()` :
 
 ```java
 private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "TRACE", "OPTIONS");
@@ -65,7 +67,7 @@ private static boolean isMutatingRequestWithAuthCookie(HttpServletRequest reques
 }
 ```
 
-Handler recommandé pour les SPA (Spring Security 6) : il accepte le jeton brut envoyé en en-tête par Angular et force la création du cookie dès la première réponse, sans filtre supplémentaire.
+Handler historique (équivalent de ce que fait `csrf.spa()` en Security 7) : accepte le jeton brut en en-tête et force la création du cookie. Sur Boot 4.2 / Security 7, utiliser `.spa()` et ne garder ce handler que sur une ligne plus ancienne.
 
 ```java
 final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {

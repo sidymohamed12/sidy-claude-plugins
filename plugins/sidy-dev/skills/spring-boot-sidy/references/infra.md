@@ -44,7 +44,11 @@ Extrait de `application-prod.yml` :
 ```yaml
 server:
   shutdown: graceful
-  forward-headers-strategy: framework
+  request:
+    header:
+      forwarded:
+        strategy: framework
+        use-prefix: true
   error:
     include-message: never
     include-stacktrace: never
@@ -55,6 +59,11 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    url: ${FLYWAY_URL:${DB_URL}}
+    user: ${FLYWAY_USER}
+    password: ${FLYWAY_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST}
@@ -87,6 +96,12 @@ management:
 DB_URL=jdbc:postgresql://localhost:5432/app
 DB_USERNAME=app
 DB_PASSWORD=change-me
+
+# Flyway (compte DDL distinct en prod ; FLYWAY_ENABLED=false sur l'app si one-shot migrate)
+FLYWAY_URL=jdbc:postgresql://localhost:5432/app
+FLYWAY_USER=flyway
+FLYWAY_PASSWORD=change-me
+FLYWAY_ENABLED=false
 
 # Fuseau de l'application (défaut UTC), source unique de app.timezone
 APP_TIMEZONE=UTC
@@ -240,12 +255,16 @@ public final class CacheNames {
 ```sql
 CREATE TABLE shedlock (
     name       VARCHAR(64)  NOT NULL,
-    lock_until TIMESTAMP(3) NOT NULL,
-    locked_at  TIMESTAMP(3) NOT NULL,
+    lock_until TIMESTAMP    NOT NULL,
+    locked_at  TIMESTAMP    NOT NULL,
     locked_by  VARCHAR(255) NOT NULL,
     PRIMARY KEY (name)
 );
+
+GRANT SELECT, INSERT, UPDATE ON shedlock TO ${app_role};
 ```
+
+Placeholder Flyway (socle `application.yml`) : `spring.flyway.placeholders.app_role: ${spring.datasource.username:app}`. En prod le `GRANT` cible le compte applicatif pendant que la migration tourne avec `FLYWAY_USER`. ShedLock n'est **pas** le verrou des migrations Flyway (verrou advisory PostgreSQL).
 
 ```java
 @Configuration
