@@ -10,8 +10,8 @@
     {
       "name": "sidy-dev",
       "source": "./plugins/sidy-dev",
-      "description": "Conventions Spring Boot et Angular de Sidy : 2 skills (spring-boot-sidy, angular-sidy) et 4 agents (backend-dev, reviewer, security-reviewer, frontend-dev).",
-      "version": "1.0.0"
+      "description": "Conventions Spring Boot et Angular de Sidy : 3 skills (spring-boot-sidy, angular-sidy, pentest-sidy) et 5 agents (backend-dev, reviewer, security-reviewer, frontend-dev, pentest-actif).",
+      "version": "1.1.0"
     }
   ]
 }

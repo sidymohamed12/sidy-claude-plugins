@@ -1,0 +1,5 @@
+# Les skills et leurs références sont sensibles à la mise en forme Markdown :
+# listes numérotées qui portent un sens (règles 8 à 32 du skill Spring Boot),
+# tableaux alignés à la main. Prettier ne doit pas les reformater.
+*.md
+**/*.md

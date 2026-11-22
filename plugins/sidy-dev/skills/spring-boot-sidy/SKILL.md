@@ -11,14 +11,14 @@ Cible : dernière version stable de **Spring Boot** et **Java LTS**. Si le proje
 
 ## Fichiers de référence (à lire quand la tâche les concerne)
 
-| Fichier                                 | À lire pour                                                                                                                                                                     |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `references/securite.md`                | authentification, JWT et révocation, CSRF, injections SQL, rate-limiting, filtre `Sec-Fetch-Mode`, Swagger, données sensibles                                                   |
-| `references/concurrence-idempotence.md` | **tout code qui écrit** : race conditions, verrou optimiste, mises à jour atomiques, `Idempotency-Key`, événements et jobs idempotents, tests de concurrence                    |
-| `references/infra.md`                   | profils YAML, `.env.example`, time zone configurable, pool Hikari, cache Redis, ShedLock, logs et rétention, Dockerfile, docker-compose (dev / mid-dev / prod), dossier `docs/` |
-| `references/clean-code.md`              | **tout code à écrire, relire ou refactorer** : noms, fonctions, formatage, objets, erreurs, tests (3 lois du TDD, F.I.R.S.T.), classes et façades, SOLID, heuristiques          |
-| `references/sonar.md`                   | **tout code à écrire ou relire** : catalogue des règles Sonar à respecter (`equals`/`hashCode`, tests, streams, code inutilisé, conception des classes, concurrence)            |
-| `references/api-docs.md`                | **tout controller, DTO web ou documentation d'API** : interface `XxxController` + implémentation `XxxControllerImpl`, Swagger complet, records de documentation                 |
+| Fichier | À lire pour |
+|---|---|
+| `references/securite.md` | authentification, JWT et révocation, CSRF, injections SQL, rate-limiting, filtre `Sec-Fetch-Mode`, Swagger, données sensibles |
+| `references/concurrence-idempotence.md` | **tout code qui écrit** : race conditions, verrou optimiste, mises à jour atomiques, `Idempotency-Key`, événements et jobs idempotents, tests de concurrence |
+| `references/infra.md` | profils YAML, `.env.example`, time zone configurable, pool Hikari, cache Redis, ShedLock, logs et rétention, Dockerfile, docker-compose (dev / mid-dev / prod), dossier `docs/` |
+| `references/clean-code.md` | **tout code à écrire, relire ou refactorer** : noms, fonctions, formatage, objets, erreurs, tests (3 lois du TDD, F.I.R.S.T.), classes et façades, SOLID, heuristiques |
+| `references/sonar.md` | **tout code à écrire ou relire** : catalogue des règles Sonar à respecter (`equals`/`hashCode`, tests, streams, code inutilisé, conception des classes, concurrence) |
+| `references/api-docs.md` | **tout controller, DTO web ou documentation d'API** : interface `XxxController` + implémentation `XxxControllerImpl`, Swagger complet, records de documentation |
 
 Un nouveau projet impose de lire `securite.md` et `infra.md`. `clean-code.md` et `sonar.md` se lisent avant d'écrire ou de relire du code, `api-docs.md` avant de toucher à un controller.
 
@@ -27,7 +27,6 @@ Un nouveau projet impose de lire `securite.md` et `infra.md`. `clean-code.md` et
 Elles s'appliquent à chaque projet, sans que l'utilisateur ait à les rappeler.
 
 **Conception et qualité**
-
 1. **Clean Architecture** (règle de dépendance) combinée au **DDD** (§1).
 2. **SOLID** (§2) et **Clean Code** de Robert C. Martin (§3, `references/clean-code.md`).
 3. **TDD** (3 lois, F.I.R.S.T.) : le test d'abord, et **tout nouveau code back-end est livré avec ses tests** (§12).
@@ -36,12 +35,40 @@ Elles s'appliquent à chaque projet, sans que l'utilisateur ait à les rappeler.
 6. **Mois Java : toujours `Month.X`**, jamais un nombre (`LocalDate.of(2026, Month.NOVEMBER, 5)`).
 7. Jamais d'entité JPA exposée par l'API (DTO) ; injection par constructeur uniquement.
 
-**Sécurité** (détails dans `references/securite.md`) 8. **CSRF** toujours traité explicitement, en défense en couches. Défaut : refresh token en cookie `HttpOnly` + `SameSite=Strict`, access token court en mémoire (Bearer), jeton CSRF exigé dès qu'une requête modifiante porte le cookie d'authentification, vérification `Origin` / `Sec-Fetch-Site`. Jamais désactivé globalement. 9. **Injections SQL** toujours prévenues (requêtes paramétrées, tris en liste blanche). 10. **Rate-limiting** toujours en place (Bucket4j + Redis). 11. **JWT** : révocation des jetons via cache Redis (logout, changement de mot de passe, compte désactivé). 12. **Filtre `Sec-Fetch-Mode`** : `403` sur `/api/**` ouvert directement dans un navigateur (`navigate` / `no-cors`) ; mobile, SSR et outils non concernés. 13. **Swagger** visible en dev (à la racine), **désactivé en prod**.
+**Sécurité** (détails dans `references/securite.md`)
+
+8. **CSRF** toujours traité explicitement, en défense en couches. Défaut : refresh token en cookie `HttpOnly` + `SameSite=Strict`, access token court en mémoire (Bearer), jeton CSRF exigé dès qu'une requête modifiante porte le cookie d'authentification, vérification `Origin` / `Sec-Fetch-Site`. Jamais désactivé globalement.
+9. **Injections SQL** toujours prévenues (requêtes paramétrées, tris en liste blanche).
+10. **Rate-limiting** toujours en place (Bucket4j + Redis).
+11. **JWT** : révocation des jetons via cache Redis (logout, changement de mot de passe, compte désactivé).
+12. **Filtre `Sec-Fetch-Mode`** : `403` sur `/api/**` ouvert directement dans un navigateur (`navigate` / `no-cors`) ; mobile, SSR et outils non concernés.
+13. **Swagger** visible en dev (à la racine), **désactivé en prod**.
 13 bis. **CORS** en liste blanche d'origines lues dans le YAML (jamais `*` en prod) ; **Hikari** configuré explicitement ; le filtre de §12 est activable par `app.security.bloquer-navigation-directe`.
 
-**Configuration et infrastructure** (détails dans `references/infra.md`) 14. **Cache Redis** toujours mis en place. 15. **Profils** `application-dev.yml`, `application-prod.yml` et `application-test.yml` ; **`dev` actif par défaut** (`spring.profiles.default: dev`), `prod` toujours activé explicitement en production. 16. **`.env.example` mis à jour** à chaque clé ajoutée dans `application-prod.yml`. 17. **Dockerfile** léger : layers, utilisateur non-root, `HEALTHCHECK` sur l'Actuator. 18. **Trois docker-compose** : `dev` (tout dedans), `mid-dev` (Redis et annexes, sans PostgreSQL), `prod`. 19. **Time zone** : valeur lue dans le YAML (`app.timezone`, variable `APP_TIMEZONE`, défaut UTC), source unique pour `Clock`, Jackson, Hibernate, crons et logs. 20. **Logs** essentiels, sans donnée sensible, avec rétention limitée et archives en zip. 21. **ShedLock** sur toute tâche `@Scheduled`. 22. **Dossier `docs/`** : `adr/`, `http/`, `diagrams/`, `flows/`.
+**Configuration et infrastructure** (détails dans `references/infra.md`)
 
-**API, modèle et données** 23. **Controller = interface + implémentation.** L'interface `XxxController` (dans `web/controller/`) porte toute la documentation Swagger, **complète** (requêtes, réponses succès et erreurs, DTO, paramètres, exemples, rien d'omis) ; l'implémentation `XxxControllerImpl` (dans `web/controller/implement/`) ne contient que le code (§8, `references/api-docs.md`). 24. **Records de documentation** dans `infrastructure/web/doc/` pour décrire dans Swagger les formes de réponse (pages, enveloppes, erreurs) ; ils ne servent qu'à la documentation. 25. **`equals` et `hashCode` obligatoires dans `domain/model`** (entités par identité, value objects en `record`) (`references/sonar.md`, section 2). 26. **Streams privilégiés** pour transformer et agréger des collections, tant que le code reste lisible (§7, `references/sonar.md`, section 4). 27. **Mots de passe toujours hashés** avec BCrypt ou équivalent (Argon2, scrypt, PBKDF2), jamais en clair, jamais loggés, jamais renvoyés par l'API (`references/securite.md`, section 1). 28. **Domaine sans dépendance externe** : `domain` n'importe que `java.*` ; builders, `equals`, `hashCode` écrits à la main, pas de Lombok (§1, §5). 29. **Exceptions traitées en un seul endroit** : `GlobalExceptionHandler` unique, hiérarchie d'exceptions dans `shared/domain/exception` (`references/api-docs.md`, section 6). 30. **Aucun import entre features** : communication par les ports `out` de `shared/domain/port/out` (ou événements de `shared/domain/events`) (§1). 31. **Indexation toujours gérée** : index sur chaque clé étrangère et sur les colonnes filtrées / triées, définis dans les migrations Flyway (§9). 32. **Race conditions évitées et idempotence toujours** : contrainte `UNIQUE` / `@Version` / `UPDATE` atomique, `Idempotency-Key` sur les `POST` à effet, listeners et jobs rejouables (`references/concurrence-idempotence.md`).
+14. **Cache Redis** toujours mis en place.
+15. **Profils** `application-dev.yml`, `application-prod.yml` et `application-test.yml` ; **`dev` actif par défaut** (`spring.profiles.default: dev`), `prod` toujours activé explicitement en production.
+16. **`.env.example` mis à jour** à chaque clé ajoutée dans `application-prod.yml`.
+17. **Dockerfile** léger : layers, utilisateur non-root, `HEALTHCHECK` sur l'Actuator.
+18. **Trois docker-compose** : `dev` (tout dedans), `mid-dev` (Redis et annexes, sans PostgreSQL), `prod`.
+19. **Time zone** : valeur lue dans le YAML (`app.timezone`, variable `APP_TIMEZONE`, défaut UTC), source unique pour `Clock`, Jackson, Hibernate, crons et logs.
+20. **Logs** essentiels, sans donnée sensible, avec rétention limitée et archives en zip.
+21. **ShedLock** sur toute tâche `@Scheduled`.
+22. **Dossier `docs/`** : `adr/`, `http/`, `diagrams/`, `flows/`.
+
+**API, modèle et données**
+
+23. **Controller = interface + implémentation.** L'interface `XxxController` (dans `web/controller/`) porte toute la documentation Swagger, **complète** (requêtes, réponses succès et erreurs, DTO, paramètres, exemples, rien d'omis) ; l'implémentation `XxxControllerImpl` (dans `web/controller/implement/`) ne contient que le code (§8, `references/api-docs.md`).
+24. **Records de documentation** dans `infrastructure/web/doc/` pour décrire dans Swagger les formes de réponse (pages, enveloppes, erreurs) ; ils ne servent qu'à la documentation.
+25. **`equals` et `hashCode` obligatoires dans `domain/model`** (entités par identité, value objects en `record`) (`references/sonar.md`, section 2).
+26. **Streams privilégiés** pour transformer et agréger des collections, tant que le code reste lisible (§7, `references/sonar.md`, section 4).
+27. **Mots de passe toujours hashés** avec BCrypt ou équivalent (Argon2, scrypt, PBKDF2), jamais en clair, jamais loggés, jamais renvoyés par l'API (`references/securite.md`, section 1).
+28. **Domaine sans dépendance externe** : `domain` n'importe que `java.*` ; builders, `equals`, `hashCode` écrits à la main, pas de Lombok (§1, §5).
+29. **Exceptions traitées en un seul endroit** : `GlobalExceptionHandler` unique, hiérarchie d'exceptions dans `shared/domain/exception` (`references/api-docs.md`, section 6).
+30. **Aucun import entre features** : communication par les ports `out` de `shared/domain/port/out` (ou événements de `shared/domain/events`) (§1).
+31. **Indexation toujours gérée** : index sur chaque clé étrangère et sur les colonnes filtrées / triées, définis dans les migrations Flyway (§9).
+32. **Race conditions évitées et idempotence toujours** : contrainte `UNIQUE` / `@Version` / `UPDATE` atomique, `Idempotency-Key` sur les `POST` à effet, listeners et jobs rejouables (`references/concurrence-idempotence.md`).
 
 ## Questions à poser au démarrage d'un nouveau projet
 
@@ -122,7 +149,6 @@ src/main/java/<package-racine>/
 Emplacements usuels des éléments transverses (à adapter au projet) : `RateLimitFilter` dans `shared/infrastructure/ratelimit`, `OriginCheckFilter` et `BrowserNavigationBlockFilter` dans `shared/infrastructure/web/filter`, handler d'erreurs global (`@RestControllerAdvice`) dans `shared/infrastructure/exception`, publication des événements de domaine dans `shared/infrastructure/event`, `SecurityConfig` / `CacheConfig` / `SchedulingConfig` / bean `Clock` / OpenAPI dans `config/`, jetons JWT et révocation Redis dans `auth/infrastructure/security` et `auth/infrastructure/cache`.
 
 **Clean Architecture**
-
 - Dépendances : `infrastructure` → `application` → `domain`. Jamais l'inverse. Le `domain` (modèle, value objects, commandes, événements, exceptions, services et ports) n'a **aucune dépendance externe : JDK uniquement** (`java.*`) et ses propres packages. Ni Spring, JPA, Jackson, Lombok, Jakarta Validation, SLF4J ni MapStruct.
 - Les **ports** vivent dans `domain/port` : les adaptateurs d'`infrastructure` (controllers) appellent les ports `in` ; les use cases d'`application/usecase` implémentent les ports `in` et appellent les ports `out` ; les `adapter` d'`infrastructure` implémentent les ports `out` (inversion de dépendances).
 - Un **use case = une classe = une intention métier** (`CreateOrderUseCaseImpl implements CreateOrderUseCase`). Les controllers appellent des interfaces de use case (ports `in`) ou une façade.
@@ -133,7 +159,6 @@ Emplacements usuels des éléments transverses (à adapter au projet) : `RateLim
 - Domaine pur et entités JPA **séparées** (`model` ≠ `entity`, reliés par un `mapper`), sur tous les projets. Pour un très petit projet on allège en ne créant que les dossiers utiles, jamais en supprimant la règle de dépendance ni la séparation DTO / entité.
 
 **DDD**
-
 - **Langage omniprésent** : les noms du code reprennent le vocabulaire métier, dans la langue choisie pour le projet. Un bounded context par feature cohérente ; la carte des contextes vit dans `docs/diagrams/`.
 - **Agrégats** : une racine d'agrégat qui protège ses invariants ; les objets internes ne sont accessibles que par elle ; autre agrégat référencé **par son identifiant**, jamais par l'objet. **Une transaction = un agrégat.**
 - **Pas de modèle anémique** : le comportement est dans le domaine (`order.confirm()`, `account.withdraw(amount)`), pas dans des services qui manipulent des setters. Pas de setters publics ; création par constructeur privé + Builder ou méthode de fabrique statique.
@@ -158,7 +183,7 @@ Détails et exemples dans `references/clean-code.md`, à lire avant d'écrire ou
 
 - **Noms** qui révèlent l'intention (`elapsedTimeInDays`, pas `d`), prononçables, recherchables ; classes = noms, méthodes = verbes ; **un mot par concept** (pas `fetch`, `get` et `retrieve` pour la même chose).
 - **Fonctions** petites (≈ 20 lignes max), une seule chose, un seul niveau d'abstraction, **0 à 2 arguments (4 maximum)**, **pas d'argument booléen**, pas d'effet de bord caché, **commande / requête séparées**, exceptions plutôt que codes d'erreur, **Stepdown Rule** (lecture de haut en bas comme un récit). Complexité cognitive ≤ 15.
-- **Commentaires** : uniquement **documentation** (Javadoc des API publiques non évidentes) ou **explication** (le _pourquoi_) ; jamais de commentaire qui répète le code ni de code commenté.
+- **Commentaires** : uniquement **documentation** (Javadoc des API publiques non évidentes) ou **explication** (le *pourquoi*) ; jamais de commentaire qui répète le code ni de code commenté.
 - **Formatage** cohérent (`.editorconfig` à la racine, pas de vérification imposée dans le build ni la CI), lignes courtes, séparation verticale des concepts.
 - **Objets et structures** : loi de Déméter ; les objets exposent des comportements, les structures de données (DTO en `record`) exposent leurs données.
 - **Erreurs** : ne pas retourner `null`, ne pas passer `null` ; exceptions non vérifiées **avec contexte** ; gestion des erreurs isolée (`@RestControllerAdvice`).
@@ -188,7 +213,7 @@ Pas de constructeurs télescopiques ni de méthodes surchargées pour gérer les
 - Objets de domaine (`domain/model`, `domain/command`) : **builder écrit à la main** (classe statique imbriquée `Builder`), car le domaine n'a aucune dépendance externe, donc pas de Lombok. Constructeur privé ; **les invariants sont validés dans le constructeur** (ou dans `build()`), pour qu'un objet ne soit jamais incohérent.
 - Entités JPA : constructeur `protected` sans argument (exigé par JPA) + `@Builder` sur un constructeur privé avec arguments.
 - DTO web, requêtes : `record` ; `@Builder` (Lombok) sur le record au-delà de 4 champs. **Commandes du domaine** (`domain/command`) : `record` ; au-delà de 4 champs, builder écrit à la main (pas de Lombok dans le domaine).
-- Tests : un _test data builder_ par agrégat (`OrderTestBuilder`).
+- Tests : un *test data builder* par agrégat (`OrderTestBuilder`).
 
 ```java
 // domain/model : JDK uniquement, builder écrit à la main
@@ -282,19 +307,19 @@ Order order = Order.builder()
 
 Utiliser un pattern quand il résout un vrai problème (jamais pour décorer) et nommer la classe d'après lui.
 
-| Besoin                                                | Pattern                        | Exemple Spring Boot                                                         |
-| ----------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------- |
-| Remplacer un `switch`/`if` sur un type                | **Strategy**                   | `PaymentStrategy` (Wave, Orange Money, carte), injectées en `Map` ou `List` |
-| Créer un objet selon un contexte                      | **Factory**                    | `NotificationFactory`                                                       |
-| Construire un objet complexe                          | **Builder**                    | §5                                                                          |
-| Isoler un système externe                             | **Adapter** (ports & adapters) | `SmsGatewayAdapter implements SmsPort`                                      |
-| Squelette d'algorithme à étapes variables             | **Template Method**            | import/export de fichiers                                                   |
-| Réagir à un événement sans couplage                   | **Observer**                   | `ApplicationEventPublisher` + `@TransactionalEventListener`                 |
-| Ajouter un comportement transversal                   | **Decorator** / AOP            | cache (`CachedProductReader`), audit, métriques                             |
-| Chaîne de validations                                 | **Chain of Responsibility**    | règles de validation d'une commande                                         |
-| Trop de dépendances injectées (surtout un controller) | **Facade**                     | `OrderFacade` (couche application) qui regroupe les use cases du controller |
-| Filtres dynamiques de recherche                       | **Specification**              | `JpaSpecificationExecutor`                                                  |
-| Valeur métier typée                                   | **Value Object**               | `Money`, `PhoneNumber`, `OrderId`                                           |
+| Besoin | Pattern | Exemple Spring Boot |
+|---|---|---|
+| Remplacer un `switch`/`if` sur un type | **Strategy** | `PaymentStrategy` (Wave, Orange Money, carte), injectées en `Map` ou `List` |
+| Créer un objet selon un contexte | **Factory** | `NotificationFactory` |
+| Construire un objet complexe | **Builder** | §5 |
+| Isoler un système externe | **Adapter** (ports & adapters) | `SmsGatewayAdapter implements SmsPort` |
+| Squelette d'algorithme à étapes variables | **Template Method** | import/export de fichiers |
+| Réagir à un événement sans couplage | **Observer** | `ApplicationEventPublisher` + `@TransactionalEventListener` |
+| Ajouter un comportement transversal | **Decorator** / AOP | cache (`CachedProductReader`), audit, métriques |
+| Chaîne de validations | **Chain of Responsibility** | règles de validation d'une commande |
+| Trop de dépendances injectées (surtout un controller) | **Facade** | `OrderFacade` (couche application) qui regroupe les use cases du controller |
+| Filtres dynamiques de recherche | **Specification** | `JpaSpecificationExecutor` |
+| Valeur métier typée | **Value Object** | `Money`, `PhoneNumber`, `OrderId` |
 
 ## 7. Java moderne, dates et temps
 
@@ -344,14 +369,13 @@ Cache Redis avec TTL et invalidation explicite (Decorator du port de lecture), S
 ## 12. TDD et tests (obligatoires)
 
 **Les 3 lois du TDD**
-
 1. Pas de code de production sans un test qui échoue d'abord.
 2. Écrire juste assez de test pour échouer.
 3. Écrire juste assez de code pour passer le test.
 
 **Cycle Red → Green → Refactor.** Écrire d'abord un test qui échoue pour la plus petite portion de comportement, puis le code minimal qui le fait passer, puis refactorer avec les tests au vert. Un seul test rouge à la fois.
 
-**Règles F.I.R.S.T.** : _Fast_ (tests unitaires sans Spring), _Independent_ (aucune dépendance entre tests), _Repeatable_ (`Clock`, Testcontainers), _Self-validating_ (assertions, pas de lecture de logs), _Timely_ (écrits avant le code). **Un concept par test** (idéalement un assert). Le code de test est aussi important que le code de production.
+**Règles F.I.R.S.T.** : *Fast* (tests unitaires sans Spring), *Independent* (aucune dépendance entre tests), *Repeatable* (`Clock`, Testcontainers), *Self-validating* (assertions, pas de lecture de logs), *Timely* (écrits avant le code). **Un concept par test** (idéalement un assert). Le code de test est aussi important que le code de production.
 
 - **Livraison : le test est présenté avant l'implémentation** qu'il pilote, et les deux sont livrés ensemble.
 - **Correction de bug** : écrire d'abord le test qui reproduit le bug, puis corriger.
@@ -359,18 +383,18 @@ Cache Redis avec TTL et invalidation explicite (Decorator du port de lecture), S
 - **Garde-fous d'architecture (ArchUnit, recommandé)** : un test d'architecture vérifie (1) que `..domain..` ne dépend que de `java..` et de `..domain..` (ou `shared.domain`), (2) que `domain` et `application` n'importent jamais `infrastructure`, (3) qu'aucune feature n'importe une autre (règle par tranches `com.<projet>.(*)..` en excluant `shared`, `config`, `bootstrap`), (4) que chaque controller implémente son interface `XxxController` (implémentation `XxxControllerImpl`).
 - Outils choisis selon le projet ; base par défaut : JUnit 5, Mockito, AssertJ, Spring Test, Testcontainers (PostgreSQL, Redis), JaCoCo.
 
-| Niveau            | Cible                                                         | Outils                                                                       |
-| ----------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Unitaire          | domaine et use cases, sans Spring                             | JUnit 5, Mockito, AssertJ                                                    |
-| Slice web         | controllers, validation, format d'erreur, sécurité des routes | `@WebMvcTest`, MockMvc                                                       |
-| Slice persistance | repositories, requêtes, migrations Flyway                     | `@DataJpaTest` + Testcontainers PostgreSQL (pas H2 : comportement différent) |
-| Cache / Redis     | cache, rate-limiting, révocation JWT                          | Testcontainers Redis                                                         |
-| Intégration       | parcours complet d'une feature                                | `@SpringBootTest` + Testcontainers                                           |
+| Niveau | Cible | Outils |
+|---|---|---|
+| Unitaire | domaine et use cases, sans Spring | JUnit 5, Mockito, AssertJ |
+| Slice web | controllers, validation, format d'erreur, sécurité des routes | `@WebMvcTest`, MockMvc |
+| Slice persistance | repositories, requêtes, migrations Flyway | `@DataJpaTest` + Testcontainers PostgreSQL (pas H2 : comportement différent) |
+| Cache / Redis | cache, rate-limiting, révocation JWT | Testcontainers Redis |
+| Intégration | parcours complet d'une feature | `@SpringBootTest` + Testcontainers |
 
 Règles :
 
-- Nommage `should_<résultat>_when_<condition>` ; structure _Given / When / Then_ ; une intention par test.
-- Test d'exception : la préparation (_given_) sort de la lambda, qui ne contient **qu'un seul appel** (S5778) :
+- Nommage `should_<résultat>_when_<condition>` ; structure *Given / When / Then* ; une intention par test.
+- Test d'exception : la préparation (*given*) sort de la lambda, qui ne contient **qu'un seul appel** (S5778) :
 
 ```java
 CreateOrderCommand command = CreateOrderCommand.builder().customerId(CUSTOMER_ID).lines(List.of()).build();
@@ -419,7 +443,7 @@ class CreateOrderUseCaseImplTest {
 1. Lire une feature existante du projet et reprendre ses conventions.
 2. **Domaine** (JDK uniquement, builders à la main) : test d'abord, puis `model` (avec `equals` / `hashCode`), `valueobject`, `command`, `event`, `exception`, `service` si besoin, et les ports `in` / `out` (`domain/port`).
 3. **Application** : test d'abord (ports `out` mockés), puis `usecase` (implémentations des ports `in`), `service`, `listener` et `facade` si besoin.
-   3 bis. **Écritures** : prévoir concurrence et idempotence (`references/concurrence-idempotence.md`), test de concurrence d'abord.
+3 bis. **Écritures** : prévoir concurrence et idempotence (`references/concurrence-idempotence.md`), test de concurrence d'abord.
 4. **Migration Flyway** : nouveau fichier `V{n}__…sql`, **avec les index** (clés étrangères, filtres, tris) (et mise à jour de `.env.example` / YAML si de nouvelles clés apparaissent).
 5. **Infrastructure — persistance** : test `@DataJpaTest` d'abord, puis `entity` JPA, `repository`, `mapper` (entity ⇄ model), `adapter` qui implémente le port `out` (et cache / autres packages techniques si pertinent).
 6. **Infrastructure — web** : test `@WebMvcTest` d'abord, puis `dto/request` et `dto/response` documentés, interface `XxxController` dans `web/controller/` (Swagger complet), records de `web/doc` si besoin, implémentation `XxxControllerImpl` dans `web/controller/implement/`, `web/mapper`, exceptions de la feature en sous-classes des catégories de `shared/domain/exception` (le handler global ne change pas).

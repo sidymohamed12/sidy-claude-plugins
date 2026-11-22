@@ -1,6 +1,6 @@
 # sidy-dev : skills et agents Claude Code
 
-Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot et Angular) : 2 skills et 4 agents prêts à l'emploi.
+Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot et Angular) : 3 skills et 5 agents prêts à l'emploi.
 
 ## Ce que contient le plugin
 
@@ -8,10 +8,12 @@ Plugin Claude Code qui applique les conventions de développement de Sidy (Sprin
 | ----- | ------------------- | --------------------------------------------------------------------------------------------------------- |
 | Skill | `spring-boot-sidy`  | Conventions back-end : Clean Architecture, DDD, SOLID, TDD, règles Sonar, sécurité, Flyway, Redis, Docker |
 | Skill | `angular-sidy`      | Conventions Angular 21 : signals, zoneless, Tailwind v4, états de données, SEO, design                    |
+| Skill | `pentest-sidy`      | Méthode de test de sécurité dynamique (DAST) d'une app Spring Boot qui tourne, sur cible autorisée        |
 | Agent | `backend-dev`       | Code le back-end Spring Boot avec ses tests et lance le build                                             |
 | Agent | `reviewer`          | Relit le code façon Sonar (lecture seule)                                                                 |
 | Agent | `security-reviewer` | Relit la sécurité du back-end (lecture seule)                                                             |
 | Agent | `frontend-dev`      | Code l'application Angular, interface comprise                                                            |
+| Agent | `pentest-actif`     | Teste en dynamique une app Spring Boot qui tourne (requêtes réelles), sur une cible autorisée             |
 
 Les skills sont des règles que Claude applique quand ta demande correspond. Les agents sont des assistants spécialisés que tu appelles par leur nom.
 
@@ -37,6 +39,7 @@ Utilise l'agent backend-dev pour créer un CRUD « Produit » avec ses tests.
 Utilise l'agent reviewer pour relire mes derniers changements.
 Utilise l'agent security-reviewer pour auditer l'authentification.
 Utilise l'agent frontend-dev pour créer la page de liste des produits.
+Utilise l'agent pentest-actif pour tester en dynamique mon API sur http://localhost:8080 (j'autorise le test, voici deux comptes).
 ```
 
 | Besoin                                            | Agent               |
@@ -45,8 +48,9 @@ Utilise l'agent frontend-dev pour créer la page de liste des produits.
 | Relire la qualité du code Java                    | `reviewer`          |
 | Relire la sécurité du back-end                    | `security-reviewer` |
 | Écrire ou modifier du code Angular et l'interface | `frontend-dev`      |
+| Tester une app Spring Boot qui tourne (DAST)      | `pentest-actif`     |
 
-`reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent.
+`reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent. `pentest-actif` envoie de vraies requêtes : il ne teste qu'une application que tu possèdes ou es autorisé à tester, te demande la cible et deux comptes avant de commencer, et s'arrête à la preuve de la faille.
 
 ### Utiliser les skills
 
