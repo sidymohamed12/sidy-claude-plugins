@@ -1,0 +1,52 @@
+{
+  "titre": "Le bureau de Sidy",
+  "ordre": [
+    "backend-dev",
+    "frontend-dev",
+    "reviewer",
+    "security-reviewer",
+    "pentest-actif"
+  ],
+  "agents": {
+    "claude": {
+      "role": "Chef d'orchestre",
+      "couleur": "#2F4B8F",
+      "peau": 4,
+      "accessoire": "cravate"
+    },
+    "backend-dev": {
+      "role": "Code le back-end Spring Boot",
+      "couleur": "#2E9E5B",
+      "peau": 2,
+      "cheveux": "#141414",
+      "accessoire": "casque"
+    },
+    "frontend-dev": {
+      "role": "Code l'Angular et l'interface",
+      "couleur": "#E8618C",
+      "peau": 5,
+      "cheveux": "#3B2A20",
+      "accessoire": "chignon"
+    },
+    "reviewer": {
+      "role": "Relit le code façon Sonar",
+      "couleur": "#7A4FD8",
+      "peau": 3,
+      "cheveux": "#1E1E1E",
+      "accessoire": "lunettes"
+    },
+    "security-reviewer": {
+      "role": "Relit la sécurité",
+      "couleur": "#1F8A8A",
+      "peau": 1,
+      "cheveux": "#141414",
+      "accessoire": "casquette"
+    },
+    "pentest-actif": {
+      "role": "Teste l'app qui tourne",
+      "couleur": "#232A36",
+      "peau": 3,
+      "accessoire": "capuche"
+    }
+  }
+}

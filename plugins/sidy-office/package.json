@@ -1,0 +1,14 @@
+{
+  "name": "sidy-office",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bureau pixel art des agents Claude Code de Sidy",
+  "scripts": {
+    "start": "node server/start.js --open",
+    "serve": "node server/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

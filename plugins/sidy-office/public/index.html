@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Le bureau des agents</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="stage" aria-label="Le bureau">
+        <header class="topbar">
+          <h1 id="title">Le bureau des agents</h1>
+          <p class="connection" id="connection" data-state="connecting">
+            Connexion…
+          </p>
+          <button type="button" id="demo" class="demo">Voir une démo</button>
+        </header>
+        <p class="config-error" id="config-error" role="alert" hidden></p>
+        <div class="canvas-wrap">
+          <canvas
+            id="office"
+            aria-label="Bureau en pixel art où chaque agent travaille à son poste"
+          ></canvas>
+          <div class="tooltip" id="tooltip" hidden></div>
+        </div>
+        <ul class="legend" id="legend" aria-label="Légende des états"></ul>
+        <p class="offline" id="offline" hidden>
+          Le serveur du bureau ne répond pas. Il démarre tout seul avec Claude
+          Code ; sinon lance <code>node server/start.js</code> dans le dossier
+          du plugin.
+        </p>
+      </section>
+
+      <aside class="panel">
+        <section aria-labelledby="team-title">
+          <h2 id="team-title">L'équipe</h2>
+          <ul class="team" id="team"></ul>
+        </section>
+        <section aria-labelledby="feed-title" class="feed-section">
+          <h2 id="feed-title">Activité</h2>
+          <ol class="feed" id="feed"></ol>
+        </section>
+      </aside>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

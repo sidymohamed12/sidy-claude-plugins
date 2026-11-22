@@ -63,6 +63,16 @@ Applique les conventions spring-boot-sidy à ce service.
 Rappelle-moi les règles angular-sidy sur les états de données.
 ```
 
+## Voir les agents travailler (plugin `sidy-office`)
+
+Un second plugin, optionnel, affiche un bureau en pixel art où Claude et chaque agent ont leur poste. On voit en direct qui travaille, sur quel fichier, quelle commande tourne, et qui attend ta permission. Il détecte tout seul les agents installés (les tiens ou ceux de n'importe quel plugin), et se personnalise avec un fichier `sidy-office.json`.
+
+```
+/plugin install sidy-office@sidy
+```
+
+Relance Claude Code, puis ouvre http://localhost:4848 (ou tape `/sidy-office:bureau`). Il faut Node.js 20 ou plus récent. Pour retrouver les personnages et les rôles de l'équipe sidy-dev, copie `plugins/sidy-office/exemples/sidy-office.json` dans `~/.claude/`. Détails dans [plugins/sidy-office/README.md](plugins/sidy-office/README.md).
+
 ## Mettre à jour
 
 Quand une nouvelle version est publiée :
