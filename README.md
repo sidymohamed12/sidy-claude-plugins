@@ -1,28 +1,19 @@
-# sidy-claude-plugins
+# sidy-dev : skills et agents Claude Code
 
-Marketplace Claude Code de Sidy. Il contient un plugin, **`sidy-dev`**, qui regroupe :
+Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot et Angular) : 2 skills et 4 agents prêts à l'emploi.
 
-| Type | Nom | Rôle |
-|---|---|---|
-| Skill | `spring-boot-sidy` | Conventions back-end Spring Boot (Clean Architecture, DDD, Sonar, sécurité, tests) |
-| Skill | `angular-sidy` | Conventions Angular 21 (signals, Tailwind v4, états de données, SEO, design) |
-| Agent | `backend-dev` | Code Spring Boot et ses tests, lance le build |
-| Agent | `reviewer` | Revue qualité façon Sonar (lecture seule) |
-| Agent | `security-reviewer` | Revue sécurité (lecture seule) |
-| Agent | `frontend-dev` | Code Angular, design d'interface compris |
+## Ce que contient le plugin
 
-## Structure
+| Type  | Nom                 | À quoi il sert                                                                                            |
+| ----- | ------------------- | --------------------------------------------------------------------------------------------------------- |
+| Skill | `spring-boot-sidy`  | Conventions back-end : Clean Architecture, DDD, SOLID, TDD, règles Sonar, sécurité, Flyway, Redis, Docker |
+| Skill | `angular-sidy`      | Conventions Angular 21 : signals, zoneless, Tailwind v4, états de données, SEO, design                    |
+| Agent | `backend-dev`       | Code le back-end Spring Boot avec ses tests et lance le build                                             |
+| Agent | `reviewer`          | Relit le code façon Sonar (lecture seule)                                                                 |
+| Agent | `security-reviewer` | Relit la sécurité du back-end (lecture seule)                                                             |
+| Agent | `frontend-dev`      | Code l'application Angular, interface comprise                                                            |
 
-```
-sidy-claude-plugins/
-├── .claude-plugin/marketplace.json
-└── plugins/sidy-dev/
-    ├── .claude-plugin/plugin.json
-    ├── skills/
-    │   ├── spring-boot-sidy/   SKILL.md + references/
-    │   └── angular-sidy/       SKILL.md
-    └── agents/                 les 4 agents (.md)
-```
+Les skills sont des règles que Claude applique quand ta demande correspond. Les agents sont des assistants spécialisés que tu appelles par leur nom.
 
 ## Installation
 
@@ -33,17 +24,61 @@ Dans Claude Code :
 /plugin install sidy-dev@sidy
 ```
 
-Relance ensuite Claude Code. Les agents et les skills sont alors disponibles dans tous tes projets.
+Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 2 skills et ses 4 agents.
 
-## Proposer l'installation à l'ouverture d'un projet
+## Utilisation
 
-Pour que Claude Code propose le plugin à toute personne qui ouvre un projet, copie `templates/project-settings.json` dans le projet sous `.claude/settings.json` (ou fusionne-le s'il existe déjà), puis commite-le :
+### Appeler un agent
+
+Nomme l'agent dans ta demande :
+
+```
+Utilise l'agent backend-dev pour créer un CRUD « Produit » avec ses tests.
+Utilise l'agent reviewer pour relire mes derniers changements.
+Utilise l'agent security-reviewer pour auditer l'authentification.
+Utilise l'agent frontend-dev pour créer la page de liste des produits.
+```
+
+| Besoin                                            | Agent               |
+| ------------------------------------------------- | ------------------- |
+| Écrire ou modifier du code Spring Boot            | `backend-dev`       |
+| Relire la qualité du code Java                    | `reviewer`          |
+| Relire la sécurité du back-end                    | `security-reviewer` |
+| Écrire ou modifier du code Angular et l'interface | `frontend-dev`      |
+
+`reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent.
+
+### Utiliser les skills
+
+Les skills s'activent seuls quand tu parles de Spring Boot ou d'Angular. Tu peux aussi les demander directement :
+
+```
+Applique les conventions spring-boot-sidy à ce service.
+Rappelle-moi les règles angular-sidy sur les états de données.
+```
+
+## Mettre à jour
+
+Quand une nouvelle version est publiée :
+
+```
+/plugin marketplace update sidy
+```
+
+Relance ensuite Claude Code.
+
+## Proposer le plugin à toute l'équipe d'un projet
+
+Pour que Claude Code propose le plugin à chaque personne qui ouvre ton projet, ajoute ce fichier dans le projet sous `.claude/settings.json` (ou fusionne-le s'il existe déjà), puis commite-le :
 
 ```json
 {
   "extraKnownMarketplaces": {
     "sidy": {
-      "source": { "source": "github", "repo": "sidymohamed12/sidy-claude-plugins" },
+      "source": {
+        "source": "github",
+        "repo": "sidymohamed12/sidy-claude-plugins"
+      },
       "autoUpdate": true
     }
   },
@@ -53,36 +88,16 @@ Pour que Claude Code propose le plugin à toute personne qui ouvre un projet, co
 }
 ```
 
-Fonctionnement :
+Bon à savoir :
 
-- Le marketplace n'est enregistré qu'après acceptation de la **fenêtre de confiance du dossier** (« trust ») par la personne. Dans un dossier non approuvé, ces entrées sont ignorées sans message.
-- Le plugin est ensuite activé au démarrage de la session suivante.
-- Si le dépôt du marketplace est **privé**, chaque personne doit avoir accès en lecture à `sidymohamed12/sidy-claude-plugins`.
-- `autoUpdate: true` garde le marketplace et ses plugins à jour en arrière-plan ; mets `false` pour désactiver.
-- Pour vérifier, lance `/plugin` : `sidy-dev` doit apparaître.
+- Le plugin n'est proposé qu'après que la personne a accepté la fenêtre de confiance du dossier (« trust »).
+- Il est activé au démarrage de la session suivante.
+- `autoUpdate: true` garde le plugin à jour automatiquement ; mets `false` pour désactiver.
+- Si le dépôt est privé, chaque personne doit avoir accès en lecture à `sidymohamed12/sidy-claude-plugins`.
+- Ne mets pas `.claude/settings.json` dans le `.gitignore` du projet : il doit être partagé.
 
-## Utilisation
+## Dépannage
 
-Nomme l'agent dans ta demande :
-
-```
-Utilise l'agent backend-dev pour créer un CRUD « Produit » avec ses tests.
-Utilise l'agent reviewer pour relire mes derniers changements.
-```
-
-## Mettre à jour le plugin
-
-1. Modifie un skill ou un agent dans `plugins/sidy-dev/`.
-2. Augmente `version` dans `plugins/sidy-dev/.claude-plugin/plugin.json` **et** dans `.claude-plugin/marketplace.json` (sans nouvelle version, les installations existantes peuvent ne pas voir le changement).
-3. Commit et push sur GitHub.
-4. Chaque personne met à jour avec :
-
-```
-/plugin marketplace update sidy
-```
-
-puis relance Claude Code.
-
-## Références du skill Spring Boot
-
-`plugins/sidy-dev/skills/spring-boot-sidy/references/` contient les six fichiers cités par le skill : `securite.md`, `concurrence-idempotence.md`, `infra.md`, `clean-code.md`, `sonar.md`, `api-docs.md`.
+- **Les agents n'apparaissent pas** : relance Claude Code après l'installation, puis vérifie avec `/plugin`.
+- **Un agent répond de façon générique** : demande-lui de lister ses règles non négociables. S'il n'en connaît aucune, le skill n'est pas chargé : mets à jour le plugin et relance.
+- **Doublon d'agent ou de skill** : supprime ta copie locale (`~/.claude/agents/`, `~/.claude/skills/`) pour ne garder que celle du plugin.

@@ -1,7 +1,10 @@
 {
   "extraKnownMarketplaces": {
     "sidy": {
-      "source": { "source": "github", "repo": "sidymohamed12/sidy-claude-plugins" },
+      "source": {
+        "source": "github",
+        "repo": "sidymohamed12/sidy-claude-plugins"
+      },
       "autoUpdate": true
     }
   },

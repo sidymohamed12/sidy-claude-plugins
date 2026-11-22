@@ -1,6 +1,6 @@
 # Clean code — référence détaillée
 
-À lire **avant d'écrire, de relire ou de refactorer du code Java**. Ces principes (Robert C. Martin, *Clean Code*) s'appliquent à tout le code du projet, y compris les tests. En cas de doute, la lisibilité par un autre développeur prime.
+À lire **avant d'écrire, de relire ou de refactorer du code Java**. Ces principes (Robert C. Martin, _Clean Code_) s'appliquent à tout le code du projet, y compris les tests. En cas de doute, la lisibilité par un autre développeur prime.
 
 ## Sommaire
 
@@ -31,7 +31,7 @@
 - **Une seule chose à faire, et la faire bien.**
 - **Un seul niveau d'abstraction** par fonction : ne pas mélanger orchestration de haut niveau et détails (formatage, accès bas niveau).
 - **Peu d'arguments** : 0 à 2 idéalement, **4 maximum**. Au-delà : objet de paramètres (`record`) ou Builder. Un constructeur privé derrière un Builder est exempté.
-- **Pas d'argument booléen** (*flag argument*) : deux méthodes explicites.
+- **Pas d'argument booléen** (_flag argument_) : deux méthodes explicites.
 - **Pas d'effets de bord cachés** : une méthode ne fait que ce que son nom annonce (`checkPassword` n'initialise pas de session).
 - **Séparer commande et requête** : une fonction fait quelque chose (`void`) **ou** retourne quelque chose, pas les deux. Exceptions pragmatiques tolérées : le `save` d'un port qui retourne l'agrégat persisté, et un use case de création qui retourne l'identifiant ou le résultat créé.
 - **Exceptions plutôt que codes d'erreur** (jamais de `-1`, `null` ou `false` pour signaler une erreur).
@@ -66,7 +66,7 @@ private void publishOrderConfirmed(Order order) { … }
 Un commentaire sert **uniquement** de **documentation** ou d'**explication**, dans la langue choisie pour le projet.
 
 - **Documentation** : Javadoc sur les API publiques non évidentes (ports, use cases, façades, endpoints) : rôle, paramètres, exceptions levées, effets importants.
-- **Explication** : le *pourquoi* d'un choix non évident (règle métier, contournement, contrainte d'un système externe, décision consignée dans un ADR), jamais le *quoi*.
+- **Explication** : le _pourquoi_ d'un choix non évident (règle métier, contournement, contrainte d'un système externe, décision consignée dans un ADR), jamais le _quoi_.
 - **À proscrire** : commentaire qui répète le code, code commenté (Git garde l'historique), signature ou journal de modifications, `TODO` sans explication, bannières décoratives.
 - Si un commentaire est nécessaire pour comprendre ce que fait un bloc, extraire une méthode au nom explicite.
 
@@ -93,7 +93,7 @@ String normalizedNumber = phoneNumberNormalizer.normalize(rawNumber);
 
 ## 5. Objets et structures de données
 
-- **Loi de Déméter** : ne parler qu'à ses proches voisins. `a.getB().getC().doSomething()` est à éviter : demander à `a` de faire le travail (*Tell, don't ask*).
+- **Loi de Déméter** : ne parler qu'à ses proches voisins. `a.getB().getC().doSomething()` est à éviter : demander à `a` de faire le travail (_Tell, don't ask_).
 - **Les objets cachent leurs données et exposent des comportements** (`account.withdraw(amount)`) ; **les structures de données exposent leurs données** sans logique (DTO, commandes, en `record`).
 - Pas d'hybride (moitié objet, moitié structure) : une entité de domaine pleine de getters/setters publics et sans comportement est à éviter.
 
@@ -129,11 +129,13 @@ public class OrderNotFoundException extends NotFoundException {
 **Tests obligatoires pour tout nouveau code.**
 
 **Les 3 lois du TDD**
+
 1. Pas de code de production sans un test qui échoue d'abord.
 2. Écrire juste assez de test pour échouer (un échec de compilation compte comme un échec).
 3. Écrire juste assez de code de production pour passer le test.
 
 **Les tests suivent les règles F.I.R.S.T.**
+
 - **Fast** : rapides (les tests unitaires tournent sans Spring, en millisecondes).
 - **Independent** : aucun test ne dépend d'un autre ni de l'ordre d'exécution, pas d'état partagé.
 - **Repeatable** : même résultat partout (temps via `Clock`, pas de dépendance à l'environnement ; Testcontainers pour PostgreSQL et Redis).
@@ -141,9 +143,10 @@ public class OrderNotFoundException extends NotFoundException {
 - **Timely** : écrits au bon moment, **avant** le code de production.
 
 Autres règles :
+
 - **Un concept par test** (idéalement un seul `assert`) ; plusieurs assertions AssertJ sont acceptées si elles vérifient un même concept.
 - **Le code de test est aussi important que le code de production** : mêmes règles de noms, constantes, builders, `Month.X`, pas de duplication.
-- **Une seule invocation susceptible de lever une exception dans une lambda d'assertion** (`assertThrows`, `assertThatThrownBy`, `assertThatExceptionOfType`…), règle Sonar S5778 (« Refactor the code of the lambda to have only one invocation possibly throwing a runtime exception »). Sinon on ne sait pas quel appel a levé l'exception, et le test peut passer pour une mauvaise raison (par exemple un `NullPointerException` levé par la préparation des données). Tout ce qui sert à préparer la valeur (construction d'objets, appels de méthodes, `builder().build()`, récupération depuis une liste ou une `Map`) sort de la lambda, dans la partie *given*, vers des variables locales ; la lambda ne contient que l'appel testé.
+- **Une seule invocation susceptible de lever une exception dans une lambda d'assertion** (`assertThrows`, `assertThatThrownBy`, `assertThatExceptionOfType`…), règle Sonar S5778 (« Refactor the code of the lambda to have only one invocation possibly throwing a runtime exception »). Sinon on ne sait pas quel appel a levé l'exception, et le test peut passer pour une mauvaise raison (par exemple un `NullPointerException` levé par la préparation des données). Tout ce qui sert à préparer la valeur (construction d'objets, appels de méthodes, `builder().build()`, récupération depuis une liste ou une `Map`) sort de la lambda, dans la partie _given_, vers des variables locales ; la lambda ne contient que l'appel testé.
 
 ```java
 // ❌ plusieurs appels pouvant lever une exception dans la lambda
@@ -177,7 +180,7 @@ Un appel enchaîné sur le résultat d'un autre (`service.find(id).orElseThrow()
   - Une façade par controller ou par sous-domaine cohérent, jamais une façade « fourre-tout ».
   - Elle ne fait que **déléguer et orchestrer** : aucune logique métier, aucun DTO web, les transactions restent sur les use cases.
   - Elle n'expose que les méthodes dont le controller a besoin (ségrégation des interfaces).
-  - Si la façade dépasse elle-même le seuil, la découper par sous-domaine : une façade ne doit pas devenir une *god class*.
+  - Si la façade dépasse elle-même le seuil, la découper par sous-domaine : une façade ne doit pas devenir une _god class_.
 
 ```java
 // ❌ controller à 6 dépendances
@@ -247,6 +250,7 @@ private boolean shouldBeDeleted(Timer timer) {
 ## 11. Les 4 règles de la conception simple (Kent Beck, reprises par Martin)
 
 Dans cet ordre de priorité, le code doit :
+
 1. **Passer tous les tests.**
 2. **Ne contenir aucune duplication.**
 3. **Exprimer l'intention du développeur.**

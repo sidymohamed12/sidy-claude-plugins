@@ -32,14 +32,14 @@ La protection CSRF est **toujours traitée explicitement**, jamais désactivée 
 
 ### Schéma par défaut (SPA Angular + API, clients web et mobile)
 
-| Élément | Choix |
-|---|---|
-| Refresh token (web) | Cookie `HttpOnly; Secure; SameSite=Strict`, `Path` limité (`/api/v1/auth`). Illisible par JavaScript : une faille XSS ne peut pas le voler. |
-| Access token | Court (5–15 min), renvoyé dans le corps de la réponse, gardé **en mémoire** côté front, envoyé en `Authorization: Bearer`. **Jamais** dans `localStorage` ni `sessionStorage`. |
-| Requêtes en Bearer | Non exploitables par CSRF (le navigateur n'ajoute pas l'en-tête tout seul) : pas de jeton CSRF exigé. |
-| Requêtes modifiantes portant le cookie d'authentification (`/auth/refresh`, `/auth/logout`) | Jeton CSRF **obligatoire** : cookie `XSRF-TOKEN` + en-tête `X-XSRF-TOKEN`. |
-| Toute requête modifiante (`POST`, `PUT`, `PATCH`, `DELETE`) | Vérification `Origin` / `Sec-Fetch-Site` (couche supplémentaire, couvre aussi le *login CSRF*). |
-| Clients mobile | Jetons dans le corps de la réponse, stockage sécurisé, **aucun cookie** : hors CSRF. |
+| Élément                                                                                     | Choix                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Refresh token (web)                                                                         | Cookie `HttpOnly; Secure; SameSite=Strict`, `Path` limité (`/api/v1/auth`). Illisible par JavaScript : une faille XSS ne peut pas le voler.                                    |
+| Access token                                                                                | Court (5–15 min), renvoyé dans le corps de la réponse, gardé **en mémoire** côté front, envoyé en `Authorization: Bearer`. **Jamais** dans `localStorage` ni `sessionStorage`. |
+| Requêtes en Bearer                                                                          | Non exploitables par CSRF (le navigateur n'ajoute pas l'en-tête tout seul) : pas de jeton CSRF exigé.                                                                          |
+| Requêtes modifiantes portant le cookie d'authentification (`/auth/refresh`, `/auth/logout`) | Jeton CSRF **obligatoire** : cookie `XSRF-TOKEN` + en-tête `X-XSRF-TOKEN`.                                                                                                     |
+| Toute requête modifiante (`POST`, `PUT`, `PATCH`, `DELETE`)                                 | Vérification `Origin` / `Sec-Fetch-Site` (couche supplémentaire, couvre aussi le _login CSRF_).                                                                                |
+| Clients mobile                                                                              | Jetons dans le corps de la réponse, stockage sécurisé, **aucun cookie** : hors CSRF.                                                                                           |
 
 Configuration Spring Security (Spring Security 6+ ; vérifier l'API exacte selon la version du projet) :
 
@@ -117,13 +117,13 @@ Filtre `OriginCheckFilter` (`OncePerRequestFilter`, dans `shared/infrastructure/
 
 ### Techniques, de la plus faible à la plus solide
 
-| Technique | Rôle |
-|---|---|
-| `SameSite` seul | Une couche utile, jamais suffisante seule (attaques depuis un sous-domaine, navigations de premier niveau en `Lax`). |
-| Vérification `Origin` / `Sec-Fetch-Site` | Couche moderne recommandée par l'OWASP, simple à ajouter. |
-| Double-submit cookie (Spring `CookieCsrfTokenRepository`) | Convient à une API stateless, mais le jeton n'est pas signé : compenser par `SameSite=Strict`, HTTPS, et en option un cookie préfixé `__Host-` (nom configurable côté Spring et via `withXsrfConfiguration` côté Angular). |
-| Jeton synchronisé (stocké côté serveur) | Le plus solide, mais exige une session côté serveur. |
-| **BFF** (Backend-for-Frontend) | Les jetons n'atteignent jamais le navigateur, seulement un cookie de session `HttpOnly` + jeton CSRF sur toutes les requêtes modifiantes. Niveau maximum, plus lourd : à proposer pour les projets sensibles (santé, paiement, données personnelles). |
+| Technique                                                 | Rôle                                                                                                                                                                                                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SameSite` seul                                           | Une couche utile, jamais suffisante seule (attaques depuis un sous-domaine, navigations de premier niveau en `Lax`).                                                                                                                                  |
+| Vérification `Origin` / `Sec-Fetch-Site`                  | Couche moderne recommandée par l'OWASP, simple à ajouter.                                                                                                                                                                                             |
+| Double-submit cookie (Spring `CookieCsrfTokenRepository`) | Convient à une API stateless, mais le jeton n'est pas signé : compenser par `SameSite=Strict`, HTTPS, et en option un cookie préfixé `__Host-` (nom configurable côté Spring et via `withXsrfConfiguration` côté Angular).                            |
+| Jeton synchronisé (stocké côté serveur)                   | Le plus solide, mais exige une session côté serveur.                                                                                                                                                                                                  |
+| **BFF** (Backend-for-Frontend)                            | Les jetons n'atteignent jamais le navigateur, seulement un cookie de session `HttpOnly` + jeton CSRF sur toutes les requêtes modifiantes. Niveau maximum, plus lourd : à proposer pour les projets sensibles (santé, paiement, données personnelles). |
 
 ### Cas particuliers
 
@@ -191,6 +191,7 @@ app:
   security:
     bloquer-navigation-directe: ${BLOQUER_NAVIGATION_DIRECTE:true}
 ```
+
 - Limites à documenter : `Sec-Fetch-Mode` ne peut pas être falsifié par du JavaScript dans un navigateur, mais n'importe quel outil hors navigateur peut l'omettre ou l'imiter. C'est un durcissement contre l'affichage direct et le copier-coller, **pas** un mécanisme d'authentification : l'authentification et l'autorisation restent obligatoires.
 - Conséquence pour le front : un téléchargement de fichier par simple lien `<a href="/api/...">` serait bloqué (navigation). Passer par `HttpClient` en `blob` puis déclencher le téléchargement, ou exclure explicitement l'endpoint concerné.
 - Tests : `Sec-Fetch-Mode: navigate` → `403` ; `no-cors` → `403` ; `cors` → `200` ; en-tête absent → `200`.
@@ -222,16 +223,16 @@ springdoc:
 
 ## 9. CORS
 
-CORS autorise le navigateur à lire une réponse d'une origine différente ; ce n'est **pas** un mécanisme d'authentification. Il est configuré à **un seul endroit** (`config/CorsConfig`) et branché dans la `SecurityFilterChain` (`.cors(Customizer.withDefaults())`), pour que le *preflight* `OPTIONS` soit traité **avant** l'authentification, le CSRF et le rate-limiting.
+CORS autorise le navigateur à lire une réponse d'une origine différente ; ce n'est **pas** un mécanisme d'authentification. Il est configuré à **un seul endroit** (`config/CorsConfig`) et branché dans la `SecurityFilterChain` (`.cors(Customizer.withDefaults())`), pour que le _preflight_ `OPTIONS` soit traité **avant** l'authentification, le CSRF et le rate-limiting.
 
 ```yaml
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS}          # liste séparée par des virgules ; en dev : http://localhost:4200
+    allowed-origins: ${CORS_ALLOWED_ORIGINS} # liste séparée par des virgules ; en dev : http://localhost:4200
     allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
     allowed-headers: Authorization,Content-Type,X-XSRF-TOKEN,X-Request-Id
     exposed-headers: Location,X-Request-Id,Retry-After
-    allow-credentials: true                            # cookie de refresh token
+    allow-credentials: true # cookie de refresh token
     max-age-seconds: 3600
 ```
 

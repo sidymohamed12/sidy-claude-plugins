@@ -208,15 +208,15 @@ public abstract class ForbiddenException extends DomainException { /* 403 */ }
 public class CourseNotFoundException extends NotFoundException { … }
 ```
 
-| Exception | Statut |
-|---|---|
-| `NotFoundException` | 404 |
-| `ConflictException`, `OptimisticLockingFailureException`, violation de contrainte d'unicité | 409 |
-| `BusinessRuleException` | 422 |
-| `ForbiddenException`, `AccessDeniedException` | 403 |
-| `MethodArgumentNotValidException`, `ConstraintViolationException`, corps illisible | 400 (avec la liste des erreurs par champ) |
-| Rate-limit dépassé | 429 (+ `Retry-After`) |
-| `Exception` (inattendue) | 500, message générique, jamais de stack trace dans la réponse |
+| Exception                                                                                   | Statut                                                        |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `NotFoundException`                                                                         | 404                                                           |
+| `ConflictException`, `OptimisticLockingFailureException`, violation de contrainte d'unicité | 409                                                           |
+| `BusinessRuleException`                                                                     | 422                                                           |
+| `ForbiddenException`, `AccessDeniedException`                                               | 403                                                           |
+| `MethodArgumentNotValidException`, `ConstraintViolationException`, corps illisible          | 400 (avec la liste des erreurs par champ)                     |
+| Rate-limit dépassé                                                                          | 429 (+ `Retry-After`)                                         |
+| `Exception` (inattendue)                                                                    | 500, message générique, jamais de stack trace dans la réponse |
 
 ```java
 @Slf4j

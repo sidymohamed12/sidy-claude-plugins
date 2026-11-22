@@ -7,7 +7,7 @@
 1. Profils YAML
 2. `.env.example` toujours synchronisé
 3. Règle du time zone (valeur lue dans le YAML)
-3 bis. Pool de connexions HikariCP
+   3 bis. Pool de connexions HikariCP
 4. Cache Redis
 5. Tâches planifiées avec ShedLock
 6. Logs essentiels et rétention
@@ -19,19 +19,19 @@
 
 Spring ne charge un profil que si le fichier suit la convention `application-<profil>.yml` : c'est donc `application-dev.yml`, `application-prod.yml`, `application-test.yml` (pour ce que l'on appelle « app-dev / app-prod / app-test »).
 
-| Fichier | Rôle |
-|---|---|
-| `application.yml` | Socle commun : nom de l'app, `app.timezone` (défaut UTC), pool Hikari, `ddl-auto: validate`, `open-in-view: false`, Flyway, probes Actuator, cache, limites par défaut. Aucun secret. |
-| `application-dev.yml` | Swagger activé (racine), logs en console niveau `DEBUG` sur les packages de l'app, valeurs locales pratiques (PostgreSQL et Redis locaux). |
-| `application-test.yml` | Tests : Testcontainers, hash de mot de passe rapide, limites de débit très hautes, schedulers désactivés. |
-| `application-prod.yml` | **Uniquement des variables d'environnement**, aucune valeur par défaut pour un secret, Swagger désactivé, logs `INFO`, erreurs sans détail technique. |
+| Fichier                | Rôle                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `application.yml`      | Socle commun : nom de l'app, `app.timezone` (défaut UTC), pool Hikari, `ddl-auto: validate`, `open-in-view: false`, Flyway, probes Actuator, cache, limites par défaut. Aucun secret. |
+| `application-dev.yml`  | Swagger activé (racine), logs en console niveau `DEBUG` sur les packages de l'app, valeurs locales pratiques (PostgreSQL et Redis locaux).                                            |
+| `application-test.yml` | Tests : Testcontainers, hash de mot de passe rapide, limites de débit très hautes, schedulers désactivés.                                                                             |
+| `application-prod.yml` | **Uniquement des variables d'environnement**, aucune valeur par défaut pour un secret, Swagger désactivé, logs `INFO`, erreurs sans détail technique.                                 |
 
 **Profil par défaut : `dev`.** Sans profil explicite, l'application démarre en `dev` (Swagger, logs `DEBUG`, PostgreSQL et Redis locaux), ce qui donne un lancement local sans configuration. C'est `application.yml` qui le déclare :
 
 ```yaml
 spring:
   profiles:
-    default: dev          # utilisé uniquement si aucun profil n'est activé
+    default: dev # utilisé uniquement si aucun profil n'est activé
 ```
 
 - `spring.profiles.default` s'efface dès qu'un profil est activé : `SPRING_PROFILES_ACTIVE=prod` (ou `test`) suffit à le remplacer, sans modifier le fichier.
@@ -197,7 +197,7 @@ spring:
       max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
       keepalive-time: ${DB_POOL_KEEPALIVE_MS:300000}
       validation-timeout: 5000
-      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:0}   # 0 = désactivé
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:0} # 0 = désactivé
 ```
 
 - **Taille du pool** : petite et calculée, pas « le plus grand possible ». Règle de départ : `maximum-pool-size` ≈ nombre de cœurs du serveur de base × 2 + disques, puis mesurer. Surtout : `max_connections` de PostgreSQL ≥ (taille du pool × nombre d'instances de l'application) + marge pour l'administration et les migrations.
@@ -377,11 +377,11 @@ ENTRYPOINT ["java", "-jar", "application.jar"]
 
 Trois fichiers à la racine :
 
-| Fichier | Usage |
-|---|---|
-| `docker-compose.dev.yml` | **Dev complet** : l'application + PostgreSQL + Redis + services annexes, tout dans Docker. |
+| Fichier                      | Usage                                                                                                                                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker-compose.dev.yml`     | **Dev complet** : l'application + PostgreSQL + Redis + services annexes, tout dans Docker.                                                                                                                                |
 | `docker-compose.mid-dev.yml` | **Mid-dev** : uniquement Redis et les services annexes (mail catcher, stockage objet…), **sans PostgreSQL** car il tourne déjà sur la machine ; l'app se lance depuis l'IDE en profil `dev` et se connecte à `localhost`. |
-| `docker-compose.prod.yml` | **Prod** : image publiée de l'app, variables via `.env`, aucun port interne exposé, redémarrage automatique, limites de ressources, volume de logs. |
+| `docker-compose.prod.yml`    | **Prod** : image publiée de l'app, variables via `.env`, aucun port interne exposé, redémarrage automatique, limites de ressources, volume de logs.                                                                       |
 
 Socle commun à respecter : healthchecks sur chaque service, `depends_on` avec `condition: service_healthy`, volumes nommés, `TZ=${APP_TIMEZONE:-UTC}`, versions d'images épinglées.
 
@@ -450,7 +450,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       TZ: ${APP_TIMEZONE:-UTC}
     restart: unless-stopped
-    ports: ["8080:8080"]          # ou derrière un reverse proxy, sans publier le port
+    ports: ["8080:8080"] # ou derrière un reverse proxy, sans publier le port
     volumes: [app-logs:/var/log/app]
     security_opt: ["no-new-privileges:true"]
     deploy:
@@ -464,10 +464,14 @@ services:
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-    restart: unless-stopped        # aucun port publié : joignable seulement par le réseau Compose
+    restart: unless-stopped # aucun port publié : joignable seulement par le réseau Compose
     volumes: [redis-data:/data]
     healthcheck:
-      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep PONG"]
+      test:
+        [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep PONG",
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -491,7 +495,7 @@ docs/
 └── flows/      flux de certains processus métier ou techniques
 ```
 
-- **`adr/`** : fichiers `0001-titre-en-kebab-case.md` (format MADR : *Titre, Statut, Date, Contexte, Décision, Conséquences, Alternatives écartées*) + un `README.md` qui indexe les ADR. Un ADR est créé à chaque décision structurante : choix d'architecture, CSRF avec/sans cookie, comportement si Redis tombe, stratégie de cache, rétention des logs, etc. Un ADR accepté n'est jamais réécrit : on en crée un nouveau qui le remplace.
+- **`adr/`** : fichiers `0001-titre-en-kebab-case.md` (format MADR : _Titre, Statut, Date, Contexte, Décision, Conséquences, Alternatives écartées_) + un `README.md` qui indexe les ADR. Un ADR est créé à chaque décision structurante : choix d'architecture, CSRF avec/sans cookie, comportement si Redis tombe, stratégie de cache, rétention des logs, etc. Un ADR accepté n'est jamais réécrit : on en crée un nouveau qui le remplace.
 - **`http/`** : un fichier `.http` par feature (compatible IntelliJ HTTP Client et extension REST Client de VS Code) couvrant **chaque endpoint** : cas nominal et principaux cas d'erreur (`400`, `401`, `403`, `404`). Variables dans `http-client.env.json` (`baseUrl`…) ; jetons et secrets dans `http-client.private.env.json`, **ignoré par Git**. Mis à jour à chaque ajout ou modification d'endpoint.
 - **`diagrams/`** : diagrammes en texte (**Mermaid** par défaut, PlantUML si le projet l'utilise) pour qu'ils restent versionnables et diffables : vue d'architecture, modèle de données (ERD), diagrammes de séquence des cas d'usage clés.
 - **`flows/`** : un fichier par processus (authentification et refresh, révocation de jeton, cycle de vie d'une commande, paiement…), avec un diagramme Mermaid et quelques lignes d'explication.

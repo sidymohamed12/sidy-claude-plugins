@@ -12,6 +12,7 @@ Cible : **Angular 21** (zoneless, standalone, signals). Si le projet existant es
 ## Questions à poser au démarrage d'un nouveau projet
 
 Si ce n'est pas déjà précisé :
+
 1. SSR : oui ou non ? (site public / vitrine → souvent oui ; back-office → souvent non). Ne jamais décider à la place de l'utilisateur.
 2. Bibliothèque d'icônes : Font Awesome ou Phosphor ?
 3. Palette / typographie du projet (aucune valeur par défaut).
@@ -69,6 +70,7 @@ Toujours importer via ces alias, jamais de `../../../`.
 ### SSR (optionnel, selon le projet) & splash (toujours)
 
 **Avec SSR** :
+
 - `ng add @angular/ssr`, `outputMode: "server"`, `app.routes.server.ts` (pages statiques/légales en `Prerender`).
 - Ajouter `provideClientHydration(withEventReplay(), withHttpTransferCacheOptions({ includePostRequests: false }))`.
 - Tout accès navigateur protégé (`isPlatformBrowser`, `afterNextRender`).
@@ -133,6 +135,7 @@ Un élément reste dans sa feature ; partagé → `shared/` (UI) ou `core/` (sin
 ### Règles Sonar (côté TS / templates)
 
 Le code livré ne doit déclencher aucune alerte SonarQube / SonarLint :
+
 - **Pas de ternaires imbriqués** : extraire en `if`, fonction ou `Record` de correspondance.
 - **Pas de chaînes littérales dupliquées** : constante, enum ou union de types.
 - **Complexité cognitive faible** (≤ 15 par fonction) : découper, retours anticipés, tables de correspondance plutôt que `switch` géants.
@@ -175,21 +178,28 @@ Le code livré ne doit déclencher aucune alerte SonarQube / SonarLint :
 
 Toute zone qui affiche des données distantes (page, liste, tableau, carte KPI, détail, graphique, select alimenté par l'API) gère **tous** ces états. Aucun écran blanc, aucun spinner infini, aucune erreur silencieuse.
 
-| État | Quand | Affichage |
-|---|---|---|
-| `chargement` | Premier chargement | **Skeleton** à la forme du contenu final (mêmes dimensions, même nombre de lignes/cartes), pas un spinner centré |
-| `rechargement` | Refresh, filtre, pagination avec données déjà affichées | Données conservées + indicateur discret (barre fine, opacité réduite), pas de retour au skeleton |
-| `succes` | Données reçues | Le contenu |
-| `vide` | Réponse OK mais aucune donnée | Message explicite + icône + action utile (« Créer le premier… »). **Distinguer** « aucune donnée » de « aucun résultat pour ces filtres » (bouton « Réinitialiser les filtres ») |
-| `erreur` | 4xx/5xx, code métier | Message français clair (via la table des codes) + bouton « Réessayer » ; 403 → accès refusé, 404 → élément introuvable |
-| `hors-ligne` | Pas de connexion internet | Message « Vous êtes hors ligne » + nouvelle tentative automatique au retour du réseau |
-| `serveur-injoignable` | Back qui ne répond pas (statut `0` avec réseau actif, timeout, 502/503/504) | Message « Le service ne répond pas, réessayez dans un instant » + « Réessayer » ; ne pas confondre avec le hors-ligne |
+| État                  | Quand                                                                       | Affichage                                                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chargement`          | Premier chargement                                                          | **Skeleton** à la forme du contenu final (mêmes dimensions, même nombre de lignes/cartes), pas un spinner centré                                                                 |
+| `rechargement`        | Refresh, filtre, pagination avec données déjà affichées                     | Données conservées + indicateur discret (barre fine, opacité réduite), pas de retour au skeleton                                                                                 |
+| `succes`              | Données reçues                                                              | Le contenu                                                                                                                                                                       |
+| `vide`                | Réponse OK mais aucune donnée                                               | Message explicite + icône + action utile (« Créer le premier… »). **Distinguer** « aucune donnée » de « aucun résultat pour ces filtres » (bouton « Réinitialiser les filtres ») |
+| `erreur`              | 4xx/5xx, code métier                                                        | Message français clair (via la table des codes) + bouton « Réessayer » ; 403 → accès refusé, 404 → élément introuvable                                                           |
+| `hors-ligne`          | Pas de connexion internet                                                   | Message « Vous êtes hors ligne » + nouvelle tentative automatique au retour du réseau                                                                                            |
+| `serveur-injoignable` | Back qui ne répond pas (statut `0` avec réseau actif, timeout, 502/503/504) | Message « Le service ne répond pas, réessayez dans un instant » + « Réessayer » ; ne pas confondre avec le hors-ligne                                                            |
 
 ### Mise en œuvre
 
 - Type commun dans `shared/models/` :
   ```ts
-  export type EtatDonnees = 'chargement' | 'rechargement' | 'succes' | 'vide' | 'erreur' | 'hors-ligne' | 'serveur-injoignable';
+  export type EtatDonnees =
+    | "chargement"
+    | "rechargement"
+    | "succes"
+    | "vide"
+    | "erreur"
+    | "hors-ligne"
+    | "serveur-injoignable";
   ```
   État calculé par un `computed()` (ou dérivé de `resource()` / `httpResource()` : `isLoading()`, `error()`, `value()`), jamais par une cascade de booléens (`isLoading`, `hasError`, `isEmpty`…).
 - Classification centralisée de l'erreur dans `core/` (fonction `classerErreur(err): EtatDonnees`) : `navigator.onLine` faux → `hors-ligne` ; statut `0`, `TimeoutError`, 502/503/504 → `serveur-injoignable` ; le reste → `erreur` avec message métier.
@@ -255,6 +265,7 @@ CSS-first, pas de `tailwind.config.js` ; `.postcssrc.json` avec `@tailwindcss/po
 Ne jamais inventer d'informations légales. Avant de rédiger, poser ces questions (en un seul bloc, en sautant celles déjà connues) :
 
 **Mentions légales**
+
 - Éditeur : personne physique ou société ? Raison sociale, forme juridique, capital, NINEA / RCCM (ou SIRET/RCS hors Sénégal).
 - Adresse du siège, téléphone, email de contact.
 - Directeur de la publication.
@@ -263,6 +274,7 @@ Ne jamais inventer d'informations légales. Avant de rédiger, poser ces questio
 - Propriété des contenus, logos, photos (droits, crédits).
 
 **Politique de confidentialité**
+
 - Public visé : Sénégal uniquement (loi n° 2008-12, CDP) ou aussi l'Europe (RGPD) ?
 - Données collectées : formulaires (contact, inscription, commande), comptes, paiement, géolocalisation, données de santé ou sensibles ?
 - Finalités et bases légales (contrat, consentement, intérêt légitime, obligation légale).
@@ -272,6 +284,7 @@ Ne jamais inventer d'informations légales. Avant de rédiger, poser ces questio
 - Déclaration ou autorisation CDP effectuée ? Numéro de récépissé ?
 
 **Cookies**
+
 - Outils utilisés : analytics (Google Analytics, Matomo…), pixels publicitaires, chat, cartes, vidéos intégrées ?
 - Cookies strictement nécessaires (session, auth, panier, langue, thème).
 - Durée de validité du consentement souhaitée.
@@ -300,12 +313,14 @@ Ensuite, rédiger les pages à partir des réponses ; les infos manquantes reste
 ### Pas de look « généré par IA »
 
 Refusé systématiquement par l'utilisateur :
+
 - halos et lueurs colorées, dégradés lumineux décoratifs, glassmorphism gratuit ;
 - fonds sombres saturés par défaut (ex. vert foncé plein écran) ;
 - illustrations génériques là où une vraie photo du contexte existe ;
 - mises en page interchangeables (hero centré + 3 cartes + CTA) sans lien avec le métier.
 
 Attendu :
+
 - un concept visuel tiré du métier ou du contenu réel du projet, appliqué de façon cohérente sur tout le site (un seul thème, pas un style par page) ;
 - photos réelles plutôt qu'illustrations ;
 - motion design sobre et utile (entrées, transitions d'état), pas décoratif ;
@@ -317,16 +332,17 @@ Pour une page d'accueil, une refonte ou un choix visuel structurant : proposer d
 
 Pour trouver une idée de composant, d'interaction ou d'animation, s'inspirer de :
 
-| Site | Pour quoi |
-|---|---|
-| [reactbits.dev](https://reactbits.dev/) | Animations de texte, fonds animés, composants interactifs |
-| [uiverse.io](https://uiverse.io/) | Petits éléments en HTML/CSS : boutons, loaders, toggles, cartes, inputs |
-| [ui.shadcn.com](https://ui.shadcn.com/) | Composants d'interface sobres et accessibles : dialogues, tableaux, formulaires, menus |
-| [awwwards.com](https://www.awwwards.com/) | Direction artistique, mises en page et concepts de sites primés |
-| [21st.dev](https://21st.dev/) | Sections et composants prêts à l'emploi : hero, pricing, navbar, dashboard |
-| [freefrontend.com](https://freefrontend.com/) | Exemples CSS/JS classés par type d'élément |
+| Site                                          | Pour quoi                                                                              |
+| --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [reactbits.dev](https://reactbits.dev/)       | Animations de texte, fonds animés, composants interactifs                              |
+| [uiverse.io](https://uiverse.io/)             | Petits éléments en HTML/CSS : boutons, loaders, toggles, cartes, inputs                |
+| [ui.shadcn.com](https://ui.shadcn.com/)       | Composants d'interface sobres et accessibles : dialogues, tableaux, formulaires, menus |
+| [awwwards.com](https://www.awwwards.com/)     | Direction artistique, mises en page et concepts de sites primés                        |
+| [21st.dev](https://21st.dev/)                 | Sections et composants prêts à l'emploi : hero, pricing, navbar, dashboard             |
+| [freefrontend.com](https://freefrontend.com/) | Exemples CSS/JS classés par type d'élément                                             |
 
 Règles :
+
 - **Ces sites sont une source d'idées, pas du code à copier.** La plupart des exemples sont en React (reactbits, shadcn, 21st) : les réécrire en Angular 21 (standalone, signals, `@if`/`@for`) et en Tailwind v4 avec les tokens `@theme` du projet. Pas de dépendance React, pas de couleurs en dur reprises de l'exemple.
 - Garder seulement l'idée qui sert le contenu ou le métier ; ne pas empiler des effets parce qu'ils sont spectaculaires (cf. « Pas de look généré par IA »).
 - Toute animation reprise respecte `prefers-reduced-motion`, reste fluide (animer `transform` / `opacity`) et reste accessible au clavier.
@@ -345,6 +361,7 @@ Règles :
 ## 13. Vérification avant livraison
 
 L'utilisateur ne doit pas être celui qui trouve les bugs de base. Quand l'environnement le permet :
+
 - build sans erreur (`ng build`), aucune erreur TypeScript ni warning de template ; chunks lazy présents pour chaque feature ;
 - relecture des règles Sonar ci-dessus sur tout le code modifié ;
 - captures d'écran des écrans modifiés aux breakpoints clés (375, 768, 1440, 2560) en clair et en sombre, puis relecture critique ;

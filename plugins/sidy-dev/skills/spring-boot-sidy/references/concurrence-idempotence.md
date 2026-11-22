@@ -20,15 +20,15 @@
 
 ## 2. Éviter les race conditions
 
-| Situation | Solution |
-|---|---|
-| Deux modifications simultanées d'un même agrégat | `@Version` (verrou optimiste) → `OptimisticLockingFailureException` traitée en `409` par le handler global (le client relit puis réessaie) |
-| Compteur, stock, solde, places restantes | Mise à jour atomique en SQL : `UPDATE stock SET quantity = quantity - :n WHERE id = :id AND quantity >= :n` (0 ligne modifiée → règle métier violée), ou verrou pessimiste `PESSIMISTIC_WRITE` (`SELECT … FOR UPDATE`) sur la ligne |
-| « Créer s'il n'existe pas » | Contrainte `UNIQUE` en base + gestion de la violation (`DataIntegrityViolationException` → relecture ou `409`) ; ou `INSERT … ON CONFLICT DO NOTHING / DO UPDATE` |
-| Numéro séquentiel sans trou, référence métier | Séquence PostgreSQL, ou ligne de compteur verrouillée ; jamais `max(id) + 1` |
-| File de travail consommée par plusieurs instances | `SELECT … FOR UPDATE SKIP LOCKED` |
-| Transition d'état (`PENDING → PAID`) | Mise à jour conditionnelle `WHERE status = 'PENDING'` ; 0 ligne → déjà traité, répondre avec l'état courant |
-| Cache et base | Écrire en base d'abord, invalider le cache après le commit (`@TransactionalEventListener(AFTER_COMMIT)`), jamais avant |
+| Situation                                         | Solution                                                                                                                                                                                                                            |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deux modifications simultanées d'un même agrégat  | `@Version` (verrou optimiste) → `OptimisticLockingFailureException` traitée en `409` par le handler global (le client relit puis réessaie)                                                                                          |
+| Compteur, stock, solde, places restantes          | Mise à jour atomique en SQL : `UPDATE stock SET quantity = quantity - :n WHERE id = :id AND quantity >= :n` (0 ligne modifiée → règle métier violée), ou verrou pessimiste `PESSIMISTIC_WRITE` (`SELECT … FOR UPDATE`) sur la ligne |
+| « Créer s'il n'existe pas »                       | Contrainte `UNIQUE` en base + gestion de la violation (`DataIntegrityViolationException` → relecture ou `409`) ; ou `INSERT … ON CONFLICT DO NOTHING / DO UPDATE`                                                                   |
+| Numéro séquentiel sans trou, référence métier     | Séquence PostgreSQL, ou ligne de compteur verrouillée ; jamais `max(id) + 1`                                                                                                                                                        |
+| File de travail consommée par plusieurs instances | `SELECT … FOR UPDATE SKIP LOCKED`                                                                                                                                                                                                   |
+| Transition d'état (`PENDING → PAID`)              | Mise à jour conditionnelle `WHERE status = 'PENDING'` ; 0 ligne → déjà traité, répondre avec l'état courant                                                                                                                         |
+| Cache et base                                     | Écrire en base d'abord, invalider le cache après le commit (`@TransactionalEventListener(AFTER_COMMIT)`), jamais avant                                                                                                              |
 
 Règles complémentaires :
 

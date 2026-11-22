@@ -5,5 +5,11 @@
   "author": {
     "name": "Sidy Mohamed SAIZONOU"
   },
-  "keywords": ["spring-boot", "angular", "clean-architecture", "sonar", "code-review"]
+  "keywords": [
+    "spring-boot",
+    "angular",
+    "clean-architecture",
+    "sonar",
+    "code-review"
+  ]
 }
