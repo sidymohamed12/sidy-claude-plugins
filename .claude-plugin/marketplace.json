@@ -1,0 +1,17 @@
+{
+  "name": "sidy",
+  "owner": {
+    "name": "Sidy Mohamed SAIZONOU"
+  },
+  "metadata": {
+    "description": "Skills et agents de développement de Sidy (Spring Boot, Angular)"
+  },
+  "plugins": [
+    {
+      "name": "sidy-dev",
+      "source": "./plugins/sidy-dev",
+      "description": "Conventions Spring Boot et Angular de Sidy : 2 skills (spring-boot-sidy, angular-sidy) et 4 agents (backend-dev, reviewer, security-reviewer, frontend-dev).",
+      "version": "1.0.0"
+    }
+  ]
+}

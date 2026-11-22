@@ -1,0 +1,9 @@
+{
+  "name": "sidy-dev",
+  "version": "1.0.0",
+  "description": "Conventions Spring Boot et Angular de Sidy : 2 skills (spring-boot-sidy, angular-sidy) et 4 agents (backend-dev, reviewer, security-reviewer, frontend-dev).",
+  "author": {
+    "name": "Sidy Mohamed SAIZONOU"
+  },
+  "keywords": ["spring-boot", "angular", "clean-architecture", "sonar", "code-review"]
+}
