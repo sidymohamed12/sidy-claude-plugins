@@ -1,20 +1,23 @@
+> **Mise à jour (2026-11-23)** — nouveau skill **`design-sidy`** (design front toutes stacks : maquette d'abord, motion GSAP / Three.js, ressources gratuites) ; `angular-sidy` §11 et l'agent `frontend-dev` s'appuient dessus.
+
 > **Mise à jour (2026-11-22)** — `pentest-sidy` v2 (recon par code, matrice d'authz, budget 80 req, sinks Spring) ; agent `pentest-actif` aligné ; **pont `security-reviewer` → `pentest-actif` appliqué** (hypothèses dans le rapport + SCA lecture seule) ; `spring-boot-sidy` cible Boot **4.2.0** / Java **25** / Jackson **3**, CSRF `spa()` Security 7, starter Flyway + verrous PostgreSQL, ShedLock 7.11 avec `GRANT` via placeholder, headers `server.request.header.forwarded`, versions springdoc 3.2.1 / Bucket4j 8.23 / MapStruct 1.6.3 / Lombok 1.18.48.
 
 # sidy-dev : skills et agents Claude Code
 
-Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot et Angular) : 3 skills et 5 agents prêts à l'emploi.
+Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 4 skills et 5 agents prêts à l'emploi.
 
 ## Ce que contient le plugin
 
 | Type  | Nom                 | À quoi il sert                                                                                            |
 | ----- | ------------------- | --------------------------------------------------------------------------------------------------------- |
 | Skill | `spring-boot-sidy`  | Conventions back-end : Clean Architecture, DDD, SOLID, TDD, règles Sonar, sécurité, Flyway, Redis, Docker |
-| Skill | `angular-sidy`      | Conventions Angular 21 : signals, zoneless, Tailwind v4, états de données, SEO, design                    |
+| Skill | `angular-sidy`      | Conventions Angular 21 : signals, zoneless, Tailwind v4, états de données, SEO                            |
+| Skill | `design-sidy`       | Design front toutes stacks : concepts, maquette d'abord, motion GSAP / Three.js, images, polices, icônes  |
 | Skill | `pentest-sidy`      | Méthode de test de sécurité dynamique (DAST) d'une app Spring Boot qui tourne, sur cible autorisée        |
 | Agent | `backend-dev`       | Code le back-end Spring Boot avec ses tests et lance le build                                             |
 | Agent | `reviewer`          | Relit le code façon Sonar (lecture seule)                                                                 |
 | Agent | `security-reviewer` | Relit la sécurité du back-end (lecture seule)                                                             |
-| Agent | `frontend-dev`      | Code l'application Angular, interface comprise                                                            |
+| Agent | `frontend-dev`      | Conçoit la maquette puis code le front (Angular ou HTML/CSS/JS), motion design compris                    |
 | Agent | `pentest-actif`     | Teste en dynamique une app Spring Boot qui tourne (requêtes réelles), sur une cible autorisée             |
 
 Les skills sont des règles que Claude applique quand ta demande correspond. Les agents sont des assistants spécialisés que tu appelles par leur nom.
@@ -28,7 +31,7 @@ Dans Claude Code :
 /plugin install sidy-dev@sidy
 ```
 
-Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 2 skills et ses 4 agents.
+Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 4 skills et ses 5 agents.
 
 ## Utilisation
 
@@ -49,18 +52,19 @@ Utilise l'agent pentest-actif pour tester en dynamique mon API sur http://localh
 | Écrire ou modifier du code Spring Boot            | `backend-dev`       |
 | Relire la qualité du code Java                    | `reviewer`          |
 | Relire la sécurité du back-end                    | `security-reviewer` |
-| Écrire ou modifier du code Angular et l'interface | `frontend-dev`      |
+| Concevoir l'interface et coder le front           | `frontend-dev`      |
 | Tester une app Spring Boot qui tourne (DAST)      | `pentest-actif`     |
 
 `reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent. `pentest-actif` envoie de vraies requêtes : il ne teste qu'une application que tu possèdes ou es autorisé à tester, te demande la cible et deux comptes avant de commencer, et s'arrête à la preuve de la faille.
 
 ### Utiliser les skills
 
-Les skills s'activent seuls quand tu parles de Spring Boot ou d'Angular. Tu peux aussi les demander directement :
+Les skills s'activent seuls quand tu parles de Spring Boot, d'Angular ou de design d'interface. Tu peux aussi les demander directement :
 
 ```
 Applique les conventions spring-boot-sidy à ce service.
 Rappelle-moi les règles angular-sidy sur les états de données.
+Applique design-sidy pour concevoir la page d'accueil de ce site vitrine.
 ```
 
 ## Voir les agents travailler (plugin `sidy-office`)

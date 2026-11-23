@@ -4,14 +4,14 @@
     "name": "Sidy Mohamed SAIZONOU"
   },
   "metadata": {
-    "description": "Skills et agents de développement de Sidy (Spring Boot, Angular), et le bureau pixel art pour les voir travailler"
+    "description": "Skills et agents de développement de Sidy (Spring Boot, Angular, design front), et le bureau pixel art pour les voir travailler"
   },
   "plugins": [
     {
       "name": "sidy-dev",
       "source": "./plugins/sidy-dev",
-      "description": "Conventions Spring Boot et Angular de Sidy : 3 skills (spring-boot-sidy, angular-sidy, pentest-sidy) et 5 agents (backend-dev, reviewer, security-reviewer, frontend-dev, pentest-actif).",
-      "version": "1.2.0"
+      "description": "Conventions Spring Boot, Angular et design front de Sidy : 4 skills (spring-boot-sidy, angular-sidy, design-sidy, pentest-sidy) et 5 agents (backend-dev, reviewer, security-reviewer, frontend-dev, pentest-actif).",
+      "version": "1.3.0"
     },
     {
       "name": "sidy-office",
