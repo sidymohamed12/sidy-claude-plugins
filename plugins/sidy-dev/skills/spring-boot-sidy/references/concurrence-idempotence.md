@@ -67,6 +67,7 @@ Documentation Swagger : l'en-tête `Idempotency-Key` est déclaré dans l'interf
 - Opérations Redis atomiques (`INCR`, `SET NX EX`, script Lua) plutôt que lire-puis-écrire (rate-limiting Bucket4j et révocation JWT s'y appuient déjà).
 - Verrou distribué (`SET key value NX PX`) réservé aux cas sans solution en base ; durée limitée, valeur unique pour ne libérer que son propre verrou. ShedLock reste réservé aux tâches planifiées.
 - Ne jamais dépendre d'un `synchronized` ou d'un `ReentrantLock` local pour protéger une donnée partagée entre plusieurs instances.
+- **Fils virtuels (Java 25, Boot 4).** `spring.threads.virtual.enabled=true`, un `Executor` de fils virtuels ou un `@Async` sans exécuteur borné ne sérialisent plus les accès qu'un petit pool de plateforme sérialisait par hasard. Un vérifier-puis-agir reste faux. Un `ThreadLocal` posé par le filtre de sécurité ne suit pas un traitement déporté : passer l'identité en argument. Ne pas partager un objet non thread-safe entre ces fils. Un `synchronized` qui épingle un carrier est un sujet de performance, pas une protection.
 
 ## 6. Tests de concurrence
 

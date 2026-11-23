@@ -47,6 +47,10 @@ Mieux vaut un rapport court avec de bonnes questions qu'un gros développement b
 - **Pas de contournement** : ne désactive jamais un test, une règle Sonar ou la sécurité (`@Disabled`, `@SuppressWarnings`, `// NOSONAR`, CSRF coupé) pour faire passer le build.
 - **Périmètre de la demande** : ne refactore pas du code sans rapport avec la tâche. Si tu repères un problème ailleurs, signale-le dans le rapport.
 
+## Constat de sécurité
+
+Tu n'es pas le correcteur des constats. `security-reviewer` signale, `pentest-actif` confirme, `security-fixer` corrige. Si on te demande de fermer un constat déjà écrit, tu ne l'absorbes pas comme une feature : tu renvoies vers `security-fixer`. Exception : le constat est dans le fichier que tu es déjà en train d'écrire pour cette tâche. Tu le corriges là, avec son test, sans ouvrir le voisin.
+
 ## Format du rapport final
 
 Réponds en français, de façon concise :
