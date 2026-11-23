@@ -1,10 +1,10 @@
-> **Mise à jour (2026-11-23)** — nouveau skill **`design-sidy`** (design front toutes stacks : maquette d'abord, motion GSAP / Three.js, ressources gratuites) ; `angular-sidy` §11 et l'agent `frontend-dev` s'appuient dessus.
+> **Mise à jour (2026-11-23)** — nouvel agent **`designer`** : il conçoit le design (concepts, `DESIGN.md`, tableau de motion, maquette HTML/CSS) et le fait valider avant que `frontend-dev` l'intègre. Nouveau skill **`design-sidy`** (design front toutes stacks : maquette d'abord, motion GSAP / Three.js, ressources gratuites) ; `angular-sidy` §11 et l'agent `frontend-dev` s'appuient dessus.
 
 > **Mise à jour (2026-11-22)** — `pentest-sidy` v2 (recon par code, matrice d'authz, budget 80 req, sinks Spring) ; agent `pentest-actif` aligné ; **pont `security-reviewer` → `pentest-actif` appliqué** (hypothèses dans le rapport + SCA lecture seule) ; `spring-boot-sidy` cible Boot **4.2.0** / Java **25** / Jackson **3**, CSRF `spa()` Security 7, starter Flyway + verrous PostgreSQL, ShedLock 7.11 avec `GRANT` via placeholder, headers `server.request.header.forwarded`, versions springdoc 3.2.1 / Bucket4j 8.23 / MapStruct 1.6.3 / Lombok 1.18.48.
 
 # sidy-dev : skills et agents Claude Code
 
-Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 4 skills et 5 agents prêts à l'emploi.
+Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 4 skills et 6 agents prêts à l'emploi.
 
 ## Ce que contient le plugin
 
@@ -17,7 +17,8 @@ Plugin Claude Code qui applique les conventions de développement de Sidy (Sprin
 | Agent | `backend-dev`       | Code le back-end Spring Boot avec ses tests et lance le build                                             |
 | Agent | `reviewer`          | Relit le code façon Sonar (lecture seule)                                                                 |
 | Agent | `security-reviewer` | Relit la sécurité du back-end (lecture seule)                                                             |
-| Agent | `frontend-dev`      | Conçoit la maquette puis code le front (Angular ou HTML/CSS/JS), motion design compris                    |
+| Agent | `designer`          | Conçoit le design avant le code : concepts, `DESIGN.md`, animations, maquette HTML/CSS à valider          |
+| Agent | `frontend-dev`      | Intègre la maquette validée et code le front (Angular ou HTML/CSS/JS), motion design compris              |
 | Agent | `pentest-actif`     | Teste en dynamique une app Spring Boot qui tourne (requêtes réelles), sur une cible autorisée             |
 
 Les skills sont des règles que Claude applique quand ta demande correspond. Les agents sont des assistants spécialisés que tu appelles par leur nom.
@@ -31,7 +32,7 @@ Dans Claude Code :
 /plugin install sidy-dev@sidy
 ```
 
-Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 4 skills et ses 5 agents.
+Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 4 skills et ses 6 agents.
 
 ## Utilisation
 
@@ -43,7 +44,8 @@ Nomme l'agent dans ta demande :
 Utilise l'agent backend-dev pour créer un CRUD « Produit » avec ses tests.
 Utilise l'agent reviewer pour relire mes derniers changements.
 Utilise l'agent security-reviewer pour auditer l'authentification.
-Utilise l'agent frontend-dev pour créer la page de liste des produits.
+Utilise l'agent designer pour concevoir la page d'accueil du site vitrine.
+Utilise l'agent frontend-dev pour intégrer la maquette validée dans l'application Angular.
 Utilise l'agent pentest-actif pour tester en dynamique mon API sur http://localhost:8080 (j'autorise le test, voici deux comptes).
 ```
 
@@ -52,10 +54,11 @@ Utilise l'agent pentest-actif pour tester en dynamique mon API sur http://localh
 | Écrire ou modifier du code Spring Boot            | `backend-dev`       |
 | Relire la qualité du code Java                    | `reviewer`          |
 | Relire la sécurité du back-end                    | `security-reviewer` |
-| Concevoir l'interface et coder le front           | `frontend-dev`      |
+| Concevoir le design et la maquette (avant le code) | `designer`         |
+| Intégrer la maquette et coder le front            | `frontend-dev`      |
 | Tester une app Spring Boot qui tourne (DAST)      | `pentest-actif`     |
 
-`reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent. `pentest-actif` envoie de vraies requêtes : il ne teste qu'une application que tu possèdes ou es autorisé à tester, te demande la cible et deux comptes avant de commencer, et s'arrête à la preuve de la faille.
+`reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent. `designer` n'écrit que `DESIGN.md` et le dossier `design/`, jamais le code de l'application, et s'arrête à chaque étape pour te faire valider. `pentest-actif` envoie de vraies requêtes : il ne teste qu'une application que tu possèdes ou es autorisé à tester, te demande la cible et deux comptes avant de commencer, et s'arrête à la preuve de la faille.
 
 ### Utiliser les skills
 

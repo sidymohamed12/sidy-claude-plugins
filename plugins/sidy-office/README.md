@@ -92,7 +92,7 @@ Un agent présent dans le fichier mais introuvable sur ta machine (par exemple `
 
 Si le fichier contient une erreur, la page l'indique en haut et le bureau continue avec les autres réglages. Les changements s'appliquent au prochain rechargement de la page.
 
-Le fichier [`exemples/sidy-office.json`](exemples/sidy-office.json) reproduit l'équipe de Sidy (`backend-dev`, `frontend-dev`, `reviewer`, `security-reviewer`, `pentest-actif`) : copie-le dans `~/.claude/` pour partir de là.
+Le fichier [`exemples/sidy-office.json`](exemples/sidy-office.json) reproduit l'équipe de Sidy (`backend-dev`, `designer`, `frontend-dev`, `reviewer`, `security-reviewer`, `pentest-actif`) : copie-le dans `~/.claude/` pour partir de là.
 
 ## Comment ça marche
 

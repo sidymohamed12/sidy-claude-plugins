@@ -25,7 +25,7 @@ Sources dont ce skill est tiré (à relire au besoin) : taste-skill (Leonxlnx), 
    - outil de maquette : **Claude Design** ou **HTML/CSS** (§0 bis) ?
 2. **Projet existant** — lire d'abord son design system (tokens, `DESIGN.md`, composants, pages faites) et s'y conformer. *Raffiner* garde l'identité ; *refondre* la remplace entièrement (jamais un entre-deux). Pour extraire le système d'un projet existant : `npx skillui --dir ./app` (tokens, typo, espacements) puis relecture humaine.
 3. **Concepts** — page d'accueil, refonte ou choix structurant : **2 ou 3 concepts réellement différents**. Chaque concept : nom (ex. « Eau & Latérite »), idée tirée du métier, ambiance, palette (4–6 hex nommés), paire typographique, concept de mise en page (wireframe ASCII + alignement), traitement photo, **l'élément mémorable unique**, motion prévue. Relire chaque concept contre le brief : s'il ressemble à ce qu'on produirait pour n'importe quel site similaire, le revoir et dire ce qui a changé. Laisser l'utilisateur choisir.
-4. **Design system** — écrire le `DESIGN.md` du projet (§6) et les tokens avant la première page.
+4. **Design system, à faire valider** — avant la première page : `DESIGN.md` (§6), fichier de tokens et page de design system (§6, « Page de design system ») montrant couleurs, typo, espacements, formes, icônes, composants dans tous leurs états et motion. La maquette n'utilise que ce qui y figure.
 5. **Copy** — écrire les vrais textes avant de construire (§11).
 6. **Proposition de motion, à faire valider** — avant de coder la moindre animation, chercher les effets dans les références (§13, « Recherche dans les références ») puis **proposer à l'utilisateur le tableau des animations par section** (§13, « Proposition à faire valider ») : animation, raison, déclencheur, référence. Attendre sa validation ou ses retouches.
 7. **Maquette d'abord** (§0 bis) — le design est réalisé et validé en maquette **avant** toute intégration dans le front du projet.
@@ -39,6 +39,7 @@ On commence toujours par le design, puis on le met dans le front.
 - **Deux outils possibles** ; si l'utilisateur ne l'a pas précisé, lui demander lequel :
   - **Claude Design** (type d'artefact Design, quand il est disponible) : canevas à garder, éditer, comparer et partager ; idéal pour explorer les concepts, les écrans et les variantes.
   - **HTML/CSS** : page(s) autonome(s) en HTML + Tailwind v4 (`@tailwindcss/browser`) + GSAP / Lenis / Three.js en CDN, publiée(s) comme artefact ; idéal pour tester la motion réelle (scroll, pin, transitions) et les interactions.
+- La maquette importe `design/design-system/tokens.css` et n'utilise que les composants de la page de design system validée (§6).
 - La maquette utilise déjà les **vrais textes, les vraies photos (ou images choisies dans les banques d'images du §8, signalées comme provisoires), les polices choisies (§4), les tokens du `DESIGN.md`** et les animations du tableau validé (§13), pour que l'intégration ne soit qu'une transposition.
 - Contenu attendu : page d'accueil (ou écran principal), 1–2 pages / écrans clés, composants signature, états importants (vide, erreur, chargement) et versions mobile + desktop.
 - Itérer sur la maquette avec l'utilisateur (variantes, retouches) jusqu'à validation explicite. **Rien n'est intégré dans le front avant cette validation.**
@@ -111,7 +112,7 @@ Chaque projet a un `DESIGN.md` à la racine (format Google Stitch / awesome-desi
 
 ```
 # DESIGN.md — <Projet>
-## Overview        concept, mode, ambiance, l'élément mémorable
+## Overview        concept, mode, ambiance, l'élément mémorable, liens vers design/design-system/ (tokens.css, index.html)
 ## Colors          brand & accent · surface · text · semantic (hex/OKLCH + rôle)
 ## Typography      familles, hiérarchie (rôle → taille / graisse / interligne), principes
 ## Layout          échelle d'espacement, grille & conteneur, philosophie du blanc
@@ -128,6 +129,21 @@ Implémentation des tokens :
 - **Tailwind v4** (Angular, Vite) : `@theme` dans `styles.css` (`--color-primary-500`, `--font-display`, `--radius-card`, `--shadow-card`, `--ease-out`, `--duration-in`…), utilitaires générés uniquement.
 - **HTML/CSS/JS sans build** : Tailwind v4 via `@tailwindcss/browser` + `<style type="text/tailwindcss">` contenant le même `@theme`, partagé par toutes les pages. Structure : `index.html`, `css/`, `js/`, `assets/`.
 - CSS pur : variables sur `:root` et `.dark`.
+
+### Page de design system
+
+Avant toute maquette, le design system existe en vrai, pas seulement dans `DESIGN.md` :
+
+- **`design/design-system/tokens.css`** : le `@theme` complet (couleurs primitives et sémantiques, clair et sombre si prévu, polices, échelle typo, espacements, rayons, ombres, `z-index`, durées et easings). C'est **la seule source** des valeurs : la maquette puis le front l'importent tels quels.
+- **`design/design-system/index.html`** : une page qui montre et documente chaque élément, avec son nom de token :
+  - **couleurs** : chaque teinte avec son hex / OKLCH, son rôle et le **contraste mesuré** sur fond blanc et sur sa surface (AA vérifié) ;
+  - **typographie** : chaque niveau de l'échelle (taille, graisse, interligne) avec un vrai texte du projet ;
+  - **espacements, rayons, ombres, grille et conteneur** ;
+  - **icônes** : la bibliothèque retenue, son style et une sélection des icônes du projet ;
+  - **composants** dans tous leurs états (repos, survol, focus, actif, désactivé, chargement, erreur) : boutons, liens, champs et formulaires, cartes, badges, navigation (header, menu mobile, barre du bas si app web), onglets, toasts, dialogues, tableaux / listes, skeletons, états vide et erreur ;
+  - **motion** : démonstration de chaque token de durée / easing et des micro-interactions (§12), avec reduced-motion.
+- Polices auto-hébergées dans `design/design-system/assets/fonts/`, crédits et licences notés.
+- Le design system est **validé par l'utilisateur avant la maquette**. Un besoin nouveau pendant la maquette (composant, couleur) s'ajoute d'abord au design system, jamais directement dans une page.
 
 ## 7. Icônes
 
