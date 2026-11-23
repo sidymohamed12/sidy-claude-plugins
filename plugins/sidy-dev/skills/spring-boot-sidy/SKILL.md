@@ -96,7 +96,7 @@ Livrer, dès le départ, tout ce socle (détails dans les références) :
 - Migration Flyway `V1__init.sql` et migration de la table `shedlock` (avec `GRANT` vers le rôle applicatif via placeholder `${app_role}`).
 - Configuration : `SecurityConfig` (CSRF : préférer `csrf.spa()` Security 7 + matcher Sidy), CORS, `RateLimitFilter`, `OriginCheckFilter`, `BrowserNavigationBlockFilter`, `CacheConfig` (**JsonMapper** Jackson 3, pas `ObjectMapper` Jackson 2), `SchedulingConfig`, bean `Clock` UTC, handler d'erreurs global, OpenAPI.
 - `Dockerfile`, `.dockerignore`, `docker-compose.dev.yml`, `docker-compose.mid-dev.yml`, `docker-compose.prod.yml`.
-- `deploy/k8s/` : copie de `templates/k8s/` (sans `secret.example.yaml`), image et namespace adaptés. Secret réel hors git.
+- `deploy/k8s/` : copie de `templates/k8s/` (sans `secret.example.yaml` ; `job-flyway.yaml` s'applique à part, avant le `kustomize`), image et namespace adaptés. Secret réel hors git.
 - `docs/` avec `adr/` (premier ADR : choix d'architecture), `http/`, `diagrams/`, `flows/`.
 - Spring : `spring.jpa.hibernate.ddl-auto=validate`, `spring.jpa.open-in-view=false`, configuration typée avec `@ConfigurationProperties` sur un `record` validé (jamais de `@Value` éparpillés), secrets uniquement via variables d'environnement.
 

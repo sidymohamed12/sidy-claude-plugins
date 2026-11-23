@@ -65,7 +65,7 @@ Pas d'autre hook. Pas de `postStart`. Pas de commande qui écrit en base dans le
 
 ## 3. Manifestes
 
-Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'image `app-image:0.0.0`, les hôtes. `kubectl apply -k deploy/k8s`.
+Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'image `app-image:0.0.0`, les hôtes. Ordre de déploiement : (1) `kubectl apply -f deploy/k8s/job-flyway.yaml` puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s -n app` (§2) ; (2) seulement ensuite `kubectl apply -k deploy/k8s`. Le Job n'est pas dans le kustomization : un `apply -k` seul ne garantirait pas que la migration finisse avant le roll.
 
 | Fichier | Rôle |
 |---|---|
@@ -78,7 +78,7 @@ Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'imag
 | `service.yaml` | `ClusterIP` 8080. Pas d'autre port |
 | `pdb.yaml` | `minAvailable: 1` |
 | `networkpolicy.yaml` | Entrée 8080 (les sondes kubelet ne viennent pas d'un pod). Sortie : 5432, 6379, DNS. Un appel HTTPS sortant se décide dans un ADR, on n'ouvre pas tout l'egress |
-| `kustomization.yaml` | Tout sauf le secret d'exemple |
+| `kustomization.yaml` | Tout sauf le secret d'exemple et le Job de migration (appliqué à part, avant) |
 
 UID du conteneur : celui de `USER app` dans l'image (`docker run --rm <image> id`), pas un nombre inventé. L'exemple Alpine est 100. Le verifier avant d'appliquer.
 
