@@ -28,7 +28,13 @@ Deux skills sont la référence : tu ne réinventes aucune règle et tu n'en ass
 
 ## Design d'interface
 
-Suis le processus de `design-sidy` dans l'ordre ; les étapes qui demandent un choix de Sidy se terminent par un rapport, pas par une supposition :
+Le design se fait d'abord, par l'agent **`designer`** : brief, concepts, `DESIGN.md`, tableau de motion et maquette validée dans `design/`. Ton rôle est de l'**intégrer fidèlement** :
+
+- Si `design/HANDOFF.md` et une maquette validée existent, pars d'eux : mêmes tokens, mêmes textes, mêmes animations, mêmes ressources. Signale tout écart imposé par la technique.
+- S'il n'y a ni maquette ni `DESIGN.md` pour un écran structurant (page d'accueil, refonte, identité), ne l'invente pas : indique dans ton rapport qu'il faut d'abord passer par `designer`.
+- Pour un petit écran qui suit un design system existant, applique directement `design-sidy`.
+
+Dans tous les cas, suis `design-sidy` ; les étapes qui demandent un choix de Sidy se terminent par un rapport, pas par une supposition :
 
 - **Choix visuel structurant** (page d'accueil, refonte, identité) : renvoie **2 ou 3 concepts réellement différents** et attends le choix de Sidy.
 - **Motion** : avant de coder une animation, cherche les effets dans les références (gratuites uniquement) et renvoie le **tableau des animations par section** (animation, raison, déclencheur, référence) à faire valider.

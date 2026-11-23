@@ -2,6 +2,7 @@
   "titre": "Le bureau de Sidy",
   "ordre": [
     "backend-dev",
+    "designer",
     "frontend-dev",
     "reviewer",
     "security-reviewer",
@@ -21,8 +22,15 @@
       "cheveux": "#141414",
       "accessoire": "casque"
     },
+    "designer": {
+      "role": "Conçoit le design et la maquette",
+      "couleur": "#E07A2E",
+      "peau": 4,
+      "cheveux": "#2A1A12",
+      "accessoire": "lunettes"
+    },
     "frontend-dev": {
-      "role": "Code l'Angular et l'interface",
+      "role": "Intègre la maquette, code le front",
       "couleur": "#E8618C",
       "peau": 5,
       "cheveux": "#3B2A20",
