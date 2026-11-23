@@ -1,10 +1,12 @@
+> **Mise à jour (2026-11-23, v1.6.1)** — nouvel agent **`security-fixer`** (v1.5.0) : il ferme un constat de sécurité confirmé, un fichier par passage, avec son test ; `security-reviewer` et `pentest-actif` renforcés. Gestion **Kubernetes** (v1.6.0) : Actuator `liveness` / `readiness`, Job Flyway avant le roll, manifestes dans `templates/k8s/`. v1.6.1 : corrections de ces manifestes (Job appliqué à part, identifiants Flyway réservés au Job, volume de logs) et documentation à jour.
+
 > **Mise à jour (2026-11-23)** — nouvel agent **`designer`** : il conçoit le design (concepts, `DESIGN.md`, tableau de motion, maquette HTML/CSS) et le fait valider avant que `frontend-dev` l'intègre. Nouveau skill **`design-sidy`** (design front toutes stacks : maquette d'abord, motion GSAP / Three.js, ressources gratuites) ; `angular-sidy` §11 et l'agent `frontend-dev` s'appuient dessus.
 
 > **Mise à jour (2026-11-22)** — `pentest-sidy` v2 (recon par code, matrice d'authz, budget 80 req, sinks Spring) ; agent `pentest-actif` aligné ; **pont `security-reviewer` → `pentest-actif` appliqué** (hypothèses dans le rapport + SCA lecture seule) ; `spring-boot-sidy` cible Boot **4.2.0** / Java **25** / Jackson **3**, CSRF `spa()` Security 7, starter Flyway + verrous PostgreSQL, ShedLock 7.11 avec `GRANT` via placeholder, headers `server.request.header.forwarded`, versions springdoc 3.2.1 / Bucket4j 8.23 / MapStruct 1.6.3 / Lombok 1.18.48.
 
 # sidy-dev : skills et agents Claude Code
 
-Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 4 skills et 6 agents prêts à l'emploi.
+Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 4 skills et 7 agents prêts à l'emploi.
 
 ## Ce que contient le plugin
 
@@ -20,6 +22,7 @@ Plugin Claude Code qui applique les conventions de développement de Sidy (Sprin
 | Agent | `designer`          | Conçoit le design avant le code : concepts, `DESIGN.md`, animations, maquette HTML/CSS à valider          |
 | Agent | `frontend-dev`      | Intègre la maquette validée et code le front (Angular ou HTML/CSS/JS), motion design compris              |
 | Agent | `pentest-actif`     | Teste en dynamique une app Spring Boot qui tourne (requêtes réelles), sur une cible autorisée             |
+| Agent | `security-fixer`    | Corrige un constat de sécurité déjà confirmé, un fichier par passage, avec son test de non-régression     |
 
 Les skills sont des règles que Claude applique quand ta demande correspond. Les agents sont des assistants spécialisés que tu appelles par leur nom.
 
@@ -32,7 +35,7 @@ Dans Claude Code :
 /plugin install sidy-dev@sidy
 ```
 
-Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 4 skills et ses 6 agents.
+Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 4 skills et ses 7 agents.
 
 ## Utilisation
 
@@ -47,6 +50,7 @@ Utilise l'agent security-reviewer pour auditer l'authentification.
 Utilise l'agent designer pour concevoir la page d'accueil du site vitrine.
 Utilise l'agent frontend-dev pour intégrer la maquette validée dans l'application Angular.
 Utilise l'agent pentest-actif pour tester en dynamique mon API sur http://localhost:8080 (j'autorise le test, voici deux comptes).
+Utilise l'agent security-fixer pour corriger le constat S-03 du rapport de security-reviewer.
 ```
 
 | Besoin                                            | Agent               |
@@ -57,8 +61,9 @@ Utilise l'agent pentest-actif pour tester en dynamique mon API sur http://localh
 | Concevoir le design et la maquette (avant le code) | `designer`         |
 | Intégrer la maquette et coder le front            | `frontend-dev`      |
 | Tester une app Spring Boot qui tourne (DAST)      | `pentest-actif`     |
+| Corriger un constat de sécurité confirmé          | `security-fixer`    |
 
-`reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent. `designer` n'écrit que `DESIGN.md` et le dossier `design/`, jamais le code de l'application, et s'arrête à chaque étape pour te faire valider. `pentest-actif` envoie de vraies requêtes : il ne teste qu'une application que tu possèdes ou es autorisé à tester, te demande la cible et deux comptes avant de commencer, et s'arrête à la preuve de la faille.
+`reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent. `designer` n'écrit que `DESIGN.md` et le dossier `design/`, jamais le code de l'application, et s'arrête à chaque étape pour te faire valider. `pentest-actif` envoie de vraies requêtes : il ne teste qu'une application que tu possèdes ou es autorisé à tester, te demande la cible et deux comptes avant de commencer, et s'arrête à la preuve de la faille. `security-fixer` ne corrige que des constats déjà confirmés (par `security-reviewer` après contre-épreuve, ou par `pentest-actif`), un seul à la fois, et ne modifie qu'un fichier de production par passage, plus son test. Si le correctif demande un second fichier, il le dit et te donne un bloc « Passage suivant » à lui redonner. Il ne commit pas.
 
 ### Utiliser les skills
 
