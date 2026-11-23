@@ -306,49 +306,13 @@ Ensuite, rédiger les pages à partir des réponses ; les infos manquantes reste
 
 ## 11. Design
 
-- Qualité « designer senior » : direction esthétique claire, hiérarchie nette, espacements généreux.
-- États de données soignés au même niveau que le contenu (voir §4).
-- Composants récurrents : badges de statut, KPI cards, drawers (création/édition/détail), dialogues de confirmation, tableaux filtrables paginés, filtres de période.
+Tout le design (concepts, maquette d'abord, palette, typo, icônes, images, motion design GSAP / Three.js, anti « look IA », composants, sources d'inspiration, vérification visuelle) est défini dans le skill **`design-sidy`** : le charger avant toute page, refonte ou choix visuel.
 
-### Pas de look « généré par IA »
+Côté Angular uniquement :
 
-Refusé systématiquement par l'utilisateur :
-
-- halos et lueurs colorées, dégradés lumineux décoratifs, glassmorphism gratuit ;
-- fonds sombres saturés par défaut (ex. vert foncé plein écran) ;
-- illustrations génériques là où une vraie photo du contexte existe ;
-- mises en page interchangeables (hero centré + 3 cartes + CTA) sans lien avec le métier.
-
-Attendu :
-
-- un concept visuel tiré du métier ou du contenu réel du projet, appliqué de façon cohérente sur tout le site (un seul thème, pas un style par page) ;
-- photos réelles plutôt qu'illustrations ;
-- motion design sobre et utile (entrées, transitions d'état), pas décoratif ;
-- 3D (Three.js) seulement si elle représente un contenu réel (carte, architecture, écran du produit), jamais en décor.
-
-Pour une page d'accueil, une refonte ou un choix visuel structurant : proposer d'abord **2 ou 3 concepts réellement différents** (nom, idée, ambiance), laisser l'utilisateur choisir, puis construire. Ne pas itérer à l'aveugle sur une première idée.
-
-### Sources d'inspiration (si besoin)
-
-Pour trouver une idée de composant, d'interaction ou d'animation, s'inspirer de :
-
-| Site                                          | Pour quoi                                                                              |
-| --------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [reactbits.dev](https://reactbits.dev/)       | Animations de texte, fonds animés, composants interactifs                              |
-| [uiverse.io](https://uiverse.io/)             | Petits éléments en HTML/CSS : boutons, loaders, toggles, cartes, inputs                |
-| [ui.shadcn.com](https://ui.shadcn.com/)       | Composants d'interface sobres et accessibles : dialogues, tableaux, formulaires, menus |
-| [awwwards.com](https://www.awwwards.com/)     | Direction artistique, mises en page et concepts de sites primés                        |
-| [21st.dev](https://21st.dev/)                 | Sections et composants prêts à l'emploi : hero, pricing, navbar, dashboard             |
-| [freefrontend.com](https://freefrontend.com/) | Exemples CSS/JS classés par type d'élément                                             |
-
-Règles :
-
-- **Ces sites sont une source d'idées, pas du code à copier.** La plupart des exemples sont en React (reactbits, shadcn, 21st) : les réécrire en Angular 21 (standalone, signals, `@if`/`@for`) et en Tailwind v4 avec les tokens `@theme` du projet. Pas de dépendance React, pas de couleurs en dur reprises de l'exemple.
-- Garder seulement l'idée qui sert le contenu ou le métier ; ne pas empiler des effets parce qu'ils sont spectaculaires (cf. « Pas de look généré par IA »).
-- Toute animation reprise respecte `prefers-reduced-motion`, reste fluide (animer `transform` / `opacity`) et reste accessible au clavier.
-- Les exemples de shadcn servent aussi de référence d'accessibilité (rôles ARIA, focus, navigation clavier) pour les dialogues, menus et listes déroulantes.
-- Vérifier la licence avant de reprendre du code quasi tel quel, et citer la source à l'utilisateur quand un composant s'en inspire directement.
-- Si le site n'est pas accessible depuis l'environnement, travailler à partir de la description de l'effet et le dire.
+- les tokens du design system vont dans le `@theme` de `src/styles.css` (§7) ;
+- un composant inspiré d'un exemple React (reactbits, shadcn, 21st, Magic UI…) est réécrit en Angular 21 (standalone, signals, `@if` / `@for`), sans dépendance React ;
+- GSAP et Three.js : création dans `afterNextRender()`, nettoyage dans `DestroyRef.onDestroy` (détails dans `design-sidy` §13–14).
 
 ## 12. Responsive (obligatoire)
 
