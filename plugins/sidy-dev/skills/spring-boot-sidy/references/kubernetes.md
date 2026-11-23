@@ -91,5 +91,6 @@ UID du conteneur : celui de `USER app` dans l'image (`docker run --rm <image> id
 - Exposer l'Actuator sur un second port « pour simplifier » sans chaîne de sécurité dédiée : sur Boot 4 ce port n'hérite pas de la `SecurityFilterChain` principale.
 - Mettre `db` ou `redis` dans `liveness`.
 - Lancer Flyway dans chaque pod **et** dans le Job.
+- Donner `FLYWAY_USER` / `FLYWAY_PASSWORD` (rôle propriétaire du schéma) aux pods de l'app. Seul le Job les reçoit. Les défauts vides de `application.yml` (`${FLYWAY_USER:}`) évitent l'échec de démarrage ; le Job, lui, doit toujours les avoir (sinon Flyway retombe sur le compte applicatif sans le dire).
 - Committer un Secret avec de vraies valeurs, ou un `change-me` que quelqu'un applique tel quel.
 - Pointer les sondes sur `/actuator/health`.
