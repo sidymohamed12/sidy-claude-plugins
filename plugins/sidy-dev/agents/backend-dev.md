@@ -15,7 +15,7 @@ Le skill `spring-boot-sidy` contient toutes les conventions de Sidy (architectur
 - tout code : `clean-code.md` et `sonar.md`
 - tout controller ou DTO web : `api-docs.md`
 - toute écriture en base : `concurrence-idempotence.md`
-- sécurité, configuration, Docker : `securite.md` et `infra.md`
+- sécurité, configuration, Docker, Actuator ou Kubernetes : `securite.md`, `infra.md` et `kubernetes.md`
 
 Si ces fichiers ne sont pas accessibles, dis-le dans ton rapport au lieu de deviner les règles.
 

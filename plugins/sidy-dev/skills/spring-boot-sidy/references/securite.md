@@ -22,7 +22,7 @@
 - Autorisation par rôles/permissions (`@PreAuthorize`) **et** contrôle de propriété de la ressource (un utilisateur n'accède qu'à ses données).
 - CORS explicite : origines du front lues dans la configuration, jamais `*` en prod (section 9).
 - En-têtes de sécurité activés (`X-Content-Type-Options`, `Strict-Transport-Security`, `Referrer-Policy`, `Content-Security-Policy` adaptée).
-- Actuator : `health` (probes liveness/readiness) accessible pour le healthcheck Docker, le reste protégé. `beans`, `env`, `configprops` et `heapdump` ne sont pas exposés : `/actuator/beans` sert les beans par réflexion et peut rendre un secret tenu par un `@ConfigurationProperties`.
+- Actuator : seul `GET /actuator/health/liveness` et `GET /actuator/health/readiness` sont publics. Le reste de `/actuator/**` est `denyAll` (y compris `/actuator/health`, `/actuator/info`, `beans`, `env`, `configprops`, `heapdump`). `beans` sert les beans par réflexion et peut rendre un secret tenu par un `@ConfigurationProperties`. Le `RateLimitFilter` ignore `/actuator/health/` : une sonde en `429` fait redémarrer le pod. Groupes et manifestes : `kubernetes.md`.
 - Validation de toute entrée (Jakarta Validation), taille des uploads limitée, type MIME vérifié.
 - Si le projet utilise `jwt-toolkit-package` de Sidy, s'en servir pour l'émission et la validation des JWT.
 
@@ -155,7 +155,7 @@ Filtre `OriginCheckFilter` (`OncePerRequestFilter`, dans `shared/infrastructure/
 Toujours en place, partagé entre instances via Redis.
 
 - Dépendances : `bucket4j` (module Redis/Lettuce ou Redisson selon le projet).
-- Filtre `RateLimitFilter` (`OncePerRequestFilter`, dans `shared/infrastructure/ratelimit`) placé avant l'authentification pour les routes publiques, après pour les routes protégées. Un `permitAll` ne dispense pas le filtre : s'il est enregistré après la chaîne d'autorisation, login, OTP et réinitialisation ne sont pas comptés, et la limite est contournable.
+- Filtre `RateLimitFilter` (`OncePerRequestFilter`, dans `shared/infrastructure/ratelimit`) placé avant l'authentification pour les routes publiques, après pour les routes protégées. Un `permitAll` ne dispense pas le filtre : s'il est enregistré après la chaîne d'autorisation, login, OTP et réinitialisation ne sont pas comptés, et la limite est contournable. `shouldNotFilter` retourne vrai pour les chemins qui commencent par `/actuator/health/` (les sondes ne consomment pas le seau).
 - **Clé** : identifiant utilisateur si authentifié, sinon IP du client. Lire l'IP derrière un proxy uniquement via `server.forward-headers-strategy=framework` et un proxy de confiance (jamais faire confiance aveuglément à `X-Forwarded-For`).
 - **Limites par catégorie**, en configuration (`@ConfigurationProperties`, jamais en dur) : défaut (ex. 100 req/min), **authentification** et réinitialisation de mot de passe (beaucoup plus strictes, ex. 5–10 req/min), endpoints coûteux (export, upload, envoi SMS/email).
 - Réponse `429 Too Many Requests` en `ProblemDetail`, avec `Retry-After` et `X-RateLimit-Remaining`.

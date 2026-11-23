@@ -55,6 +55,8 @@ server:
     include-binding-errors: never
 
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -81,11 +83,21 @@ management:
     health:
       probes:
         enabled: true
+      show-details: never
+      show-components: never
+      validate-group-membership: true # Boot 4 : un membre absent fait échouer le démarrage. Ne jamais passer à false
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,redis,diskSpace
   endpoints:
     web:
       exposure:
         include: health,info
 ```
+
+Le détail (sécurité des chemins, groupes, hooks, manifestes) est dans `kubernetes.md`. `liveness` ne contient **pas** `db` ni `redis`.
 
 ## 2. `.env.example` toujours synchronisé
 
@@ -270,6 +282,7 @@ Placeholder Flyway (socle `application.yml`) : `spring.flyway.placeholders.app_r
 @Configuration
 @EnableScheduling
 @EnableSchedulerLock(defaultLockAtMostFor = "PT10M")
+@Profile("!migration")
 public class SchedulingConfig {
 
     @Bean
@@ -300,7 +313,7 @@ public class ExpiredTokenCleanupJob {
 
 - Un nom de verrou unique par tâche, en constante. `lockAtMostFor` > durée maximale réaliste ; `lockAtLeastFor` évite une double exécution due à un décalage d'horloge.
 - Expression cron **dans la configuration**, pas en dur. Tâches **idempotentes**.
-- Le job vit dans `<feature>/infrastructure/scheduling/` et `SchedulingConfig` dans `config/`. Il ne contient aucune logique : il appelle un use case via son port `in` (testable sans scheduler). Schedulers désactivés en profil `test`.
+- Le job vit dans `<feature>/infrastructure/scheduling/` et `SchedulingConfig` dans `config/`. Il ne contient aucune logique : il appelle un use case via son port `in` (testable sans scheduler). Schedulers désactivés en profil `test` et en profil `migration` (`@Profile("!migration")` : le Job Flyway doit pouvoir s'arrêter, voir `kubernetes.md`).
 
 ## 6. Logs essentiels et rétention
 
@@ -390,7 +403,7 @@ ENTRYPOINT ["java", "-jar", "application.jar"]
 - Les couches rarement modifiées (dépendances) viennent **avant** celles qui changent à chaque commit (`application/`).
 - `.dockerignore` : `target/`, `.git/`, `.env`, `docs/`, `*.md`, fichiers d'IDE.
 - Vérifier la commande `extract --layers` selon la version de Spring Boot ; adapter si besoin.
-- Le healthcheck suppose `management.endpoint.health.probes.enabled=true` et `/actuator/health/**` autorisé sans authentification.
+- Le healthcheck suppose `management.endpoint.health.probes.enabled=true` et `GET /actuator/health/liveness` autorisé sans authentification. Pas `/actuator/**`. Le détail est dans `kubernetes.md`.
 
 ## 8. Docker Compose (dev, mid-dev, prod)
 
