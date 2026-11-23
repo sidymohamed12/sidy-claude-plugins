@@ -84,6 +84,8 @@ UID du conteneur : celui de `USER app` dans l'image (`docker run --rm <image> id
 
 `readOnlyRootFilesystem: true` exige des `emptyDir` sur `/tmp` et `/var/log/app`. Pas de limite CPU (évite le throttling) ; mémoire limitée à 768 Mi, comme le compose prod, avec `MaxRAMPercentage=75` déjà dans l'image.
 
+Ce plafond est un point de départ, pas une garantie. À 768 Mi, le heap peut monter à 576 Mi et il reste environ 190 Mi pour le metaspace, les piles de fils, les tampons natifs et le code compilé. Avec Java 25 et les fils virtuels, c'est juste. Avant la première mise en production : lancer une charge réaliste, relever la mémoire réelle du conteneur (`kubectl top pod`, ou `container_memory_working_set_bytes`), et chercher un `OOMKilled` (`kubectl describe pod`). Si la marge est sous 20 %, monter la limite, ou baisser `MaxRAMPercentage` à 65.
+
 `maxUnavailable: 0`, `maxSurge: 1`. Un roll ne descend pas sous les replicas prêts.
 
 ## 4. Ce qu'on ne fait pas
