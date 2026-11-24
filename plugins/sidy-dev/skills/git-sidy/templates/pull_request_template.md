@@ -11,6 +11,7 @@
 - [ ] Build et tests verts (commande lancée : ...)
 - [ ] Rien d'étranger à la tâche dans le diff
 - [ ] Aucun secret ni `.env`
+- [ ] README du projet à jour si le démarrage, la configuration, l'architecture ou le déploiement changent
 
 ## À décider / à relire en priorité
 <!-- Choix qui demandent l'avis de Sidy, risques, limites. Écrire « rien » s'il n'y en a pas. -->

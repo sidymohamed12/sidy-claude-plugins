@@ -87,7 +87,7 @@ Feature : délivrance des ordonnances
 
 ## 5. Pousser et ouvrir la PR
 
-1. Vérifie avant : build et tests verts, `git status` propre, aucun fichier hors sujet.
+1. Vérifie avant : build et tests verts, `git status` propre, aucun fichier hors sujet, `README.md` du projet à jour si ton changement touche le démarrage, la configuration, l'architecture ou le déploiement.
 2. `git push -u origin <branche>` : uniquement ta branche de tâche, jamais une branche protégée.
 3. Ouvre la PR vers la cible choisie, **assignée à Sidy et avec sa mention** :
 

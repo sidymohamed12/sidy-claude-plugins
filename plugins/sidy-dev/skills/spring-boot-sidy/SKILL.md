@@ -97,6 +97,7 @@ Livrer, dès le départ, tout ce socle (détails dans les références) :
 - Configuration : `SecurityConfig` (CSRF : préférer `csrf.spa()` Security 7 + matcher Sidy), CORS, `RateLimitFilter`, `OriginCheckFilter`, `BrowserNavigationBlockFilter`, `CacheConfig` (**JsonMapper** Jackson 3, pas `ObjectMapper` Jackson 2), `SchedulingConfig`, bean `Clock` UTC, handler d'erreurs global, OpenAPI.
 - `Dockerfile`, `.dockerignore`, `docker-compose.dev.yml`, `docker-compose.mid-dev.yml`, `docker-compose.prod.yml`.
 - `deploy/k8s/` : copie de `templates/k8s/` (sans `secret.example.yaml`), image et namespace adaptés. Secret réel hors git.
+- `README.md` détaillé qui décrit tout le projet, front et back : copie de `templates/README.projet.md`, rempli avec les vraies commandes, variables et versions, et tenu à jour à chaque changement qui touche l'architecture, le démarrage, la configuration ou le déploiement.
 - `docs/` avec `adr/` (premier ADR : choix d'architecture), `http/`, `diagrams/`, `flows/`.
 - Spring : `spring.jpa.hibernate.ddl-auto=validate`, `spring.jpa.open-in-view=false`, configuration typée avec `@ConfigurationProperties` sur un `record` validé (jamais de `@Value` éparpillés), secrets uniquement via variables d'environnement.
 
@@ -488,4 +489,5 @@ Checklist avant de livrer :
 - [ ] Swagger désactivé en prod ; Dockerfile non-root avec healthcheck.
 - [ ] Actuator : `liveness` = `livenessState` seul ; `readiness` = `readinessState,db,redis,diskSpace` ; `validate-group-membership` pas à `false` ; seuls `GET /actuator/health/liveness` et `readiness` sont publics ; les sondes ne passent pas par le rate-limit.
 - [ ] Déploiement Kubernetes : Job Flyway (`prod,migration`) terminé avant le roll ; `preStop` + `terminationGracePeriodSeconds` ≥ preStop + 30 s ; `FLYWAY_ENABLED=false` sur les pods de l'app ; aucun secret dans les manifestes.
+- [ ] `README.md` du projet détaillé (front et back) et à jour avec le changement.
 - [ ] `docs/http/` à jour, ADR / diagrammes / flows ajoutés si nécessaire.
