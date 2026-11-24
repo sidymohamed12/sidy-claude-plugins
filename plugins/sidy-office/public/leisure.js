@@ -152,7 +152,7 @@ export class Leisure {
       if (!def) {
         return null;
       }
-      return s.phase === PHASE.ACT ? def.doing(s.partnerName) : def.go;
+      return s.phase === PHASE.ACT ? def.doing(s.partnerName, s.target) : def.go;
     }
     const verb = s.kind === KIND.CHAT ? "Discute avec" : "Joue à la balle avec";
     return `${verb} ${s.partnerName}`;
@@ -283,6 +283,10 @@ export class Leisure {
       if (z.def.group === "pair") {
         return used === 0 && this.partnerCandidates(c, free).length > 0;
       }
+      if (z.def.group === "circle") {
+        // on ne discute pas seul : il faut quelqu'un à entraîner
+        return used === 0 && this.partnerCandidates(c, free).length > 0;
+      }
       return used < z.seats.length;
     });
   }
@@ -298,11 +302,30 @@ export class Leisure {
       this.startZonePair(c, zone, free);
       return;
     }
+    if (zone.def.group === "circle") {
+      this.startZoneCircle(c, zone, free);
+      return;
+    }
     const taken = this.takenSeats(zone.id, c.id);
     const seats = zone.seats.filter((_, i) => !taken.has(i));
     const seat = seats[Math.floor(this.rng() * seats.length)];
     this.startSolo(c, s, KIND.ZONE, { ...seat, seat: zone.seats.indexOf(seat) });
     s.zoneId = zone.id;
+  }
+
+  /** Un groupe : celui qui lance la discussion entraîne un ou deux collègues. */
+  startZoneCircle(c, zone, free) {
+    const others = this.partnerCandidates(c, free);
+    const wanted = 1 + Math.floor(this.rng() * 2); // 1 ou 2 collègues
+    const guests = [];
+    while (guests.length < wanted && others.length) {
+      guests.push(others.splice(Math.floor(this.rng() * others.length), 1)[0]);
+    }
+    [c, ...guests].forEach((who, i) => {
+      const st = this.states.get(who.id);
+      this.startSolo(who, st, KIND.ZONE, { ...zone.seats[i], seat: i });
+      st.zoneId = zone.id;
+    });
   }
 
   startZonePair(c, zone, free) {

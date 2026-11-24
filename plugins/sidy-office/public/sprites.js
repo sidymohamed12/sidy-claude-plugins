@@ -644,6 +644,36 @@ export function drawBall(ctx, x, y) {
   px(ctx, "#F6CF5B", bx - 1, by - 1, 1, 1);
 }
 
+/** Agent allongé sous une couverture, la tête sur l'oreiller (x : milieu du lit, y : bas du lit). */
+export function drawSleeper(ctx, x, y, look) {
+  const ox = Math.round(x - 11);
+  const oy = Math.round(y - 11);
+  px(ctx, WHITE, ox, oy, 7, 7);
+  px(ctx, "#E3E9F1", ox, oy + 6, 7, 1);
+  px(ctx, look.skin, ox + 1, oy + 1, 5, 5);
+  px(ctx, hairOf(look), ox + 1, oy + 1, 5, 2);
+  px(ctx, INK, ox + 3, oy + 4, 2, 1);
+  px(ctx, shade(look.top, 10), ox + 7, oy + 1, 15, 6);
+  px(ctx, shade(look.top, -30), ox + 7, oy + 1, 15, 1);
+  px(ctx, shade(look.top, -30), ox + 12, oy + 1, 1, 6);
+}
+
+/** Agent qui nage : le corps disparaît sous la ligne d'eau (x, y : au niveau des pieds). */
+export function drawSwimmer(ctx, x, y, look, t) {
+  const bob = Math.round(Math.sin(t * 3 + x));
+  const stroke = Math.floor(t * 2.5) % 2 === 0;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x - 14, y - 32, 28, 28);
+  ctx.clip();
+  drawStanding(ctx, x, y + 2 + bob, look, { facing: "front", wave: stroke });
+  ctx.restore();
+  ctx.globalAlpha = 0.7;
+  px(ctx, "#CFE8FA", x - 8, y - 5 + bob, 16, 1);
+  px(ctx, "#8CC6F0", x - 6, y - 4 + bob, 12, 1);
+  ctx.globalAlpha = 1;
+}
+
 export function drawZzz(ctx, x, y, t) {
   const phase = (t * 0.7) % 1;
   const zy = Math.round(y - 4 - phase * 8);

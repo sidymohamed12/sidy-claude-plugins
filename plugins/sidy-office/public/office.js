@@ -25,6 +25,8 @@ import {
   drawZzz,
   drawPlane,
   drawBall,
+  drawSleeper,
+  drawSwimmer,
   CHAT_ICONS,
   SPRITE_H,
 } from "./sprites.js";
@@ -656,8 +658,7 @@ export class Office {
   /** Un personnage au repos qui discute, joue ou boit un café. */
   drawLeisure(ctx, c, act, x, y, t, blink) {
     let wave = false;
-    if (act.kind === KIND.ZONE && act.target.pose === "sit") {
-      drawSeatedBack(ctx, x, y, c.look, IDLE, t);
+    if (act.kind === KIND.ZONE && this.drawZonePose(ctx, c, act, x, y, t, blink)) {
       return;
     }
     if (act.kind === KIND.PLAY || act.kind === KIND.ZONE) {
@@ -681,6 +682,61 @@ export class Office {
         const icon = CHAT_ICONS[Math.floor(turn / 2) % CHAT_ICONS.length];
         drawBubble(ctx, x, headY - 2, icon, t);
       }
+    }
+  }
+
+  /** Pose d'un agent dans une zone (assis, allongé, à la nage…). Faux pour le tennis de table, dessiné avec la balle. */
+  drawZonePose(ctx, c, act, x, y, t, blink) {
+    const tt = reducedMotion ? 0 : t;
+    switch (act.target.pose) {
+      case "sit":
+        drawSeatedBack(ctx, x, y, c.look, IDLE, tt);
+        return true;
+      case "lie":
+        drawSleeper(ctx, x, y, c.look);
+        drawZzz(ctx, x, y - 12, tt);
+        return true;
+      case "swim":
+        drawSwimmer(ctx, x, y, c.look, tt);
+        return true;
+      case "run":
+        drawStanding(ctx, x, y, c.look, {
+          facing: "back",
+          step: Math.floor(tt * 6) % 2,
+        });
+        return true;
+      case "lift":
+        drawStanding(ctx, x, y, c.look, {
+          facing: "front",
+          blink,
+          wave: Math.floor(tt * 1.6) % 2 === 0,
+        });
+        return true;
+      case "chat":
+        drawStanding(ctx, x, y, c.look, { facing: "front", blink });
+        this.drawGroupBubble(ctx, c, act, x, y, tt);
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /** Autour de la table, chacun parle à son tour. */
+  drawGroupBubble(ctx, c, act, x, y, t) {
+    const seats = [];
+    for (const [id, st] of this.leisure.states) {
+      if (st.kind === KIND.ZONE && st.zoneId === act.zoneId && st.phase === "act") {
+        seats.push([st.target.seat, id]);
+      }
+    }
+    if (seats.length < 2) {
+      return;
+    }
+    seats.sort((a, b) => a[0] - b[0]);
+    const turn = Math.floor(t / CHAT_TURN);
+    if (seats[turn % seats.length][1] === c.id) {
+      const icon = CHAT_ICONS[Math.floor(turn / seats.length) % CHAT_ICONS.length];
+      drawBubble(ctx, x, y - SPRITE_H + 4, icon, t);
     }
   }
 
