@@ -1,0 +1,71 @@
+# À copier dans .github/workflows/deploy.yml. Déploiement manuel, avec validation humaine (environnement « production »).
+# Ordre : ServiceAccount + ConfigMap, puis Job Flyway (supprimé avant), attente, puis Deployment et routes.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Image par digest : ghcr.io/<proprietaire>/<depot>@sha256:... (voir le résumé du run CI)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Un seul déploiement à la fois, et on n'en interrompt jamais un en cours.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Réglages > Environments > production : relecteurs requis, secret KUBE_CONFIG ici et pas au niveau du dépôt.
+    environment: production
+    env:
+      IMAGE: ${{ inputs.image }}
+      NS: app
+    steps:
+      - uses: actions/checkout@v7
+      - name: Valider l'image
+        run: |
+          if ! [[ "$IMAGE" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ]]; then
+            echo "L'image doit être donnée par digest : ghcr.io/<owner>/<repo>@sha256:<64 hex>" >&2
+            exit 1
+          fi
+      - name: Configurer kubectl
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          umask 077
+          echo "$KUBE_CONFIG_B64" | base64 -d > "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+      - name: Injecter l'image dans les manifestes
+        run: sed -i "s|app-image:0.0.0|${IMAGE}|g" deploy/k8s/deployment.yaml deploy/k8s/job-flyway.yaml
+      - name: Prérequis du namespace
+        run: |
+          kubectl apply -f deploy/k8s/namespace.yaml
+          kubectl apply -f deploy/k8s/serviceaccount.yaml -f deploy/k8s/configmap.yaml
+          # Le Secret est géré hors dépôt (External Secrets, Sealed Secrets) : on vérifie seulement qu'il existe.
+          kubectl -n "$NS" get secret app-secret > /dev/null
+      - name: Migration Flyway
+        run: |
+          kubectl -n "$NS" delete job app-flyway --ignore-not-found --wait=true
+          kubectl apply -f deploy/k8s/job-flyway.yaml
+          if ! kubectl -n "$NS" wait --for=condition=complete job/app-flyway --timeout=180s; then
+            kubectl -n "$NS" logs job/app-flyway --tail=100 || true
+            exit 1
+          fi
+      - name: Déployer
+        run: |
+          kubectl apply -k deploy/k8s
+          kubectl -n "$NS" rollout status deployment/app --timeout=300s
+      # Revient à la révision précédente de l'application. Le schéma, lui, reste migré :
+      # les migrations doivent rester compatibles avec la version précédente (ajouter, puis supprimer plus tard).
+      - name: Retour arrière si échec
+        if: failure()
+        run: |
+          kubectl -n "$NS" rollout undo deployment/app || true
+          kubectl -n "$NS" get pods
