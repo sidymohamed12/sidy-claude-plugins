@@ -1,0 +1,49 @@
+# SonarQube Community Build + PostgreSQL pour Docker Desktop.
+# Usage : cp .env.sonarqube.example .env.sonarqube
+#         docker compose --env-file .env.sonarqube -f docker-compose.sonarqube.yml up -d
+# Interface : http://localhost:9000 (premier démarrage : une à deux minutes).
+services:
+  sonarqube:
+    # Version épinglée : un tag flottant (`community`) peut sauter plusieurs versions d'un coup
+    # et casser la migration de la base. Vérifier le tag sur Docker Hub avant la première utilisation.
+    image: sonarqube:26.11.0.134175-community
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonarqube
+      SONAR_JDBC_USERNAME: sonarqube
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD:?SONAR_DB_PASSWORD manquant (voir .env.sonarqube.example)}
+    ports:
+      # Écoute sur la machine seulement : SonarQube n'est pas exposé au réseau local.
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    ulimits:
+      nofile:
+        soft: 131072
+        hard: 131072
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: sonarqube
+      POSTGRES_USER: sonarqube
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD:?SONAR_DB_PASSWORD manquant (voir .env.sonarqube.example)}
+    volumes:
+      - sonarqube_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonarqube -d sonarqube"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonarqube_db:

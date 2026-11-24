@@ -1,14 +1,16 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# job-flyway.yaml n'est PAS ici : il s'applique avant, à part (kubernetes.md §2).
+# Sinon `kubectl apply -k` lancerait la migration et le roll en même temps.
 resources:
   - namespace.yaml
   - serviceaccount.yaml
   - configmap.yaml
-  - job-flyway.yaml
   - deployment.yaml
   - service.yaml
   - pdb.yaml
   - networkpolicy.yaml
+  - httproute.yaml
 images:
   - name: app-image
     newName: app-image

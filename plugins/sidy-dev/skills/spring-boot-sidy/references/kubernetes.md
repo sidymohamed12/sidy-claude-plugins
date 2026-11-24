@@ -45,7 +45,7 @@ Deux moments, pas un script dans le conteneur d'application.
 **Avant le roll — migration.** L'app tourne avec `FLYWAY_ENABLED=false`. Le schéma est appliqué par un Job, même image, profil `prod,migration`, `FLYWAY_ENABLED=true`. Il doit se terminer avant que les nouveaux pods servent.
 
 - Avec Helm : le Job porte les annotations `helm.sh/hook: pre-install,pre-upgrade`, `helm.sh/hook-weight: "-5"`, `helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded`.
-- Sans Helm : le pipeline fait `kubectl apply -f job-flyway.yaml` puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s`, et seulement ensuite le Deployment. Un Job en échec arrête le déploiement.
+- Sans Helm : le pipeline fait `kubectl delete job app-flyway -n app --ignore-not-found --wait=true`, puis `kubectl apply -f job-flyway.yaml`, puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s`, et seulement ensuite le Deployment. Un Job en échec arrête le déploiement. Le `delete` est obligatoire : le `spec.template` d'un Job est immuable, donc un `apply` avec un nouveau tag d'image sur un Job encore présent (`ttlSecondsAfterFinished: 600`) échoue avec « field is immutable ». Avec Helm, `before-hook-creation` fait cette suppression.
 
 Profil `application-migration.yml` :
 
@@ -61,15 +61,17 @@ spring:
 
 **À l'arrêt — `preStop`.** Le kubelet retire le pod du Service avec un délai. `preStop` dort 10 s pour laisser ce délai, puis `SIGTERM`, puis les 30 s d'arrêt gracieux. `terminationGracePeriodSeconds: 45` (10 + 30 + marge). Descendre l'un sans l'autre coupe les requêtes en vol.
 
+`preStop` appelle `sh -c "sleep 10"` : l'image doit donc avoir un shell. Alpine et les images JRE classiques en ont un ; une image distroless ou « scratch » non. Dans ce cas le hook échoue et le pod s'arrête sans délai. Alternatives : `lifecycle.preStop.sleep.seconds: 10` (Kubernetes 1.30+, sans shell), ou une image qui embarque `/bin/sh`.
+
 Pas d'autre hook. Pas de `postStart`. Pas de commande qui écrit en base dans le lifecycle du pod.
 
 ## 3. Manifestes
 
-Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'image `app-image:0.0.0`, les hôtes. `kubectl apply -k deploy/k8s`.
+Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'image `app-image:0.0.0`, les hôtes. Ordre de déploiement : (1) `kubectl apply -f deploy/k8s/job-flyway.yaml` puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s -n app` (§2) ; (2) seulement ensuite `kubectl apply -k deploy/k8s`. Le Job n'est pas dans le kustomization : un `apply -k` seul ne garantirait pas que la migration finisse avant le roll.
 
 | Fichier | Rôle |
 |---|---|
-| `namespace.yaml` | Namespace `app` |
+| `namespace.yaml` | Namespace `app`, Pod Security Standards `restricted` appliqué |
 | `serviceaccount.yaml` | Compte sans jeton API (`automountServiceAccountToken: false`) |
 | `configmap.yaml` | Profil `prod`, fuseau, `FLYWAY_ENABLED=false`. Aucun secret |
 | `secret.example.yaml` | Noms de clés seulement. **Hors** de `kustomization.yaml`. Vraies valeurs via External Secrets ou Sealed Secrets, jamais commitées |
@@ -77,19 +79,48 @@ Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'imag
 | `deployment.yaml` | 2 replicas, non-root, filesystem en lecture seule, sondes, `preStop` |
 | `service.yaml` | `ClusterIP` 8080. Pas d'autre port |
 | `pdb.yaml` | `minAvailable: 1` |
-| `networkpolicy.yaml` | Entrée 8080 (les sondes kubelet ne viennent pas d'un pod). Sortie : 5432, 6379, DNS. Un appel HTTPS sortant se décide dans un ADR, on n'ouvre pas tout l'egress |
-| `kustomization.yaml` | Tout sauf le secret d'exemple |
+| `networkpolicy.yaml` | Entrée 8080 depuis le namespace `gateway-system` seulement. Sortie : CoreDNS, 5432, 6379. Un appel HTTPS sortant se décide dans un ADR, on n'ouvre pas tout l'egress |
+| `httproute.yaml` | Routes Gateway API : `/api` seulement vers le Service, plus la redirection HTTP vers HTTPS (§5) |
+| `hpa.yaml` | **Optionnel**, hors kustomization. Autoscaling CPU 2 à 6 replicas, demande metrics-server |
+| `kustomization.yaml` | Tout sauf le secret d'exemple et le Job de migration (appliqué à part, avant) |
 
 UID du conteneur : celui de `USER app` dans l'image (`docker run --rm <image> id`), pas un nombre inventé. L'exemple Alpine est 100. Le verifier avant d'appliquer.
 
 `readOnlyRootFilesystem: true` exige des `emptyDir` sur `/tmp` et `/var/log/app`. Pas de limite CPU (évite le throttling) ; mémoire limitée à 768 Mi, comme le compose prod, avec `MaxRAMPercentage=75` déjà dans l'image.
 
+Ce plafond est un point de départ, pas une garantie. À 768 Mi, le heap peut monter à 576 Mi et il reste environ 190 Mi pour le metaspace, les piles de fils, les tampons natifs et le code compilé. Avec Java 25 et les fils virtuels, c'est juste. Avant la première mise en production : lancer une charge réaliste, relever la mémoire réelle du conteneur (`kubectl top pod`, ou `container_memory_working_set_bytes`), et chercher un `OOMKilled` (`kubectl describe pod`). Si la marge est sous 20 %, monter la limite, ou baisser `MaxRAMPercentage` à 65.
+
 `maxUnavailable: 0`, `maxSurge: 1`. Un roll ne descend pas sous les replicas prêts.
+
+Réglages du Deployment, et pourquoi :
+
+- `topologySpreadConstraints` (`ScheduleAnyway`) : les 2 replicas évitent le même nœud, sans bloquer le déploiement sur un cluster d'un seul nœud.
+- `minReadySeconds: 10` et `progressDeadlineSeconds: 300` : un pod doit rester prêt 10 s avant que le roll continue ; un roll bloqué passe en échec au lieu de rester « en cours ».
+- Requête mémoire = limite (768 Mi) : le heap monte jusqu'à son maximum, une requête plus basse expose le pod à l'éviction quand le nœud manque de mémoire. Pas de limite CPU (pas de throttling), requête 100 m.
+- `ephemeral-storage` et `sizeLimit` des `emptyDir` : des logs qui débordent évincent le pod au lieu de remplir le disque du nœud.
+- `enableServiceLinks: false` : pas de variables d'environnement injectées pour chaque Service du namespace.
+- Le namespace impose Pod Security `restricted` : le cluster refuse un pod qui perdrait `runAsNonRoot`, `drop: ALL` ou `seccompProfile`.
+- Un changement du ConfigMap ne redémarre pas les pods : `kubectl rollout restart deployment/app -n app`. L'image se fixe de préférence par digest (`@sha256:...`) plutôt que par tag.
 
 ## 4. Ce qu'on ne fait pas
 
 - Exposer l'Actuator sur un second port « pour simplifier » sans chaîne de sécurité dédiée : sur Boot 4 ce port n'hérite pas de la `SecurityFilterChain` principale.
 - Mettre `db` ou `redis` dans `liveness`.
 - Lancer Flyway dans chaque pod **et** dans le Job.
+- Donner `FLYWAY_USER` / `FLYWAY_PASSWORD` (rôle propriétaire du schéma) aux pods de l'app. Seul le Job les reçoit. Les défauts vides de `application.yml` (`${FLYWAY_USER:}`) évitent l'échec de démarrage ; le Job, lui, doit toujours les avoir (sinon Flyway retombe sur le compte applicatif sans le dire).
 - Committer un Secret avec de vraies valeurs, ou un `change-me` que quelqu'un applique tel quel.
 - Pointer les sondes sur `/actuator/health`.
+- Router `/actuator` ou `/` vers le Service : la route ne déclare que `/api`.
+- Utiliser `ingress-nginx` : le projet est archivé depuis mars 2026, plus de correctif de sécurité. Gateway API (§5), ou à défaut un autre contrôleur Ingress maintenu.
+
+## 5. Routes (Gateway API)
+
+L'application n'expose qu'un Service `ClusterIP`. Les routes sont dans `httproute.yaml` (Gateway API `v1`), attachées à une passerelle que la **plateforme** possède, pas l'application. Dans le fichier : passerelle `public-gateway`, namespace `gateway-system`, écouteurs `https` et `http`, hôte `api.example.com`. À adapter au cluster.
+
+- **Chemin routé : `/api` seulement.** Actuator (`denyAll` côté Spring en plus), Swagger (désactivé en `prod`) et tout le reste n'atteignent pas l'extérieur. Les sondes kubelet vont directement au pod.
+- **TLS** : terminé sur l'écouteur `https` de la passerelle (certificat géré côté plateforme, par exemple cert-manager). L'application ne voit que du HTTP en clair.
+- **HTTP vers HTTPS** : seconde route `app-redirect-https` sur l'écouteur `http`, redirection `301`.
+- **IP du client** : le `RateLimitFilter` lit l'IP via `server.forward-headers-strategy=framework`, et seulement derrière un proxy de confiance (`securite.md` §4). Vérifier que la passerelle pose bien `X-Forwarded-For` et que le pod n'est joignable que par elle (la `NetworkPolicy` y veille).
+- **Passerelle** : l'écouteur doit autoriser les routes d'un autre namespace (`allowedRoutes.namespaces.from: Selector` ou `All`), sinon la route reste « non acceptée » (`kubectl describe httproute app -n app`).
+- **Sans Gateway API dans le cluster** : un `Ingress` standard (`networking.k8s.io/v1`, `ingressClassName` du contrôleur maintenu, un seul `path: /api` en `Prefix`, TLS) donne le même résultat. Même règle : jamais `/actuator`.
+- Le CRD Gateway API doit être installé (`kubectl get crd httproutes.gateway.networking.k8s.io`). Sinon, retirer `httproute.yaml` du kustomization.

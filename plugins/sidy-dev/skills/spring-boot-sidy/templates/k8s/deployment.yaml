@@ -7,6 +7,9 @@ metadata:
     app.kubernetes.io/name: app
 spec:
   replicas: 2
+  revisionHistoryLimit: 3
+  minReadySeconds: 10
+  progressDeadlineSeconds: 300
   selector:
     matchLabels:
       app.kubernetes.io/name: app
@@ -23,22 +26,33 @@ spec:
       serviceAccountName: app
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      enableServiceLinks: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 100
         runAsGroup: 101
         seccompProfile:
           type: RuntimeDefault
+      # Répartit les replicas sur des nœuds différents (sans bloquer s'il n'y a qu'un nœud)
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: app
       containers:
         - name: app
           image: app-image:0.0.0
           imagePullPolicy: IfNotPresent
+          terminationMessagePolicy: FallbackToLogsOnError
           ports:
             - name: http
               containerPort: 8080
           envFrom:
             - configMapRef:
                 name: app-config
+          # Pas de FLYWAY_USER / FLYWAY_PASSWORD ici : le rôle DDL reste dans le Job de migration.
           env:
             - name: DB_URL
               valueFrom:
@@ -55,21 +69,6 @@ spec:
                 secretKeyRef:
                   name: app-secret
                   key: DB_PASSWORD
-            - name: FLYWAY_URL
-              valueFrom:
-                secretKeyRef:
-                  name: app-secret
-                  key: FLYWAY_URL
-            - name: FLYWAY_USER
-              valueFrom:
-                secretKeyRef:
-                  name: app-secret
-                  key: FLYWAY_USER
-            - name: FLYWAY_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: app-secret
-                  key: FLYWAY_PASSWORD
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -97,15 +96,19 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 3
           lifecycle:
+            # Nécessite un shell dans l'image. Sans shell (distroless) : preStop.sleep.seconds: 10 (K8s 1.30+).
             preStop:
               exec:
                 command: ["sh", "-c", "sleep 10"]
           resources:
+            # Requête mémoire = limite : le heap monte jusqu'à son maximum, un pod sous-réservé est évincé en premier
             requests:
               cpu: 100m
-              memory: 256Mi
+              memory: 768Mi
+              ephemeral-storage: 64Mi
             limits:
               memory: 768Mi
+              ephemeral-storage: 512Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -118,6 +121,8 @@ spec:
               mountPath: /var/log/app
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 64Mi
         - name: logs
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 256Mi

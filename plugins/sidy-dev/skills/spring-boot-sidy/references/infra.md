@@ -64,8 +64,8 @@ spring:
   flyway:
     enabled: ${FLYWAY_ENABLED:false}
     url: ${FLYWAY_URL:${DB_URL}}
-    user: ${FLYWAY_USER}
-    password: ${FLYWAY_PASSWORD}
+    user: ${FLYWAY_USER:}
+    password: ${FLYWAY_PASSWORD:}
   data:
     redis:
       host: ${REDIS_HOST}
@@ -109,7 +109,7 @@ DB_URL=jdbc:postgresql://localhost:5432/app
 DB_USERNAME=app
 DB_PASSWORD=change-me
 
-# Flyway (compte DDL distinct en prod ; FLYWAY_ENABLED=false sur l'app si one-shot migrate)
+# Flyway (compte DDL distinct en prod ; FLYWAY_ENABLED=false sur l'app si one-shot migrate ; FLYWAY_USER / FLYWAY_PASSWORD ne sont donnés qu'au Job de migration, pas aux pods de l'app)
 FLYWAY_URL=jdbc:postgresql://localhost:5432/app
 FLYWAY_USER=flyway
 FLYWAY_PASSWORD=change-me
@@ -371,7 +371,7 @@ Exigences : **image légère**, **layers Spring Boot** pour un cache de build ef
 # syntax=docker/dockerfile:1
 
 # ---- Build ----
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM eclipse-temurin:25-jdk-alpine AS build
 WORKDIR /workspace
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
@@ -382,7 +382,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -DskipTests package \
  && java -Djarmode=tools -jar application.jar extract --layers --destination extracted
 
 # ---- Runtime ----
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -S app && adduser -S app -G app \
  && mkdir -p /var/log/app && chown app:app /var/log/app
 WORKDIR /app
