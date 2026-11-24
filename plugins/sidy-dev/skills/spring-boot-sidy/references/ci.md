@@ -12,11 +12,11 @@
 
 Trois jobs. `image` attend les deux autres.
 
-- **`test`** : JDK 25 (Temurin), `./mvnw -B -ntp verify`. Testcontainers utilise le Docker du runner. Le seuil JaCoCo fait échouer le build (80 % du code neuf par défaut, `sonar.md`). Si `SONAR_TOKEN` existe, analyse Sonar avec `-Dsonar.qualitygate.wait=true` : un Quality Gate rouge fait échouer le job. `fetch-depth: 0` est nécessaire à Sonar. Les PR venant d'un fork n'ont pas le secret : l'étape Sonar est sautée.
+- **`test`** : JDK 25 (Temurin), `./mvnw -B -ntp verify`. Testcontainers utilise le Docker du runner. Le seuil JaCoCo fait échouer le build (80 % du code neuf par défaut, `sonar.md`). Si `SONAR_ENABLED=true`, analyse Sonar avec `-Dsonar.qualitygate.wait=true` : un Quality Gate rouge fait échouer le job. `fetch-depth: 0` est nécessaire à Sonar. Le secret `SONAR_TOKEN` n'est donné qu'à cette étape. L'analyse part de `main` ; les PR ne sont analysées que si `SONAR_PR_ANALYSIS=true` (SonarQube Developer ou SonarCloud), et jamais depuis un fork. SonarQube local sur Docker Desktop : `sonarqube-local.md`. Le runner du job se choisit par la variable `CI_RUNNER_LABELS` (défaut : `ubuntu-latest`).
 - **`manifests`** : `kubectl kustomize deploy/k8s` plus le Job, validés par `kubeconform` (version et empreinte SHA-256 épinglées, schémas Gateway API inclus). Une erreur de YAML ou d'API est vue avant le cluster.
 - **`image`** : build du Dockerfile sur chaque PR (vérifie qu'il compile), push sur GHCR seulement hors PR, tags `sha` complet et `semver`. Le digest est écrit dans le résumé du run : c'est lui qu'on déploie.
 
-Réglages du dépôt : secret `SONAR_TOKEN` ; variables `SONAR_PROJECT_KEY`, `SONAR_ORGANIZATION`, et `SONAR_HOST_URL` si ce n'est pas SonarCloud. Protéger `main` : PR obligatoire, checks `test`, `manifests` et `image` requis.
+Réglages du dépôt : secret `SONAR_TOKEN` ; variables `SONAR_ENABLED`, `SONAR_PROJECT_KEY`, `SONAR_HOST_URL` (défaut SonarCloud), `SONAR_ORGANIZATION` (SonarCloud seulement), `SONAR_PR_ANALYSIS` (facultatif), `CI_RUNNER_LABELS` (facultatif). Protéger `main` : PR obligatoire, checks `test`, `manifests` et `image` requis.
 
 ## 2. `deploy.yml`
 

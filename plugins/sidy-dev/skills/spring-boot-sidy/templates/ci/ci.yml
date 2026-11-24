@@ -18,10 +18,10 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Par défaut un runner GitHub. Pour joindre un SonarQube local (Docker Desktop), définir la variable
+    # CI_RUNNER_LABELS = ["self-hosted", "sonar-local"] : voir references/sonarqube-local.md.
+    runs-on: ${{ fromJSON(vars.CI_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 30
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -34,15 +34,30 @@ jobs:
       # Testcontainers (PostgreSQL, Redis) utilise le Docker du runner. Le build échoue sous le seuil JaCoCo.
       - name: Build, tests et couverture
         run: ./mvnw -B -ntp verify
-      # Sans SONAR_TOKEN (PR venant d'un fork, projet sans Sonar) l'étape est sautée.
+      # Actif seulement si SONAR_ENABLED=true. SonarQube Community Build n'analyse qu'une branche et
+      # pas les PR : analyser une PR écraserait les résultats de main. On analyse donc `main`, et les PR
+      # seulement si SONAR_PR_ANALYSIS=true (SonarQube Developer ou SonarCloud), jamais depuis un fork.
       - name: Analyse Sonar et Quality Gate
-        if: env.SONAR_TOKEN != ''
-        run: >
-          ./mvnw -B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
-          -Dsonar.host.url=${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
-          -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
-          -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-          -Dsonar.qualitygate.wait=true
+        if: >
+          vars.SONAR_ENABLED == 'true' && (
+            github.ref == 'refs/heads/main' ||
+            (github.event_name == 'pull_request' && vars.SONAR_PR_ANALYSIS == 'true' &&
+             github.event.pull_request.head.repo.full_name == github.repository))
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+        run: |
+          args=(-B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+            "-Dsonar.host.url=${SONAR_HOST_URL}"
+            "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
+            -Dsonar.qualitygate.wait=true)
+          # L'organisation n'existe que sur SonarCloud : pas de paramètre vide sur un SonarQube local.
+          if [ -n "${SONAR_ORGANIZATION}" ]; then
+            args+=("-Dsonar.organization=${SONAR_ORGANIZATION}")
+          fi
+          ./mvnw "${args[@]}"
 
   manifests:
     runs-on: ubuntu-latest
