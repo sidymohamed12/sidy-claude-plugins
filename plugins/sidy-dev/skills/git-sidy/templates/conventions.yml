@@ -1,0 +1,27 @@
+# À copier dans .github/workflows/conventions.yml, avec check-conventions.mjs dans .github/scripts/.
+# Vérifie le nom de la branche, sa cible (dev ou preprod) et les messages de commit de chaque PR.
+name: Conventions Git
+
+on:
+  pull_request:
+    branches: [dev, preprod, main, prod]
+
+permissions:
+  contents: read
+
+jobs:
+  conventions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Vérifier branche, cible et commits
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node .github/scripts/check-conventions.mjs
