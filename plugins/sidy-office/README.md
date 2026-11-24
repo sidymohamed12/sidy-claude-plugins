@@ -33,7 +33,7 @@ Ou, dans Claude Code :
 
 Pas de session en cours ? Clique sur **Voir une démo** : tes quatre premiers agents rejouent une mission complète.
 
-**Au repos, le bureau vit.** Les agents qui ne travaillent pas ne restent pas plantés devant leur canapé : ils se promènent dans le coin pause, vont prendre un café, discutent à deux (les bulles se répondent) ou se lancent une balle. Dès qu'un agent reçoit du travail, il laisse tout et rejoint son poste. Le panneau de l'équipe dit ce que chacun fait (« Discute avec reviewer », « Joue à la balle avec designer »). Si ton système demande moins d'animations (`prefers-reduced-motion`), les agents restent à leur place.
+**Au repos, le bureau vit.** Les agents qui ne travaillent pas ne restent pas plantés devant leur canapé : ils se promènent dans le coin pause, vont prendre un café, discutent à deux (les bulles se répondent) ou se lancent une balle. Dès qu'un agent reçoit du travail, il laisse tout et rejoint son poste. Le panneau de l'équipe dit ce que chacun fait (« Discute avec reviewer », « Joue à la balle avec designer »). Si ton système demande moins d'animations (`prefers-reduced-motion`), les agents restent à leur place. Pour tout couper : `"repos": false` dans `sidy-office.json` (voir *Personnaliser*).
 
 Le bureau montre toutes tes sessions Claude Code en même temps. Si un même agent tourne dans deux sessions, son nom porte « ×2 ».
 
@@ -68,9 +68,10 @@ Tout est facultatif :
 {
   "titre": "Le bureau de l'équipe MediTrace",
   "ordre": ["backend-dev", "frontend-dev", "reviewer"],
+  "repos": true,
   "agents": {
     "claude": { "nom": "Chef", "couleur": "#2F4B8F" },
-    "backend-dev": { "nom": "Back", "role": "API Spring Boot", "couleur": "#2E9E5B", "accessoire": "casque" },
+    "backend-dev": { "nom": "Back", "role": "API Spring Boot", "couleur": "#2E9E5B", "accessoire": "casque", "coupe": "afro", "pantalon": "#2F3A4C", "rayures": "#FFFFFF" },
     "data-analyst": { "role": "Analyse les données", "peau": 2, "accessoire": ["lunettes", "chignon"] },
     "Explore": { "masquer": true }
   }
@@ -88,11 +89,15 @@ Tout est facultatif :
 | `cheveux`            | Couleur des cheveux, en hexadécimal                                   |
 | `peau`               | Teinte de peau, de `1` (la plus foncée) à `5`, ou en hexadécimal      |
 | `accessoire`         | `casque`, `lunettes`, `casquette`, `capuche`, `chignon`, `cravate`, `aucun`, ou une liste |
+| `coupe`              | Coupe de cheveux : `courte` (par défaut), `longue`, `afro`, `rase`    |
+| `pantalon`           | Couleur du pantalon, en hexadécimal                                   |
+| `rayures`            | Couleur d'une rayure sur le haut, en hexadécimal, ou `false` pour l'enlever |
+| `repos`              | Au niveau du fichier : `false` coupe toutes les activités au repos (promenade, café, discussion, balle). Au niveau d'un agent : `false` le garde à sa place pendant que les autres s'animent. Par défaut : `true` |
 | `masquer`            | `true` pour retirer l'agent du bureau (il reste dans le fil d'activité) |
 
 Un agent présent dans le fichier mais introuvable sur ta machine (par exemple `Explore`) rejoint quand même l'équipe, avec son propre poste.
 
-Si le fichier contient une erreur, la page l'indique en haut et le bureau continue avec les autres réglages. Les changements s'appliquent au prochain rechargement de la page.
+Si le fichier contient une erreur, ou un réglage inconnu ou invalide (une `coupe` qui n'existe pas, une couleur mal écrite, une faute de frappe dans une clé), la page l'indique en haut et le bureau continue avec les autres réglages. Les changements s'appliquent au prochain rechargement de la page.
 
 Le fichier [`exemples/sidy-office.json`](exemples/sidy-office.json) reproduit l'équipe de Sidy (`backend-dev`, `designer`, `frontend-dev`, `reviewer`, `security-reviewer`, `pentest-actif`) : copie-le dans `~/.claude/` pour partir de là.
 

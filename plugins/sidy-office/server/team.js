@@ -17,6 +17,8 @@ const ROLE_MAX = 60;
 const INK = "#1A2233";
 const TIE = "#E5B637";
 const NO_ACCESSORY = "aucun";
+const CUTS = ["courte", "longue", "afro", "rase"];
+const DEFAULT_CUT = "courte";
 const HEX = /^#[0-9a-f]{6}$/i;
 
 const SKINS = ["#5E3A26", "#8D5A3B", "#A86B45", "#C68A5E", "#E0AC85"];
@@ -144,6 +146,25 @@ function accessoriesFrom(value) {
   return list.filter((a) => ACCESSORIES.includes(a) || a === NO_ACCESSORY);
 }
 
+/** Style : coupe de cheveux, pantalon, rayures. Les valeurs inconnues sont ignorées. */
+function applyStyle(look, settings) {
+  const result = { ...look };
+  if (CUTS.includes(settings.coupe) && settings.coupe !== DEFAULT_CUT) {
+    result.cut = settings.coupe;
+  } else if (settings.coupe === DEFAULT_CUT) {
+    delete result.cut;
+  }
+  if (HEX.test(settings.pantalon || "")) {
+    result.pants = settings.pantalon;
+  }
+  if (HEX.test(settings.rayures || "")) {
+    result.stripe = settings.rayures;
+  } else if (settings.rayures === false) {
+    delete result.stripe;
+  }
+  return result;
+}
+
 /** Applique les réglages d'apparence du fichier de config sur une apparence de base. */
 function customizeLook(base, settings) {
   const look = { ...base };
@@ -158,7 +179,7 @@ function customizeLook(base, settings) {
     look.skin = skin;
   }
   if (settings.accessoire === undefined) {
-    return look;
+    return applyStyle(look, settings);
   }
   // un accessoire choisi remplace ceux de l'apparence générée
   const plain = {
@@ -167,7 +188,72 @@ function customizeLook(base, settings) {
     top: look.top,
     pants: look.pants,
   };
-  return accessoriesFrom(settings.accessoire).reduce(applyAccessory, plain);
+  const dressed = accessoriesFrom(settings.accessoire).reduce(
+    applyAccessory,
+    plain,
+  );
+  return applyStyle(dressed, settings);
+}
+
+const KNOWN_KEYS = new Set([
+  "nom",
+  "role",
+  "couleur",
+  "cheveux",
+  "peau",
+  "accessoire",
+  "coupe",
+  "pantalon",
+  "rayures",
+  "repos",
+  "masquer",
+]);
+
+/** Valeurs du fichier de réglages qui ne seront pas appliquées, en phrases lisibles. */
+function configWarnings(config) {
+  const warnings = [];
+  if (config.repos !== undefined && typeof config.repos !== "boolean") {
+    warnings.push('« repos » doit valoir true ou false.');
+  }
+  const agents =
+    config.agents && typeof config.agents === "object" ? config.agents : {};
+  for (const [type, s] of Object.entries(agents)) {
+    if (!s || typeof s !== "object") {
+      continue;
+    }
+    const bad = (key, why) => warnings.push(`${type} : « ${key} » ${why}.`);
+    for (const key of Object.keys(s)) {
+      if (!KNOWN_KEYS.has(key)) {
+        bad(key, "n'est pas un réglage connu");
+      }
+    }
+    for (const key of ["couleur", "cheveux", "pantalon"]) {
+      if (s[key] !== undefined && !HEX.test(s[key])) {
+        bad(key, "attend une couleur comme #2E9E5B");
+      }
+    }
+    if (s.rayures !== undefined && s.rayures !== false && !HEX.test(s.rayures)) {
+      bad("rayures", "attend une couleur comme #FFFFFF, ou false");
+    }
+    if (s.peau !== undefined && !skinFrom(s.peau)) {
+      bad("peau", `attend un nombre de 1 à ${SKINS.length} ou une couleur`);
+    }
+    if (s.coupe !== undefined && !CUTS.includes(s.coupe)) {
+      bad("coupe", `attend ${CUTS.join(", ")}`);
+    }
+    if (s.accessoire !== undefined) {
+      const list = Array.isArray(s.accessoire) ? s.accessoire : [s.accessoire];
+      for (const a of list) {
+        if (!ACCESSORIES.includes(a) && a !== NO_ACCESSORY) {
+          bad("accessoire", `« ${a} » est inconnu (${ACCESSORIES.join(", ")}, ${NO_ACCESSORY})`);
+        }
+      }
+    }
+    if (s.repos !== undefined && typeof s.repos !== "boolean") {
+      bad("repos", "doit valoir true ou false");
+    }
+  }
+  return warnings;
 }
 
 /** Première phrase de la description, raccourcie. */
@@ -226,6 +312,7 @@ function buildMember(type, settings, discovered) {
         : roleFrom(discovered && discovered.description),
     look: customizeLook(generateLook(type), settings),
     source: discovered ? discovered.source : "réglage",
+    stays: settings.repos === false,
   };
 }
 
@@ -279,6 +366,7 @@ function buildTeam(discovered, config = {}) {
     claude,
     members: orderMembers(members, config.ordre),
     hidden,
+    leisure: config.repos !== false,
   };
 }
 
@@ -310,8 +398,11 @@ function resolveTeam({ homeDir, cwds = [], globalConfigFile }) {
     }
   }
   const loaded = [...new Set(files)].map(loadConfig);
-  const errors = loaded.map((l) => l.error).filter(Boolean);
   const config = mergeConfigs(loaded.map((l) => l.config));
+  const errors = [
+    ...loaded.map((l) => l.error).filter(Boolean),
+    ...configWarnings(config),
+  ];
   const team = buildTeam(discoverAgents({ homeDir, cwds }), config);
   return { team, errors };
 }
@@ -320,6 +411,7 @@ module.exports = {
   buildTeam,
   generateLook,
   customizeLook,
+  configWarnings,
   roleFrom,
   loadConfig,
   mergeConfigs,

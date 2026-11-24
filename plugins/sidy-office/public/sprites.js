@@ -27,18 +27,35 @@ function shade(hex, amount) {
   return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
 }
 
+/** Couleur des cheveux : une tête rasée garde une ombre de la teinte de peau. */
+function hairOf(look) {
+  return look.cut === "rase" ? shade(look.skin, -22) : look.hair;
+}
+
 function drawHeadFront(ctx, x, y, look, blink) {
-  const hairTop = look.hood || look.hair;
+  const hair = hairOf(look);
+  const hairTop = look.hood || hair;
   if (look.hood) {
     px(ctx, look.hood, x + 2, y, 8, 8);
     px(ctx, shade(look.hood, 18), x + 3, y, 6, 1);
+  } else if (look.cut === "afro") {
+    px(ctx, hair, x + 2, y - 1, 8, 3);
+    px(ctx, hair, x + 3, y - 2, 6, 1);
   } else {
-    px(ctx, look.hair, x + 3, y, 6, 2);
+    px(ctx, hair, x + 3, y, 6, 2);
   }
   px(ctx, look.skin, x + 3, y + 2, 6, 5);
   if (!look.hood) {
     px(ctx, hairTop, x + 3, y + 2, 1, 2);
     px(ctx, hairTop, x + 8, y + 2, 1, 2);
+    if (look.cut === "afro") {
+      px(ctx, hair, x + 2, y + 2, 1, 3);
+      px(ctx, hair, x + 9, y + 2, 1, 3);
+    } else if (look.cut === "longue") {
+      // cheveux qui retombent sur les épaules
+      px(ctx, hair, x + 2, y + 2, 1, 6);
+      px(ctx, hair, x + 9, y + 2, 1, 6);
+    }
   }
   if (look.bun) {
     px(ctx, look.hair, x + 5, y - 2, 2, 2);
@@ -70,10 +87,20 @@ function drawHeadBack(ctx, x, y, look) {
     px(ctx, shade(look.hood, 18), x + 3, y, 6, 1);
     return;
   }
-  px(ctx, look.hair, x + 3, y, 6, 7);
-  px(ctx, shade(look.hair, 25), x + 4, y + 1, 3, 1);
-  px(ctx, look.skin, x + 2, y + 4, 1, 1);
-  px(ctx, look.skin, x + 9, y + 4, 1, 1);
+  const hair = hairOf(look);
+  if (look.cut === "afro") {
+    px(ctx, hair, x + 2, y - 2, 8, 10);
+    px(ctx, hair, x + 3, y - 3, 6, 1);
+  } else if (look.cut === "longue") {
+    px(ctx, hair, x + 2, y, 8, 12);
+  } else {
+    px(ctx, hair, x + 3, y, 6, 7);
+  }
+  px(ctx, shade(hair, 25), x + 4, y + 1, 3, 1);
+  if (!look.cut || look.cut === "rase") {
+    px(ctx, look.skin, x + 2, y + 4, 1, 1);
+    px(ctx, look.skin, x + 9, y + 4, 1, 1);
+  }
   if (look.bun) {
     px(ctx, look.hair, x + 5, y - 2, 2, 2);
   }
