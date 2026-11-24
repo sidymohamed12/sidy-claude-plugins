@@ -139,11 +139,12 @@ function drawPiscine(ctx, ox, oy) {
   px(ctx, "#8CC6F0", x, y, w, h);
   px(ctx, "#A8D6F5", x, y, w, 3);
   px(ctx, "#6BB0E0", x, y + h - 3, w, 3);
-  // lignes d'eau
-  for (let i = 1; i < 3; i += 1) {
-    const lx = x + Math.round((w * i) / 3);
-    for (let k = 0; k < h; k += 4) {
-      px(ctx, k % 8 ? "#E5484D" : WHITE, lx, y + k, 1, 3);
+  // lignes d'eau dans le sens de la nage, entre les lignes des nageurs
+  const seats = ZONES.piscine.seats;
+  for (let i = 1; i < seats.length; i += 1) {
+    const ly = oy + Math.round(((seats[i - 1].y + seats[i].y) / 2 + 0.1) * TILE);
+    for (let k = 0; k < w; k += 4) {
+      px(ctx, k % 8 ? "#E5484D" : WHITE, x + k, ly, 3, 1);
     }
   }
   // échelle

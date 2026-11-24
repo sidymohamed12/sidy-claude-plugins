@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-24, `sidy-office` v1.12.0)** — on peut jouer seul à la console et à la balle (jongles), plus de balle parasite à la console, et des longueurs dans la piscine.
+>
 > **Mise à jour (2026-11-24, `sidy-office` v1.11.0)** — les zones d'abord : les agents libres sont presque toujours dans une zone, et d'abord dans les vides. Nouvelle zone jeu de balle, gaming à deux à la manette devant la télé, nage dans la piscine, sieste bien visible.
 >
 > **Mise à jour (2026-11-24, `sidy-office` v1.10.0)** — ton portrait encadré au mur de la salle de travail, avec la photo de ton choix (réglage `portrait`).

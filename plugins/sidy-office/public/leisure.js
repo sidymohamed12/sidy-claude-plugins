@@ -40,6 +40,7 @@ const COFFEE_AT = { x: 1.5, dy: 1.6 };
 
 export const BALL_PERIOD = 1.3; // secondes pour un aller de balle
 export const BALL_ARC = 1.6; // hauteur du lob, en tuiles
+const FLEX_PAIR_CHANCE = 0.6; // jeu « seul ou à deux » : à deux quand quelqu'un est libre, souvent
 const RETURN_DELAY = 0.8; // secondes avant de rentrer après une zone
 /** Envies quand il y a un espace détente : les zones avant tout, un café de temps en temps. */
 const WITH_ZONES = [
@@ -311,6 +312,9 @@ export class Leisure {
       if (z.def.group === "pair" || z.def.group === "circle") {
         return used === 0 && partners > 0;
       }
+      if (z.def.group === "flex") {
+        return used === 0; // seul ou à deux : il suffit que la zone soit libre
+      }
       return used < z.seats.length;
     });
     // d'abord les zones vides : il y a du monde partout
@@ -325,8 +329,19 @@ export class Leisure {
       return;
     }
     const zone = zones[Math.floor(this.rng() * zones.length)];
-    if (zone.def.group === "pair") {
+    const pairUp =
+      zone.def.group === "pair" ||
+      (zone.def.group === "flex" &&
+        this.partnerCandidates(c, free).length > 0 &&
+        this.rng() < FLEX_PAIR_CHANCE);
+    if (pairUp) {
       this.startZonePair(c, zone, free);
+      return;
+    }
+    if (zone.def.group === "flex") {
+      const seat = zone.soloSeat || zone.seats[0];
+      this.startSolo(c, s, KIND.ZONE, { ...seat, seat: 0 });
+      s.zoneId = zone.id;
       return;
     }
     if (zone.def.group === "circle") {

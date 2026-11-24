@@ -36,7 +36,7 @@ import {
 } from "./sprites.js";
 import { Leisure, KIND, ballAt } from "./leisure.js";
 import { drawZoneLive } from "./zones-draw.js";
-import { inWater } from "./zones.js";
+import { inWater, lapX } from "./zones.js";
 
 const SPEED = 3.4; // tuiles par seconde
 const ERROR_FLASH_MS = 1800;
@@ -58,6 +58,7 @@ const AT_SPOT = 0.05; // distance (tuiles) en deçà de laquelle on est « sur �
 const CHAT_TURN = 1.7; // secondes de parole avant que l'autre réponde
 const LOUNGE_FLOOR = 1.3; // sous cette hauteur (depuis le haut du coin pause), on marche en ligne droite
 const THROW_ARM = 0.25; // fraction du lancer pendant laquelle le bras est levé
+const JUGGLE_BEAT = 0.55; // secondes par touche de balle
 const HAND_LIFT = 7; // hauteur des mains, en pixels, d'où part la balle
 
 const reducedMotion = window.matchMedia(
@@ -686,6 +687,23 @@ export class Office {
     }
   }
 
+  /** Dans la piscine, chaque nageur fait des longueurs dans sa ligne. */
+  swimLaps() {
+    if (!this.leisure || reducedMotion) {
+      return;
+    }
+    for (const c of this.characters.values()) {
+      const act = this.leisure.stateOf(c.id);
+      if (!act || act.kind !== KIND.ZONE || act.phase !== "act" || act.target.pose !== "swim") {
+        continue;
+      }
+      const zone = this.leisure.zoneOf(act.zoneId);
+      if (zone && zone.def.water && c.path.length === 0) {
+        c.x = lapX(zone, act.target, act.elapsed);
+      }
+    }
+  }
+
   /** Texte du panneau pendant la réunion. */
   briefingLabel(c) {
     const b = this.briefing;
@@ -829,6 +847,7 @@ export class Office {
       this.leisure.reset(this.layout);
     }
     this.stepBriefing(dt);
+    this.swimLaps();
     for (const c of this.characters.values()) {
       c.activity =
         this.briefingLabel(c) ||
@@ -982,7 +1001,7 @@ export class Office {
         // à droite de la tête, pour ne pas cacher l'écran
         drawBubble(ctx, x + 13, y - SPRITE_H + 6, c.status, tt);
       } else if (c.type === MAIN && c.instances === 0) {
-        drawZzz(ctx, x, y - SPRITE_H, tt);
+        drawZzz(ctx, x + 10, y - SPRITE_H + 4, tt); // à droite de la tête, l'écran reste visible
       }
       if (now - c.errorAt < ERROR_FLASH_MS) {
         ctx.fillStyle = "#D64545";
@@ -1009,7 +1028,7 @@ export class Office {
     if (act.kind === KIND.ZONE && this.drawZonePose(ctx, c, act, x, y, t, blink)) {
       return;
     }
-    if (act.kind === KIND.PLAY || act.kind === KIND.ZONE) {
+    if (act.kind === KIND.PLAY || (act.kind === KIND.ZONE && this.ballOptions(act))) {
       const partner = this.characters.get(act.partnerId);
       if (partner) {
         const [first, second] = act.slot === 0 ? [c, partner] : [partner, c];
@@ -1046,6 +1065,9 @@ export class Office {
         return true;
       case "swim":
         drawSwimmer(ctx, x, y, c.look, tt);
+        return true;
+      case "juggle":
+        this.drawJuggler(ctx, c, act, x, y, tt, blink);
         return true;
       case "game": {
         drawSeatedBack(ctx, x, y, c.look, "typing", tt);
@@ -1097,6 +1119,24 @@ export class Office {
     }
   }
 
+  /** Jongles : la balle rebondit du pied au genou, puis monte haut et retombe sur la tête. */
+  drawJuggler(ctx, c, act, x, y, t, blink) {
+    const beat = act.elapsed / JUGGLE_BEAT;
+    const n = Math.floor(beat);
+    const p = beat - n;
+    const high = n % 4 === 3; // une fois sur quatre, un grand lob
+    const lift = (high ? 32 : 13) * Math.sin(p * Math.PI);
+    const kick = !high && p < 0.25;
+    drawStanding(ctx, x, y, c.look, {
+      facing: "front",
+      blink,
+      step: kick ? n % 2 : -1,
+      wave: high && p > 0.6,
+    });
+    const side = n % 2 === 0 ? -4 : 4;
+    drawBall(ctx, x + side, y - 2 - lift);
+  }
+
   /** Rythme de la balle : propre à la zone (tennis de table), sinon celui du lancer. */
   ballOptions(act) {
     return act.kind === KIND.ZONE ? this.leisure.zoneOf(act.zoneId)?.def.ball : undefined;
@@ -1109,7 +1149,11 @@ export class Office {
     }
     for (const c of this.characters.values()) {
       const act = this.leisure.stateOf(c.id);
-      const plays = act && (act.kind === KIND.PLAY || (act.kind === KIND.ZONE && act.partnerId));
+      // seulement les jeux de balle : pas de balle à la console
+      const plays =
+        act &&
+        (act.kind === KIND.PLAY ||
+          (act.kind === KIND.ZONE && act.partnerId && this.ballOptions(act)));
       if (!plays || act.phase !== "act" || act.slot !== 0) {
         continue;
       }
