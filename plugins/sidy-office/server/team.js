@@ -210,7 +210,14 @@ const KNOWN_KEYS = new Set([
 ]);
 
 /** Zones de l'espace détente (même liste que public/zones.js : un test les compare). */
-const ZONE_IDS = ["tele", "tennis-de-table"];
+const ZONE_IDS = [
+  "tele",
+  "tennis-de-table",
+  "discussion",
+  "dortoir",
+  "salle-de-sport",
+  "piscine",
+];
 
 /** Zones à afficher : toutes par défaut, aucune avec une liste vide, sinon celles qui existent. */
 function pickZones(value) {

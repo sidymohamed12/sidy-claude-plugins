@@ -32,6 +32,56 @@ export const ZONES = {
       { x: 8.4, y: 3.9, pose: "stand" },
     ],
   },
+  discussion: {
+    label: "Discussion",
+    group: "circle", // plusieurs agents autour d'une table, qui se répondent
+    after: 10,
+    duration: [10, 18],
+    go: "Va discuter avec les collègues",
+    doing: () => "Discute en groupe",
+    seats: [
+      { x: 3.0, y: 3.8, pose: "chat" },
+      { x: 6.4, y: 3.8, pose: "chat" },
+      { x: 4.1, y: 4.8, pose: "chat" },
+      { x: 5.3, y: 2.9, pose: "chat" },
+    ],
+  },
+  dortoir: {
+    label: "Dortoir",
+    group: "solo",
+    after: 45, // on ne va dormir qu'après un long moment sans rien à faire
+    duration: [20, 35],
+    go: "Va faire une sieste",
+    doing: () => "Fait une sieste",
+    seats: [1.4, 3.2, 5.0, 6.8].map((x) => ({ x: x + 0.8, y: 3.6, pose: "lie" })),
+  },
+  "salle-de-sport": {
+    label: "Salle de sport",
+    group: "solo",
+    after: 25,
+    duration: [12, 20],
+    go: "Va à la salle de sport",
+    doing: (_, seat) => (seat.pose === "run" ? "Court sur le tapis" : "Soulève des haltères"),
+    seats: [
+      { x: 1.6, y: 3.2, pose: "run" },
+      { x: 3.6, y: 3.2, pose: "run" },
+      { x: 6.0, y: 3.9, pose: "lift" },
+      { x: 7.6, y: 3.9, pose: "lift" },
+    ],
+  },
+  piscine: {
+    label: "Piscine",
+    group: "solo",
+    after: 30,
+    duration: [14, 24],
+    go: "Va à la piscine",
+    doing: () => "Nage",
+    seats: [
+      { x: 2.2, y: 2.9, pose: "swim" },
+      { x: 4.7, y: 3.7, pose: "swim" },
+      { x: 7.2, y: 2.9, pose: "swim" },
+    ],
+  },
 };
 
 export const ZONE_IDS = Object.keys(ZONES);
