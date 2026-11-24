@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-24, v1.7.0)** — nouveau skill **`git-sidy`** : une branche par tâche (`feat/`, `fix/`, `hot-fix/`, `core/`…), commits qui disent la réalisation et la feature, PR vers `dev` ou `preprod` assignée à Sidy et qui le mentionne. Les agents `backend-dev`, `frontend-dev`, `designer` et `security-fixer` commitent et poussent **leur branche** (plus de « ne pas commiter ») ; ils ne touchent jamais à `main` ni `prod`.
+>
 > **Mise à jour (2026-11-23, v1.6.1)** — nouvel agent **`security-fixer`** (v1.5.0) : il ferme un constat de sécurité confirmé, un fichier par passage, avec son test ; `security-reviewer` et `pentest-actif` renforcés. Gestion **Kubernetes** (v1.6.0) : Actuator `liveness` / `readiness`, Job Flyway avant le roll, manifestes dans `templates/k8s/`. v1.6.1 : corrections de ces manifestes (Job appliqué à part, identifiants Flyway réservés au Job, volume de logs) et documentation à jour.
 
 > **Mise à jour (2026-11-23)** — nouvel agent **`designer`** : il conçoit le design (concepts, `DESIGN.md`, tableau de motion, maquette HTML/CSS) et le fait valider avant que `frontend-dev` l'intègre. Nouveau skill **`design-sidy`** (design front toutes stacks : maquette d'abord, motion GSAP / Three.js, ressources gratuites) ; `angular-sidy` §11 et l'agent `frontend-dev` s'appuient dessus.
@@ -6,7 +8,7 @@
 
 # sidy-dev : skills et agents Claude Code
 
-Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 4 skills et 7 agents prêts à l'emploi.
+Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 5 skills et 7 agents prêts à l'emploi.
 
 ## Ce que contient le plugin
 
@@ -16,6 +18,7 @@ Plugin Claude Code qui applique les conventions de développement de Sidy (Sprin
 | Skill | `angular-sidy`      | Conventions Angular 21 : signals, zoneless, Tailwind v4, états de données, SEO                            |
 | Skill | `design-sidy`       | Design front toutes stacks : concepts, maquette d'abord, motion GSAP / Three.js, images, polices, icônes  |
 | Skill | `pentest-sidy`      | Méthode de test de sécurité dynamique (DAST) d'une app Spring Boot qui tourne, sur cible autorisée        |
+| Skill | `git-sidy`          | Workflow Git : branches `feat/` `fix/` `hot-fix/` `core/`, commits explicites, PR vers dev ou preprod, jamais de push sur main ou prod |
 | Agent | `backend-dev`       | Code le back-end Spring Boot avec ses tests et lance le build                                             |
 | Agent | `reviewer`          | Relit le code façon Sonar (lecture seule)                                                                 |
 | Agent | `security-reviewer` | Relit la sécurité du back-end (lecture seule)                                                             |
@@ -35,7 +38,7 @@ Dans Claude Code :
 /plugin install sidy-dev@sidy
 ```
 
-Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 4 skills et ses 7 agents.
+Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 5 skills et ses 7 agents.
 
 ## Utilisation
 
