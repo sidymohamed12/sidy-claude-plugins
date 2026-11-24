@@ -16,6 +16,8 @@ Cible (nouveau projet, nov. 2026) : **Spring Boot 4.2.0**, **Java 25** (LTS), **
 | `references/securite.md` | authentification, JWT et révocation, CSRF, injections SQL, rate-limiting, filtre `Sec-Fetch-Mode`, Swagger, données sensibles |
 | `references/concurrence-idempotence.md` | **tout code qui écrit** : race conditions, verrou optimiste, mises à jour atomiques, `Idempotency-Key`, événements et jobs idempotents, tests de concurrence |
 | `references/infra.md` | profils YAML, `.env.example`, time zone configurable, pool Hikari, cache Redis, ShedLock, logs et rétention, Dockerfile, docker-compose (dev / mid-dev / prod), dossier `docs/` |
+| `references/ci.md` | CI / CD GitHub Actions : tests, couverture, Sonar, validation des manifestes, publication de l'image `vX.Y.Z` par branche, déploiement par digest, Dependabot (gabarits dans `templates/ci/`) |
+| `references/sonarqube-local.md` | SonarQube Community Build en local sur Docker Desktop, lié à la CI par un runner GitHub auto-hébergé (gabarits dans `templates/sonarqube/`) |
 | `references/kubernetes.md` | Actuator (groupes liveness / readiness), hooks de déploiement (Job Flyway, `preStop`), manifestes Kubernetes |
 | `references/clean-code.md` | **tout code à écrire, relire ou refactorer** : noms, fonctions, formatage, objets, erreurs, tests (3 lois du TDD, F.I.R.S.T.), classes et façades, SOLID, heuristiques |
 | `references/sonar.md` | **tout code à écrire ou relire** : catalogue des règles Sonar à respecter (`equals`/`hashCode`, tests, streams, code inutilisé, conception des classes, concurrence) |
@@ -53,7 +55,7 @@ Elles s'appliquent à chaque projet, sans que l'utilisateur ait à les rappeler.
 15. **Profils** `application-dev.yml`, `application-prod.yml` et `application-test.yml` ; **`dev` actif par défaut** (`spring.profiles.default: dev`), `prod` toujours activé explicitement en production.
 16. **`.env.example` mis à jour** à chaque clé ajoutée dans `application-prod.yml`.
 17. **Dockerfile** léger : layers, utilisateur non-root, `HEALTHCHECK` sur l'Actuator.
-17 bis. **Actuator et Kubernetes** : sondes `liveness` / `readiness` seulement, Job de migration avant le roll, `preStop` + arrêt gracieux. Manifestes dans `templates/k8s/`, règles dans `references/kubernetes.md`.
+17 bis. **Actuator et Kubernetes** : sondes `liveness` / `readiness` seulement, Job de migration avant le roll, `preStop` + arrêt gracieux. Manifestes dans `templates/k8s/` (routes Gateway API sur `/api` seulement), règles dans `references/kubernetes.md`.
 18. **Trois docker-compose** : `dev` (tout dedans), `mid-dev` (Redis et annexes, sans PostgreSQL), `prod`.
 19. **Time zone** : valeur lue dans le YAML (`app.timezone`, variable `APP_TIMEZONE`, défaut UTC), source unique pour `Clock`, Jackson, Hibernate, crons et logs.
 20. **Logs** essentiels, sans donnée sensible, avec rétention limitée et archives en zip.
@@ -84,7 +86,7 @@ Poser en un seul bloc, en sautant ce qui est déjà précisé. Ne jamais décide
 5. Authentification : JWT (avec `jwt-toolkit-package` de Sidy ?), OAuth2/Keycloak ? Le schéma par défaut (refresh en cookie `HttpOnly`, access en mémoire) convient-il, ou le projet impose-t-il tout en cookie / un BFF (décide du réglage CSRF) ? Clients mobiles prévus ? Front et API sous le même domaine ? Rôles et permissions ?
 6. Outils de test et seuil de couverture (voir §12).
 7. Langue des identifiants du code et des messages d'erreur renvoyés à l'API.
-8. Déploiement : hébergement, base de données dans Compose ou managée, CI (GitHub Actions + Sonar), Kubernetes ou non.
+8. Déploiement : hébergement, base de données dans Compose ou managée, CI (GitHub Actions + Sonar : gabarits `templates/ci/`), Kubernetes ou non.
 9. Services annexes à prévoir dans les compose (mail catcher, stockage objet, broker…).
 
 ## 0. Setup d'un nouveau projet
@@ -96,6 +98,7 @@ Livrer, dès le départ, tout ce socle (détails dans les références) :
 - Migration Flyway `V1__init.sql` et migration de la table `shedlock` (avec `GRANT` vers le rôle applicatif via placeholder `${app_role}`).
 - Configuration : `SecurityConfig` (CSRF : préférer `csrf.spa()` Security 7 + matcher Sidy), CORS, `RateLimitFilter`, `OriginCheckFilter`, `BrowserNavigationBlockFilter`, `CacheConfig` (**JsonMapper** Jackson 3, pas `ObjectMapper` Jackson 2), `SchedulingConfig`, bean `Clock` UTC, handler d'erreurs global, OpenAPI.
 - `Dockerfile`, `.dockerignore`, `docker-compose.dev.yml`, `docker-compose.mid-dev.yml`, `docker-compose.prod.yml`.
+- `.github/workflows/ci.yml`, `deploy.yml` et `.github/dependabot.yml` : copie de `templates/ci/` (`references/ci.md`), avec `next-version.mjs` dans `.github/scripts/`.
 - `deploy/k8s/` : copie de `templates/k8s/` (sans `secret.example.yaml` ; `job-flyway.yaml` s'applique à part, avant le `kustomize`), image et namespace adaptés. Secret réel hors git.
 - `README.md` détaillé qui décrit tout le projet, front et back : copie de `templates/README.projet.md`, rempli avec les vraies commandes, variables et versions, et tenu à jour à chaque changement qui touche l'architecture, le démarrage, la configuration ou le déploiement.
 - `docs/` avec `adr/` (premier ADR : choix d'architecture), `http/`, `diagrams/`, `flows/`.
@@ -487,7 +490,8 @@ Checklist avant de livrer :
 - [ ] Fuseau jamais en dur : `app.timezone` (YAML) ; heures via `Clock` / `Instant` ; logs sans donnée sensible.
 - [ ] Hikari configuré explicitement (taille, timeouts, `max-lifetime`) ; CORS en liste blanche d'origines, jamais `*` en prod ; `app.security.bloquer-navigation-directe` présent dans le YAML et `.env.example`.
 - [ ] Swagger désactivé en prod ; Dockerfile non-root avec healthcheck.
+- [ ] CI : `ci.yml` vert (tests, couverture, Quality Gate, manifestes, image publiée avec un tag `vX.Y.Z` à chaque merge dans `dev`, `preprod`, `main`, `prod`) ; `deploy.yml` par digest, environnement `production` avec relecteurs ; `main` et `prod` protégées.
 - [ ] Actuator : `liveness` = `livenessState` seul ; `readiness` = `readinessState,db,redis,diskSpace` ; `validate-group-membership` pas à `false` ; seuls `GET /actuator/health/liveness` et `readiness` sont publics ; les sondes ne passent pas par le rate-limit.
-- [ ] Déploiement Kubernetes : Job Flyway (`prod,migration`) terminé avant le roll ; `preStop` + `terminationGracePeriodSeconds` ≥ preStop + 30 s ; `FLYWAY_ENABLED=false` sur les pods de l'app ; aucun secret dans les manifestes.
+- [ ] Déploiement Kubernetes : Job Flyway (`prod,migration`) terminé avant le roll ; `preStop` + `terminationGracePeriodSeconds` ≥ preStop + 30 s ; `FLYWAY_ENABLED=false` sur les pods de l'app ; aucun secret dans les manifestes ; routes : `/api` seulement, jamais `/actuator`, pas d'`ingress-nginx` (archivé).
 - [ ] `README.md` du projet détaillé (front et back) et à jour avec le changement.
 - [ ] `docs/http/` à jour, ADR / diagrammes / flows ajoutés si nécessaire.

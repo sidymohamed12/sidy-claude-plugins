@@ -1,0 +1,174 @@
+# À copier dans .github/workflows/ci.yml du projet Spring Boot.
+# Tests + couverture + Sonar, validation des manifestes. Sur une PR : l'image est construite pour vérifier
+# le Dockerfile. Sur un push dans dev, preprod, main ou prod : l'image est publiée avec un tag vX.Y.Z.
+# Copier aussi next-version.mjs dans .github/scripts/ (voir references/ci.md).
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, preprod, main, prod]
+  push:
+    branches: [dev, preprod, main, prod]
+
+# Un nouveau push annule le run en cours d'une PR, jamais celui de main.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Par défaut un runner GitHub. Pour joindre un SonarQube local (Docker Desktop), définir la variable
+    # CI_RUNNER_LABELS = ["self-hosted", "sonar-local"] : voir references/sonarqube-local.md.
+    runs-on: ${{ fromJSON(vars.CI_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # Sonar a besoin de l'historique (blame, code neuf)
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      # Testcontainers (PostgreSQL, Redis) utilise le Docker du runner. Le build échoue sous le seuil JaCoCo.
+      - name: Build, tests et couverture
+        run: ./mvnw -B -ntp verify
+      # Actif seulement si SONAR_ENABLED=true. SonarQube Community Build n'analyse qu'une branche et
+      # pas les PR : analyser une PR écraserait les résultats de main. On analyse donc `main`, et les PR
+      # seulement si SONAR_PR_ANALYSIS=true (SonarQube Developer ou SonarCloud), jamais depuis un fork.
+      - name: Analyse Sonar et Quality Gate
+        if: >
+          vars.SONAR_ENABLED == 'true' && (
+            github.ref == 'refs/heads/main' ||
+            (github.event_name == 'pull_request' && vars.SONAR_PR_ANALYSIS == 'true' &&
+             github.event.pull_request.head.repo.full_name == github.repository))
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+        run: |
+          args=(-B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+            "-Dsonar.host.url=${SONAR_HOST_URL}"
+            "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
+            -Dsonar.qualitygate.wait=true)
+          # L'organisation n'existe que sur SonarCloud : pas de paramètre vide sur un SonarQube local.
+          if [ -n "${SONAR_ORGANIZATION}" ]; then
+            args+=("-Dsonar.organization=${SONAR_ORGANIZATION}")
+          fi
+          ./mvnw "${args[@]}"
+
+  manifests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Installer kubeconform
+        run: |
+          curl -sSfL -o /tmp/kubeconform.tgz \
+            https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          echo "9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883  /tmp/kubeconform.tgz" | sha256sum -c -
+          tar -xzf /tmp/kubeconform.tgz -C /tmp kubeconform
+      - name: Valider les manifestes
+        run: |
+          kubectl kustomize deploy/k8s > /tmp/rendered.yaml
+          cat deploy/k8s/job-flyway.yaml >> /tmp/rendered.yaml
+          /tmp/kubeconform -strict -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            /tmp/rendered.yaml
+
+  # Sur une PR : construit l'image sans la publier, pour que le Dockerfile ne casse pas après la fusion.
+  image:
+    if: github.event_name == 'pull_request'
+    needs: [test, manifests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+
+  # Sur un push dans dev, preprod, main ou prod : calcule la version, publie l'image, puis pose le tag git.
+  #   dev     -> vX.Y.Z-dev.N      preprod -> vX.Y.Z-rc.N      main, prod -> vX.Y.Z
+  publish:
+    if: github.event_name == 'push'
+    needs: [test, manifests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Une publication à la fois par branche : deux merges rapprochés calculeraient la même version.
+    concurrency:
+      group: publish-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: write # poser le tag git de version
+    env:
+      # Docker Hub par défaut. Ghcr.io : REGISTRY=ghcr.io (le GITHUB_TOKEN suffit alors, voir ci.md).
+      REGISTRY: ${{ vars.REGISTRY || 'docker.io' }}
+      # Nom en minuscules, par exemple monpseudo/mon-api. À défaut : propriétaire/dépôt GitHub.
+      IMAGE_NAME: ${{ vars.IMAGE_NAME || github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # l'historique et les tags servent au calcul de la version
+      - name: Calculer la version
+        id: version
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: node .github/scripts/next-version.mjs
+      - uses: docker/setup-buildx-action@v4
+      - name: Connexion au registre
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ vars.REGISTRY_USERNAME || github.actor }}
+          password: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.tag }}
+            type=raw,value=${{ github.ref_name }}
+            type=sha,format=long
+      - id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # Le tag git est posé après la publication : si le push de l'image échoue, aucun tag orphelin.
+      - name: Poser le tag git
+        if: steps.version.outputs.create_git_tag == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+      - name: Résumé
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAG: ${{ steps.version.outputs.tag }}
+          BASE: ${{ steps.version.outputs.base }}
+        run: |
+          {
+            echo "### Image publiée : \`${TAG}\`"
+            echo
+            echo "Branche \`${GITHUB_REF_NAME}\`, version calculée depuis \`${BASE}\`."
+            echo
+            echo "Pour déployer : workflow **Deploy**, champ \`image\` :"
+            echo
+            echo "\`${REGISTRY}/${IMAGE_NAME}@${DIGEST}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,65 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  plugins:
+    name: Manifestes, agents et skills
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tests du validateur
+        run: node --test scripts/*.test.mjs
+      # Versions identiques, nombre et liste des agents / skills annoncés, en-têtes des agents et des skills.
+      - name: Cohérence du dépôt
+        run: node scripts/validate-plugins.mjs
+
+  office:
+    name: Plugin sidy-office
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tests
+        working-directory: plugins/sidy-office
+        run: npm test
+
+  templates:
+    name: Gabarits Kubernetes et GitHub Actions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      K8S_DIR: plugins/sidy-dev/skills/spring-boot-sidy/templates/k8s
+      CI_DIR: plugins/sidy-dev/skills/spring-boot-sidy/templates/ci
+    steps:
+      - uses: actions/checkout@v7
+      - name: Installer kubeconform et actionlint
+        run: |
+          curl -sSfL -o /tmp/kubeconform.tgz \
+            https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          echo "9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883  /tmp/kubeconform.tgz" | sha256sum -c -
+          tar -xzf /tmp/kubeconform.tgz -C /tmp kubeconform
+          pip install --quiet actionlint-py==1.7.12.25
+      - name: Valider les manifestes Kubernetes
+        run: |
+          kubectl kustomize "$K8S_DIR" > /tmp/rendered.yaml
+          cat "$K8S_DIR/job-flyway.yaml" >> /tmp/rendered.yaml
+          /tmp/kubeconform -strict -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            /tmp/rendered.yaml "$K8S_DIR/hpa.yaml"
+      - name: Valider les workflows gabarits et ceux du dépôt
+        run: |
+          actionlint "$CI_DIR/ci.yml" "$CI_DIR/deploy.yml"
+          actionlint
