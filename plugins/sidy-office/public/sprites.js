@@ -516,7 +516,49 @@ const BUBBLE_ICONS = {
       [4, 5, 1, 1],
     ],
   ],
+  // au repos : discussion, café
+  chat: [
+    "#2F6FEB",
+    [
+      [1, 1, 7, 1],
+      [1, 3, 5, 1],
+    ],
+  ],
+  smile: [
+    "#E5A000",
+    [
+      [2, 1, 1, 1],
+      [6, 1, 1, 1],
+      [1, 3, 1, 1],
+      [2, 4, 5, 1],
+      [7, 3, 1, 1],
+    ],
+  ],
+  idea: [
+    "#C99A00",
+    [
+      [3, 0, 3, 1],
+      [2, 1, 1, 2],
+      [6, 1, 1, 2],
+      [3, 3, 3, 1],
+      [4, 4, 1, 1],
+    ],
+  ],
+  coffee: [
+    "#8A5A2B",
+    [
+      [1, 2, 5, 3],
+      [6, 2, 1, 1],
+      [7, 3, 1, 1],
+      [6, 4, 1, 1],
+      [2, 0, 1, 1],
+      [4, 0, 1, 1],
+    ],
+  ],
 };
+
+/** Icônes de bulle choisies à tour de rôle pendant une discussion. */
+export const CHAT_ICONS = ["chat", "smile", "idea", "chat"];
 
 /** Petite bulle pixel au-dessus de la tête (x, y = sommet de la tête). */
 export function drawBubble(ctx, x, y, status, t) {
@@ -534,6 +576,16 @@ export function drawBubble(ctx, x, y, status, t) {
   for (const [rx, ry, rw, rh] of rects) {
     px(ctx, color, bx + 1 + rx, by + 1 + ry, rw, rh);
   }
+}
+
+/** Balle lancée entre deux collègues (x, y en pixels du dessin). */
+export function drawBall(ctx, x, y) {
+  const bx = Math.round(x);
+  const by = Math.round(y);
+  px(ctx, INK, bx - 2, by - 1, 4, 3);
+  px(ctx, INK, bx - 1, by - 2, 2, 5);
+  px(ctx, "#E5A000", bx - 1, by - 1, 2, 3);
+  px(ctx, "#F6CF5B", bx - 1, by - 1, 1, 1);
 }
 
 export function drawZzz(ctx, x, y, t) {
