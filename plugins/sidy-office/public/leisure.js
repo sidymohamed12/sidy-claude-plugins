@@ -104,6 +104,7 @@ export class Leisure {
   static isFree(c) {
     return Boolean(
       !c.guest &&
+        !c.stays &&
         c.rest &&
         c.place === "rest" &&
         c.status === "idle" &&

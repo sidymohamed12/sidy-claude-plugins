@@ -189,6 +189,7 @@ export class Office {
         c.y = home.y;
         c.path = [];
       }
+      c.stays = Boolean(profile.stays);
       c.name = profile.name;
       c.role = profile.role;
       c.look = profile.look;
@@ -450,11 +451,26 @@ export class Office {
   /* ---------- animation ---------- */
 
   step(dt) {
-    if (this.leisure && !reducedMotion && !this.firstSnapshot) {
+    const leisureOn = this.team.leisure !== false;
+    if (this.leisure && leisureOn && !reducedMotion && !this.firstSnapshot) {
       this.leisure.update(dt, this.characters.values());
     }
+    if (this.leisure && !leisureOn && this.leisure.states.size > 0) {
+      this.leisure.reset(this.layout);
+    }
     for (const c of this.characters.values()) {
-      c.activity = this.leisure ? this.leisure.label(c.id) : null;
+      c.activity = this.leisure && leisureOn ? this.leisure.label(c.id) : null;
+      // activités coupées (réglage « repos ») : celui qui traîne ailleurs rentre à sa place
+      const mustStay = !leisureOn || c.stays;
+      if (
+        mustStay &&
+        c.place === PLACE_REST &&
+        c.rest &&
+        c.path.length === 0 &&
+        !this.atRest(c)
+      ) {
+        this.walkInLounge(c, c.rest);
+      }
       let budget = SPEED * dt;
       while (budget > 0 && c.path.length) {
         const next = c.path[0];

@@ -10,6 +10,7 @@ const {
   buildTeam,
   generateLook,
   customizeLook,
+  configWarnings,
   roleFrom,
   loadConfig,
   mergeConfigs,
@@ -173,6 +174,125 @@ describe("apparence", () => {
     const look = customizeLook(base, { couleur: "rouge", peau: 9 });
     assert.equal(look.top, base.top);
     assert.equal(look.skin, base.skin);
+  });
+});
+
+describe("style et réglage du repos", () => {
+  const base = generateLook("x");
+
+  test("coupe, pantalon et rayures", () => {
+    const look = customizeLook(base, {
+      coupe: "afro",
+      pantalon: "#112233",
+      rayures: "#FFFFFF",
+    });
+    assert.equal(look.cut, "afro");
+    assert.equal(look.pants, "#112233");
+    assert.equal(look.stripe, "#FFFFFF");
+  });
+
+  test("le style survit au choix d'un accessoire", () => {
+    const look = customizeLook(base, {
+      accessoire: ["lunettes"],
+      coupe: "longue",
+      pantalon: "#112233",
+      rayures: "#FFFFFF",
+    });
+    assert.equal(look.glasses, true);
+    assert.equal(look.cut, "longue");
+    assert.equal(look.pants, "#112233");
+    assert.equal(look.stripe, "#FFFFFF");
+  });
+
+  test("« courte » est la coupe par défaut, rayures:false les retire", () => {
+    const styled = customizeLook(base, { coupe: "rase", rayures: "#FFFFFF" });
+    const back = customizeLook(styled, { coupe: "courte", rayures: false });
+    assert.equal(back.cut, undefined);
+    assert.equal(back.stripe, undefined);
+  });
+
+  test("valeurs de style invalides ignorées", () => {
+    const look = customizeLook(base, { coupe: "iroquoise", pantalon: "rouge", rayures: 3 });
+    assert.equal(look.cut, undefined);
+    assert.equal(look.pants, base.pants);
+    assert.equal(look.stripe, undefined);
+  });
+
+  test("repos : activé par défaut, coupé avec repos:false", () => {
+    assert.equal(buildTeam([], {}).leisure, true);
+    assert.equal(buildTeam([], { repos: true }).leisure, true);
+    assert.equal(buildTeam([], { repos: false }).leisure, false);
+  });
+
+  test("repos:false sur un agent : il reste à sa place, pas les autres", () => {
+    const team = buildTeam(
+      [
+        { name: "a", description: "A.", source: "plugin" },
+        { name: "b", description: "B.", source: "plugin" },
+      ],
+      { agents: { a: { repos: false } } },
+    );
+    assert.equal(team.members.find((m) => m.type === "a").stays, true);
+    assert.equal(team.members.find((m) => m.type === "b").stays, false);
+  });
+
+  test("les réglages inconnus ou invalides sont signalés", () => {
+    const warnings = configWarnings({
+      repos: "non",
+      agents: {
+        a: {
+          coupe: "iroquoise",
+          couleur: "vert",
+          peau: 9,
+          accessoire: ["chapeau"],
+          repos: "non",
+          couleure: "#FFFFFF",
+        },
+      },
+    });
+    const text = warnings.join("\n");
+    for (const part of ["« repos » doit", "coupe", "couleur", "peau", "chapeau", "couleure"]) {
+      assert.ok(text.includes(part), `manque : ${part}\n${text}`);
+    }
+  });
+
+  test("un fichier correct ne produit aucun avertissement", () => {
+    assert.deepEqual(
+      configWarnings({
+        repos: true,
+        agents: {
+          a: {
+            nom: "A",
+            role: "R",
+            couleur: "#2E9E5B",
+            cheveux: "#141414",
+            peau: 2,
+            accessoire: ["casque", "lunettes"],
+            coupe: "longue",
+            pantalon: "#2F3A4C",
+            rayures: false,
+            repos: false,
+            masquer: false,
+          },
+        },
+      }),
+      [],
+    );
+  });
+
+  test("resolveTeam remonte les avertissements avec les erreurs de fichier", () => {
+    write(
+      path.join(home, ".claude/sidy-office.json"),
+      JSON.stringify({ agents: { qa: { coupe: "iroquoise" } } }),
+    );
+    const { errors } = resolveTeam({ homeDir: home, cwds: [] });
+    assert.equal(errors.length, 1);
+    assert.ok(errors[0].includes("coupe"));
+  });
+
+  test("l'exemple fourni ne produit aucun avertissement", () => {
+    const file = path.join(__dirname, "..", "exemples", "sidy-office.json");
+    assert.deepEqual(configWarnings(JSON.parse(fs.readFileSync(file, "utf8"))), []);
   });
 });
 

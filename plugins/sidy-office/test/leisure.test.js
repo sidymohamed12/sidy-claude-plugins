@@ -140,6 +140,7 @@ describe("qui peut flâner", () => {
     assert.equal(L.Leisure.isFree(makeChar("a", 5, 5, { instances: 1 })), false);
     assert.equal(L.Leisure.isFree(makeChar("a", 5, 5, { place: "desk" })), false);
     assert.equal(L.Leisure.isFree(makeChar("a", 5, 5, { guest: true })), false);
+    assert.equal(L.Leisure.isFree(makeChar("a", 5, 5, { stays: true })), false);
     assert.equal(L.Leisure.isFree(makeChar("claude", 5, 5, { rest: null })), false);
   });
 
@@ -151,6 +152,37 @@ describe("qui peut flâner", () => {
     }
     assert.equal(busy.path.length, 0);
     assert.equal(w.leisure.stateOf("a"), null);
+  });
+});
+
+describe("réglage « repos »", () => {
+  test("un agent qui doit rester à sa place ne flâne jamais, même avec des collègues libres", () => {
+    const stays = makeChar("a", 5, 40, { stays: true });
+    const b = makeChar("b", 9, 40);
+    const c = makeChar("c", 13, 40);
+    const w = makeWorld(Math.random, stays, b, c);
+    for (let i = 0; i < 600; i += 1) {
+      w.tick(0.3);
+      w.arrive();
+      assert.equal(w.leisure.stateOf("a"), null);
+      for (const id of ["b", "c"]) {
+        assert.notEqual(w.leisure.stateOf(id)?.partnerId, "a");
+      }
+    }
+    assert.deepEqual([stays.x, stays.y], [5, 40]);
+  });
+
+  test("si le réglage change en cours de route, l'agent est libéré aussitôt", () => {
+    const a = makeChar("a", 8, 40);
+    const b = makeChar("b", 16, 40);
+    const w = makeWorld(seq(0, 0, 0.6, 0, 0.2), a, b);
+    w.tick(0.1);
+    run(w, 3);
+    assert.equal(w.leisure.stateOf("a").kind, "chat");
+    a.stays = true;
+    w.tick(0.1);
+    assert.equal(w.leisure.stateOf("a"), null);
+    assert.equal(w.leisure.stateOf("b").phase, "dwell");
   });
 });
 
