@@ -473,8 +473,19 @@ function drawLowerWall(ctx, layout) {
   px(ctx, "#9AA7B8", dx + 2 * TILE, y, 2, bottom - y);
 }
 
-/** Mur entre l'espace travail et l'espace détente, ouvert au niveau du couloir central. */
+/** Mur entre l'espace travail et l'espace détente, ouvert au niveau du passage. */
 function drawPartition(ctx, layout) {
+  if (layout.horizontal) {
+    const x = layout.workCols * TILE;
+    const w = TILE;
+    const open = (layout.gate.y - 1) * TILE;
+    px(ctx, "#C9D2DD", x, 0, w, layout.rows * TILE);
+    px(ctx, "#9AA7B8", x + w - 2, 0, 2, layout.rows * TILE);
+    px(ctx, "#EBEFF5", x, open, w, 2 * TILE);
+    px(ctx, "#9AA7B8", x, open - 2, w, 2);
+    px(ctx, "#9AA7B8", x, open + 2 * TILE, w, 2);
+    return;
+  }
   const y = layout.partitionY * TILE;
   const h = (layout.leisureTop - layout.partitionY) * TILE;
   px(ctx, "#C9D2DD", 0, y, layout.cols * TILE, h);
@@ -487,8 +498,10 @@ function drawPartition(ctx, layout) {
 
 /** Sol de l'espace détente : un damier plus froid que celui des bureaux. */
 function drawLeisureFloor(ctx, layout) {
-  for (let ty = Math.floor(layout.leisureTop); ty < layout.rows; ty += 1) {
-    for (let tx = 0; tx < layout.cols; tx += 1) {
+  const startX = layout.horizontal ? layout.workCols + 1 : 0;
+  const startY = layout.horizontal ? 0 : Math.floor(layout.leisureTop);
+  for (let ty = startY; ty < layout.rows; ty += 1) {
+    for (let tx = startX; tx < layout.cols; tx += 1) {
       px(ctx, (tx + ty) % 2 ? "#E6ECF5" : "#DFE6F1", tx * TILE, ty * TILE, TILE, TILE);
     }
   }
@@ -497,8 +510,10 @@ function drawLeisureFloor(ctx, layout) {
 /** Décor fixe, dessiné une seule fois par plan. */
 export function drawBackground(ctx, layout) {
   const L = layout.loungeTop;
-  drawFloor(ctx, layout.cols, layout.rows);
-  drawWall(ctx, layout.cols);
+  // fond plein : aucun pixel ne reste transparent, sinon les personnages y laissent une traînée
+  px(ctx, WHITE, 0, 0, layout.cols * TILE, layout.rows * TILE);
+  drawFloor(ctx, layout.workCols, layout.rows);
+  drawWall(ctx, layout.workCols);
   drawRack(ctx);
   drawLounge(ctx, L);
   drawPlant(ctx, 0.3 * TILE, 3.4 * TILE);
@@ -506,7 +521,9 @@ export function drawBackground(ctx, layout) {
     drawPlant(ctx, 21.1 * TILE, y * TILE);
   }
   drawPlant(ctx, 7.4 * TILE, (L + 1.2) * TILE);
-  drawPlant(ctx, 22.4 * TILE, (L + 1.6) * TILE);
+  if (!layout.horizontal) {
+    drawPlant(ctx, 22.4 * TILE, (L + 1.6) * TILE);
+  }
   if (layout.zones.length) {
     drawLeisureFloor(ctx, layout);
     drawPartition(ctx, layout);

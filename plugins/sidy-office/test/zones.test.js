@@ -148,8 +148,95 @@ describe("plan avec espace détente", () => {
     const layout = LAYOUT.buildLayout(["a"], ["tele"]);
     const seat = layout.zones[0].seats[0];
     const entry = LAYOUT.leisureEntry(layout, seat);
-    assert.deepEqual(entry[0], { x: layout.aisleX, y: seat.walkY });
+    assert.deepEqual(entry[0], layout.spineGate);
+    assert.deepEqual(entry[1], { x: layout.aisleX, y: seat.walkY });
     assert.deepEqual(entry.at(-1), { x: seat.x, y: seat.y });
+  });
+});
+
+describe("espace détente à côté du travail (grands écrans)", () => {
+  const team = ["a", "b", "c", "d", "e"];
+
+  test("la détente est à droite du mur, le passage relie le coin pause au couloir de la détente", () => {
+    const layout = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal: true });
+    assert.equal(layout.horizontal, true);
+    assert.ok(layout.cols > layout.workCols * 1.5, "plan élargi");
+    assert.ok(layout.gate.x < layout.workCols, "le passage commence côté travail");
+    assert.ok(layout.spineGate.x > layout.workCols, "et finit côté détente");
+    assert.equal(layout.gate.y, layout.spineGate.y);
+    assert.ok(layout.gate.y >= layout.loungeTop + 1.3, "à hauteur du coin pause");
+    for (const z of layout.zones) {
+      assert.ok(z.x > layout.workCols + 1, `zone ${z.id} derrière le mur`);
+      assert.ok(z.x + z.w <= layout.cols);
+      assert.ok(z.y + z.h <= layout.rows);
+    }
+    assert.ok(layout.door.x < layout.workCols, "la porte des renforts reste côté travail");
+  });
+
+  test("le point est dans la détente seulement à droite du mur", () => {
+    const layout = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal: true });
+    assert.equal(LAYOUT.inLeisure(layout, layout.zones[0].seats[0]), true);
+    assert.equal(LAYOUT.inLeisure(layout, { x: 5, y: layout.rows - 2 }), false);
+    assert.equal(LAYOUT.inLeisure(layout, layout.gate), false);
+  });
+
+  test("sortir d'une zone mène au passage, en passant par le couloir le long du mur", () => {
+    const layout = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal: true });
+    const seat = layout.zones.at(-1).seats[0];
+    const out = LAYOUT.leisureExit(layout, { x: seat.x, y: seat.y });
+    assert.deepEqual(out.at(-2), layout.spineGate);
+    assert.deepEqual(out.at(-1), layout.gate);
+    assert.ok(out.some((p) => p.x === layout.aisleX));
+  });
+
+  test("la hauteur de la détente suit celle du travail : pas de grande bande vide", () => {
+    for (const members of [["a"], team, [...team, "f", "g", "h", "i", "j"]]) {
+      const layout = LAYOUT.buildLayout(members, Z.ZONE_IDS, { horizontal: true });
+      const lowest = Math.max(...layout.zones.map((z) => z.y + z.h));
+      assert.ok(layout.rows - lowest <= 7, `${members.length} agents : ${layout.rows - lowest} tuiles vides`);
+    }
+  });
+
+  test("sans zone, l'orientation horizontale est ignorée", () => {
+    const layout = LAYOUT.buildLayout(team, [], { horizontal: true });
+    assert.equal(layout.horizontal, false);
+    assert.equal(layout.cols, layout.workCols);
+  });
+});
+
+describe("au repos, on vit dans la détente", () => {
+  test("avec des zones, les places de repos sont dans l'espace détente, au pied des zones", () => {
+    for (const horizontal of [false, true]) {
+      const layout = LAYOUT.buildLayout(["a", "b", "c", "d", "e", "f", "g"], Z.ZONE_IDS, { horizontal });
+      for (const rest of layout.rests.values()) {
+        assert.equal(LAYOUT.inLeisure(layout, rest), true, JSON.stringify(rest));
+        assert.ok(layout.zones.some((z) => rest.y === z.walkY && rest.x > z.x && rest.x < z.x + z.w));
+      }
+    }
+  });
+
+  test("sans zone, le repos reste dans le coin pause", () => {
+    const layout = LAYOUT.buildLayout(["a", "b"]);
+    for (const rest of layout.rests.values()) {
+      assert.ok(rest.y >= layout.loungeTop);
+      assert.ok(rest.y < layout.loungeTop + 4);
+    }
+  });
+
+  test("promenade, discussion et jeu se font dans la détente, seul le café est dans le coin pause", () => {
+    const layout = LAYOUT.buildLayout(["a", "b"], Z.ZONE_IDS);
+    for (const spot of L.walkSpots(layout)) {
+      assert.equal(LAYOUT.inLeisure(layout, spot), true);
+    }
+    for (let i = 0; i < 40; i += 1) {
+      const [a, b] = L.meetingSpots(layout, lcg(i + 1));
+      assert.equal(a.y, b.y);
+      assert.ok(LAYOUT.inLeisure(layout, a) && LAYOUT.inLeisure(layout, b));
+      assert.ok(b.x - a.x >= 1.2 && b.x - a.x <= 2);
+      const zone = LAYOUT.zoneAt(layout, a);
+      assert.ok(zone && b.x <= zone.x + zone.w, "les deux restent dans la même zone");
+    }
+    assert.equal(LAYOUT.inLeisure(layout, L.coffeeSpot(layout)), false);
   });
 });
 

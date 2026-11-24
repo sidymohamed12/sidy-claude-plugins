@@ -62,16 +62,13 @@ function restSpots(L, count) {
   return spots;
 }
 
-/**
- * @param memberTypes types des agents de l'équipe, dans l'ordre d'affichage
- */
-/** Zones posées sur deux colonnes de part et d'autre du couloir central. */
-function placeZones(zoneIds, top) {
+/** Zones posées sur deux colonnes (x gauche et x droit), de haut en bas à partir de `top`. */
+function placeZones(zoneIds, top, xs) {
   const gap = 0.4;
   return zoneIds.map((id, i) => {
     const def = ZONES[id];
-    const x = i % 2 === 0 ? ZONE_X_LEFT : ZONE_X_RIGHT;
-    const y = top + gap + Math.floor(i / 2) * (ZONE_H + gap);
+    const x = xs[i % xs.length];
+    const y = top + gap + Math.floor(i / xs.length) * (ZONE_H + gap);
     return {
       id,
       def,
@@ -91,11 +88,89 @@ function placeZones(zoneIds, top) {
   });
 }
 
+/** Places de repos : au pied des zones quand il y en a (les agents au repos vivent dans la détente). */
+function leisureRests(zones, count) {
+  return Array.from({ length: count }, (_, i) => {
+    const zone = zones[i % zones.length];
+    const slot = Math.floor(i / zones.length);
+    return {
+      x: zone.x + 1.2 + (slot * 1.6) % (zone.w - 2.4),
+      y: zone.walkY,
+    };
+  });
+}
+
+const WALL = 1; // épaisseur du mur entre travail et détente (en tuiles, entière pour que rien ne reste sans sol)
+
+/** Dimensions et passages de l'espace détente, dessous (écran étroit) ou à droite du travail. */
+function leisureSpace({ zoneIds, side, loungeTop, workRows }) {
+  if (zoneIds.length === 0) {
+    return {
+      zones: [],
+      cols: COLS,
+      rows: workRows,
+      top: workRows,
+      minX: 0,
+      partitionY: loungeTop + 3.4,
+      aisleX: AISLE_X,
+      gate: { x: AISLE_X, y: loungeTop + 3 },
+      spineGate: { x: AISLE_X, y: workRows },
+    };
+  }
+  const height = 0.4 + Math.ceil(zoneIds.length / 2) * (ZONE_H + 0.4);
+  if (!side) {
+    const top = loungeTop + 4;
+    return {
+      zones: placeZones(zoneIds, top, [ZONE_X_LEFT, ZONE_X_RIGHT]),
+      cols: COLS,
+      rows: Math.ceil(top + height + 0.6),
+      top,
+      minX: 0,
+      partitionY: loungeTop + 3.4,
+      aisleX: AISLE_X,
+      gate: { x: AISLE_X, y: loungeTop + 3 },
+      spineGate: { x: AISLE_X, y: top + 0.2 },
+    };
+  }
+  // à droite : un couloir le long du mur, puis des colonnes de zones. Le nombre
+  // de rangées est celui qui donne une hauteur proche de celle du travail.
+  const x0 = COLS + WALL;
+  const spineX = x0 + 0.5;
+  const rowsFor = (r) => 0.4 + r * (ZONE_H + 0.4);
+  // pour r rangées voulues : autant de colonnes qu'il faut, donc le nombre de rangées réellement posées
+  const usedRows = (r) => Math.ceil(zoneIds.length / Math.ceil(zoneIds.length / r));
+  let bestRows = 1;
+  for (let r = 2; r <= zoneIds.length; r += 1) {
+    const gap = (n) => Math.abs(rowsFor(usedRows(n)) - workRows);
+    if (gap(r) < gap(bestRows)) {
+      bestRows = r;
+    }
+  }
+  const columns = Math.ceil(zoneIds.length / bestRows);
+  const xs = Array.from(
+    { length: columns },
+    (_, c) => x0 + 1.5 + c * (ZONE_W + 0.4),
+  );
+  const gateY = loungeTop + 2.4;
+  return {
+    zones: placeZones(zoneIds, 0, xs),
+    cols: Math.ceil(xs[columns - 1] + ZONE_W + 0.5),
+    rows: Math.ceil(Math.max(workRows, rowsFor(usedRows(bestRows)) + 0.5)),
+    top: 0,
+    minX: COLS,
+    partitionY: 0,
+    aisleX: spineX,
+    gate: { x: COLS - 1.4, y: gateY },
+    spineGate: { x: spineX, y: gateY },
+  };
+}
+
 /**
  * @param memberTypes types des agents de l'équipe, dans l'ordre d'affichage
  * @param zoneIds zones de l'espace détente (vide : pas d'espace détente)
+ * @param options.horizontal la détente à droite du travail (grands écrans) au lieu de dessous
  */
-export function buildLayout(memberTypes, zoneIds = []) {
+export function buildLayout(memberTypes, zoneIds = [], { horizontal = false } = {}) {
   const needed = memberTypes.length + MIN_GUEST_DESKS;
   // chaque rangée a 4 postes ; la 2e en perd un pour Claude
   const rowCount = Math.max(2, Math.ceil((needed + 1) / DESK_XS.length));
@@ -111,27 +186,34 @@ export function buildLayout(memberTypes, zoneIds = []) {
   const loungeTop = lastDeskY + ROW_SPACING;
   const memberDesks = new Map(memberTypes.map((type, i) => [type, slots[i]]));
   const spots = restSpots(loungeTop, memberTypes.length);
-  const rests = new Map(memberTypes.map((type, i) => [type, spots[i]]));
   const corridors = [];
   for (let row = 0; row < rowCount; row += 1) {
     corridors.push(FIRST_DESK_ROW + row * ROW_SPACING + 3);
   }
-  const partitionY = loungeTop + 3.4; // mur entre le travail et la détente
-  const leisureTop = loungeTop + 4;
-  const zones = placeZones(zoneIds, leisureTop);
-  const leisureRows = Math.ceil(zoneIds.length / 2);
-  const rows = zones.length
-    ? Math.ceil(leisureTop + 0.4 + leisureRows * (ZONE_H + 0.4)) + 1
-    : leisureTop;
+  const workRows = loungeTop + 4;
+  const side = horizontal && zoneIds.length > 0;
+  const spaces = leisureSpace({ zoneIds, side, loungeTop, workRows });
+  const rests = spaces.zones.length
+    ? new Map(
+        memberTypes.map((type, i) => [
+          type,
+          leisureRests(spaces.zones, memberTypes.length)[i],
+        ]),
+      )
+    : new Map(memberTypes.map((type, i) => [type, spots[i]]));
   return {
-    cols: COLS,
-    rows,
+    horizontal: side,
+    cols: spaces.cols,
+    workCols: COLS,
+    rows: spaces.rows,
     loungeTop,
-    partitionY,
-    leisureTop,
-    zones,
-    aisleX: AISLE_X,
-    gate: { x: AISLE_X, y: loungeTop + 3 },
+    partitionY: spaces.partitionY,
+    leisureTop: spaces.top,
+    leisureMinX: spaces.minX,
+    zones: spaces.zones,
+    aisleX: spaces.aisleX,
+    gate: spaces.gate,
+    spineGate: spaces.spineGate,
     claudeDesk: {
       x: CLAUDE_DESK.x,
       y: FIRST_DESK_ROW + CLAUDE_DESK.row * ROW_SPACING,
@@ -142,7 +224,7 @@ export function buildLayout(memberTypes, zoneIds = []) {
     rests,
     corridors,
     aisles: AISLES,
-    door: { x: AISLE_X, y: rows - 0.4 },
+    door: { x: AISLE_X, y: spaces.rows - 0.4 },
   };
 }
 
@@ -161,7 +243,9 @@ export function zoneAt(layout, p) {
 
 /** Le point est dans l'espace détente (sous le mur de séparation). */
 export function inLeisure(layout, p) {
-  return layout.zones.length > 0 && p.y > layout.partitionY;
+  return (
+    layout.zones.length > 0 && p.y > layout.partitionY && p.x > layout.leisureMinX
+  );
 }
 
 /** Étapes pour sortir de l'espace détente jusqu'au passage (inclus). */
@@ -175,13 +259,13 @@ export function leisureExit(layout, from) {
   if (Math.abs(from.x - layout.aisleX) > 0.01) {
     steps.push({ x: layout.aisleX, y: walkY });
   }
-  steps.push(layout.gate);
+  steps.push(layout.spineGate, layout.gate);
   return steps;
 }
 
 /** Étapes pour rejoindre une place de zone depuis le passage. */
 export function leisureEntry(layout, seat) {
-  const steps = [{ x: layout.aisleX, y: seat.walkY }];
+  const steps = [layout.spineGate, { x: layout.aisleX, y: seat.walkY }];
   if (Math.abs(seat.x - layout.aisleX) > 0.01) {
     steps.push({ x: seat.x, y: seat.walkY });
   }

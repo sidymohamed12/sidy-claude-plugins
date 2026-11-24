@@ -32,7 +32,6 @@ const SPOT_X_MIN = 1.5;
 const SPOT_X_MAX = 21.2; // la plante du coin droit prend la place au-delà
 const SPOT_ROWS = [1.9, 2.4, 2.9]; // sous le canapé et la table haute
 const PAIR_GAP = 1.5;
-const PAIR_X_MAX = SPOT_X_MAX - PAIR_GAP;
 const MIN_SPACING = 1.1;
 const COFFEE_AT = { x: 1.5, dy: 1.6 };
 
@@ -46,10 +45,25 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 /** Points où l'on peut se tenir debout dans le coin pause. */
 export function walkSpots(layout) {
+  if (layout.zones.length > 0) {
+    return leisureSpots(layout);
+  }
   const spots = [];
   for (const dy of SPOT_ROWS) {
     for (let x = SPOT_X_MIN; x <= SPOT_X_MAX + 1e-9; x += SPOT_STEP) {
       spots.push({ x: Math.round(x * 10) / 10, y: layout.loungeTop + dy });
+    }
+  }
+  return spots;
+}
+
+/** Avec l'espace détente, on circule le long du couloir au pied de chaque zone. */
+function leisureSpots(layout) {
+  const spots = [];
+  for (const z of layout.zones) {
+    const xMax = z.x + z.w - 0.8;
+    for (let x = z.x + 0.8; x <= xMax + 1e-9; x += SPOT_STEP) {
+      spots.push({ x: Math.round(x * 10) / 10, y: z.walkY, xMax });
     }
   }
   return spots;
@@ -61,7 +75,9 @@ export function coffeeSpot(layout) {
 
 /** Deux places côte à côte pour discuter ou jouer. */
 export function meetingSpots(layout, rng, avoid = []) {
-  const left = walkSpots(layout).filter((s) => s.x <= PAIR_X_MAX);
+  const left = walkSpots(layout).filter(
+    (s) => s.x + PAIR_GAP <= (s.xMax ?? SPOT_X_MAX),
+  );
   const free = left.filter(
     (s) =>
       avoid.every((p) => dist(p, s) >= MIN_SPACING) &&
