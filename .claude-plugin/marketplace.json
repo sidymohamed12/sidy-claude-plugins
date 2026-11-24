@@ -10,8 +10,8 @@
     {
       "name": "sidy-dev",
       "source": "./plugins/sidy-dev",
-      "description": "Conventions Spring Boot, Angular et design front de Sidy : 4 skills (spring-boot-sidy, angular-sidy, design-sidy, pentest-sidy) et 6 agents (backend-dev, reviewer, security-reviewer, designer, frontend-dev, pentest-actif).",
-      "version": "1.6.0"
+      "description": "Conventions Spring Boot, Angular et design front de Sidy : 4 skills (spring-boot-sidy, angular-sidy, design-sidy, pentest-sidy) et 7 agents (backend-dev, reviewer, security-reviewer, security-fixer, designer, frontend-dev, pentest-actif).",
+      "version": "1.6.1"
     },
     {
       "name": "sidy-office",
