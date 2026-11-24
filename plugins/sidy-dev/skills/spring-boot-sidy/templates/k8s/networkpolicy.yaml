@@ -13,18 +13,33 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # 8080 ouvert dans le cluster : les sondes kubelet partent du nœud, pas d'un pod.
-    # Le Service reste ClusterIP. Un appel HTTPS sortant se décide dans un ADR.
-    - ports:
+    # Seule la passerelle (Gateway API) joint le port 8080 depuis l'extérieur du namespace.
+    # Les sondes kubelet partent du nœud : la plupart des CNI (Calico, Cilium) les laissent passer.
+    # Si les pods restent « NotReady » après l'apply, ajouter un ipBlock avec le CIDR des nœuds.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gateway-system
+      ports:
         - protocol: TCP
           port: 8080
   egress:
+    # DNS : uniquement CoreDNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # PostgreSQL et Redis. Un appel HTTPS sortant se décide dans un ADR : on n'ouvre pas tout l'egress.
     - ports:
         - protocol: TCP
           port: 5432
         - protocol: TCP
           port: 6379
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53

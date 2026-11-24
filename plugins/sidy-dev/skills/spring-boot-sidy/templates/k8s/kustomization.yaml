@@ -10,6 +10,7 @@ resources:
   - service.yaml
   - pdb.yaml
   - networkpolicy.yaml
+  - httproute.yaml
 images:
   - name: app-image
     newName: app-image
