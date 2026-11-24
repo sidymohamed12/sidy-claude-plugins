@@ -37,7 +37,11 @@ function post(path, body) {
 
 test("health répond", async () => {
   const res = await fetch(`${base}/health`);
-  assert.deepEqual(await res.json(), { app: "sidy-office", ok: true });
+  const body = await res.json();
+  assert.equal(body.app, "sidy-office");
+  assert.equal(body.ok, true);
+  assert.equal(body.pid, process.pid);
+  assert.match(body.version, /^\d+\.\d+\.\d+$/);
 });
 
 test("un événement de hook met à jour l'état", async () => {

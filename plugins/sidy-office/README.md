@@ -122,6 +122,20 @@ Claude Code ──hooks──▶ curl POST /event ──▶ serveur local (127.0
 
 Pour les changer, ajoute-les dans le bloc `env` de `~/.claude/settings.json`.
 
+## Après une mise à jour du plugin
+
+Le serveur du bureau tourne en arrière-plan, séparé de Claude Code. Depuis la v1.2.1, le démarrage d'une session remplace tout seul un serveur d'une autre version. Si tu viens d'une version plus ancienne, l'ancien serveur ne sait pas s'arrêter : il continue de servir l'ancienne page (par exemple sans les agents qui se promènent). Arrête-le une fois, puis relance Claude Code et recharge la page :
+
+```
+# macOS et Linux
+lsof -ti :4848 | xargs kill
+
+# Windows (PowerShell)
+Get-NetTCPConnection -LocalPort 4848 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+```
+
+Si la page affiche toujours des agents immobiles, vérifie le réglage d'accessibilité « réduire les animations » de ton système (macOS : Réglages Système, Accessibilité, Affichage) : le bureau le respecte et garde alors tout le monde à sa place.
+
 ## Lancer à la main
 
 Depuis le dossier du plugin :
