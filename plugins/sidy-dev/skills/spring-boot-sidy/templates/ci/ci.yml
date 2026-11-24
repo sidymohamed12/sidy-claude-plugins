@@ -1,12 +1,14 @@
 # À copier dans .github/workflows/ci.yml du projet Spring Boot.
-# Tests + couverture + Sonar, validation des manifestes, build de l'image (poussée sur GHCR hors PR).
+# Tests + couverture + Sonar, validation des manifestes. Sur une PR : l'image est construite pour vérifier
+# le Dockerfile. Sur un push dans dev, preprod, main ou prod : l'image est publiée avec un tag vX.Y.Z.
+# Copier aussi next-version.mjs dans .github/scripts/ (voir references/ci.md).
 name: CI
 
 on:
   pull_request:
+    branches: [dev, preprod, main, prod]
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [dev, preprod, main, prod]
 
 # Un nouveau push annule le run en cours d'une PR, jamais celui de main.
 concurrency:
@@ -79,50 +81,94 @@ jobs:
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
             /tmp/rendered.yaml
 
+  # Sur une PR : construit l'image sans la publier, pour que le Dockerfile ne casse pas après la fusion.
   image:
+    if: github.event_name == 'pull_request'
     needs: [test, manifests]
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
-      - name: Connexion à GHCR
-        if: github.event_name != 'pull_request'
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+
+  # Sur un push dans dev, preprod, main ou prod : calcule la version, publie l'image, puis pose le tag git.
+  #   dev     -> vX.Y.Z-dev.N      preprod -> vX.Y.Z-rc.N      main, prod -> vX.Y.Z
+  publish:
+    if: github.event_name == 'push'
+    needs: [test, manifests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Une publication à la fois par branche : deux merges rapprochés calculeraient la même version.
+    concurrency:
+      group: publish-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: write # poser le tag git de version
+    env:
+      # Docker Hub par défaut. Ghcr.io : REGISTRY=ghcr.io (le GITHUB_TOKEN suffit alors, voir ci.md).
+      REGISTRY: ${{ vars.REGISTRY || 'docker.io' }}
+      # Nom en minuscules, par exemple monpseudo/mon-api. À défaut : propriétaire/dépôt GitHub.
+      IMAGE_NAME: ${{ vars.IMAGE_NAME || github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # l'historique et les tags servent au calcul de la version
+      - name: Calculer la version
+        id: version
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: node .github/scripts/next-version.mjs
+      - uses: docker/setup-buildx-action@v4
+      - name: Connexion au registre
         uses: docker/login-action@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ vars.REGISTRY_USERNAME || github.actor }}
+          password: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
       - id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=raw,value=${{ steps.version.outputs.tag }}
+            type=raw,value=${{ github.ref_name }}
             type=sha,format=long
-            type=semver,pattern={{version}}
-      # Sur une PR l'image est construite pour vérifier le Dockerfile, pas poussée.
       - id: build
         uses: docker/build-push-action@v7
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Digest à déployer
-        if: github.event_name != 'pull_request'
+      # Le tag git est posé après la publication : si le push de l'image échoue, aucun tag orphelin.
+      - name: Poser le tag git
+        if: steps.version.outputs.create_git_tag == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+      - name: Résumé
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
-          REPO: ${{ github.repository }}
+          TAG: ${{ steps.version.outputs.tag }}
+          BASE: ${{ steps.version.outputs.base }}
         run: |
           {
-            echo "### Image poussée"
+            echo "### Image publiée : \`${TAG}\`"
+            echo
+            echo "Branche \`${GITHUB_REF_NAME}\`, version calculée depuis \`${BASE}\`."
             echo
             echo "Pour déployer : workflow **Deploy**, champ \`image\` :"
             echo
-            echo "\`ghcr.io/${REPO}@${DIGEST}\`"
+            echo "\`${REGISTRY}/${IMAGE_NAME}@${DIGEST}\`"
           } >> "$GITHUB_STEP_SUMMARY"
