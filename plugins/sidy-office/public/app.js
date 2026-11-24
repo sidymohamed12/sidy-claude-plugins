@@ -112,7 +112,13 @@ function memberRow(character) {
   );
   const status = el("div", "member-status");
   status.style.setProperty("--dot", info.color);
-  status.append(el("span", "member-detail", character.detail || info.label));
+  status.append(
+    el(
+      "span",
+      "member-detail",
+      character.detail || character.activity || info.label,
+    ),
+  );
   body.append(status);
   const meta = metaLine(character);
   if (meta) {
@@ -124,9 +130,27 @@ function memberRow(character) {
   return li;
 }
 
+let activitySignature = "";
+
 function renderTeam() {
+  activitySignature = activityKey();
   teamList.replaceChildren(...office.characterList().map(memberRow));
 }
+
+/** Ce que font ceux qui flânent : le panneau se met à jour quand cela change. */
+function activityKey() {
+  return office
+    .characterList()
+    .map((c) => c.activity || "")
+    .join("|");
+}
+
+setInterval(() => {
+  if (activityKey() !== activitySignature) {
+    renderTeam();
+  }
+  renderTooltip();
+}, 500);
 
 /* ---------- fil d'activité ---------- */
 
@@ -183,7 +207,7 @@ function renderTooltip() {
   const info = STATUS_INFO[c.status] || STATUS_INFO.idle;
   tooltip.replaceChildren(
     el("strong", "", c.name),
-    document.createTextNode(c.detail || info.label),
+    document.createTextNode(c.detail || c.activity || info.label),
   );
   const rect = canvas.getBoundingClientRect();
   const wrap = canvas.parentElement.getBoundingClientRect();

@@ -33,6 +33,8 @@ Ou, dans Claude Code :
 
 Pas de session en cours ? Clique sur **Voir une démo** : tes quatre premiers agents rejouent une mission complète.
 
+**Au repos, le bureau vit.** Les agents qui ne travaillent pas ne restent pas plantés devant leur canapé : ils se promènent dans le coin pause, vont prendre un café, discutent à deux (les bulles se répondent) ou se lancent une balle. Dès qu'un agent reçoit du travail, il laisse tout et rejoint son poste. Le panneau de l'équipe dit ce que chacun fait (« Discute avec reviewer », « Joue à la balle avec designer »). Si ton système demande moins d'animations (`prefers-reduced-motion`), les agents restent à leur place.
+
 Le bureau montre toutes tes sessions Claude Code en même temps. Si un même agent tourne dans deux sessions, son nom porte « ×2 ».
 
 ## Ton équipe, détectée automatiquement

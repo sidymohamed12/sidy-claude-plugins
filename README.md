@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-24)** — `sidy-office` v1.1.0 : quand personne ne travaille, les agents circulent dans le bureau, prennent un café, discutent à deux ou jouent à la balle.
+>
 > **Mise à jour (2026-11-24, v1.8.1)** — **README détaillé par projet** : `backend-dev` et `frontend-dev` créent ou mettent à jour un `README.md` qui décrit le projet, front et back, d'après le modèle `spring-boot-sidy/templates/README.projet.md`. Case dédiée dans le modèle de PR et les checklists.
 >
 > **Mise à jour (2026-11-24, v1.8.0)** — **garde-fou Git** : un hook du plugin refuse push, merge, commit, rebase et reset sur `main` ou `prod`, les force-push, `--no-verify` et `gh pr merge` (Node 20 ou plus requis ; dérogation par `SIDY_GIT_ALLOW_PROTECTED=1` dans ton environnement). Gabarit CI `conventions.yml` pour contrôler branches, cibles et commits des PR. Protège aussi `main` et `prod` sur GitHub : le hook ne remplace pas la règle de branche.
