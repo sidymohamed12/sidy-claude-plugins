@@ -39,6 +39,8 @@ Pas de session en cours ? Clique sur **Voir une démo** : tes quatre premiers ag
 
 **Deux espaces : travail et détente.** Le bureau est maintenant en deux parties, séparées par un mur avec un passage au milieu. En haut, l'espace travail (les postes, le coin pause). En bas, l'espace détente, fait de zones : six zones : la **télé** (on s'assoit à plusieurs sur le canapé, l'écran s'allume), le **tennis de table** (à deux, avec la balle), la **discussion** (un petit groupe autour d'une table, les bulles se répondent), le **dortoir** (sieste, avec les « Zzz »), la **salle de sport** (tapis de course, haltères), la **piscine** et le **gaming** (trois postes avec fauteuils gamer, les écrans s'animent quand on joue). Au fond de la détente, un mur décoré : des tableaux (bateau en mer, fusée, code, baobab au coucher du soleil) et une guirlande lumineuse.
 
+**Ton portrait au mur.** Dans la salle de travail, un tableau à cadre doré remplace la troisième fenêtre : c'est toi, le propriétaire des agents. Indique ta photo avec `"portrait"` dans `sidy-office.json` (voir *Personnaliser*). Elle est recadrée et réduite en pixel art. Pour la changer, remplace le fichier ou le chemin : la page se met à jour toute seule. Sans réglage, le cadre montre une silhouette. La photo ne quitte pas ton ordinateur : le serveur n'écoute que sur `127.0.0.1` et ne sert que ce fichier-là.
+
 **Salle de réunion.** Dans la salle de travail, une salle vitrée avec une grande table, des chaises et un écran au mur. Elle prend la place de deux postes de la dernière rangée (la salle de travail ajoute une rangée si besoin, il reste toujours des postes pour les renforts). Les agents la contournent. Quand Claude confie une mission à un agent de l'équipe, ils s'y retrouvent : Claude quitte son poste, l'agent arrive en pressant le pas (de la détente ou d'ailleurs), ils échangent quelques secondes (les bulles se répondent, le panneau affiche « Réunion avec … »), puis chacun rejoint son poste. Pas de réunion pour un renfort, pour un agent déjà assis à son poste, ni si une autre réunion est en cours. Si l'agent n'arrive pas dans les 40 secondes, Claude retourne à son poste. Plus un agent reste longtemps sans rien faire, plus il va loin : la discussion arrive vite, la sieste seulement après un long moment. Un agent qui traîne au repos finit par aller dans une zone, puis rentre à sa place ; dès qu'il reçoit du travail, il laisse tout et retourne à son poste par le passage. Choisis les zones avec `"zones"` dans `sidy-office.json` : `["tele"]`, `["tele", "dortoir", "piscine"]`, ou `[]` pour ne garder que l'espace travail (voir *Personnaliser*). `"repos": false` coupe aussi les zones.
 
 **Au repos, tout le monde est dans la détente.** Dès qu'un agent n'a plus de travail, il rejoint l'espace détente et y reste : il se promène le long des zones, discute, joue ou va dans une zone. Seul le café se prend dans le coin pause, côté travail ; après, il revient. Sans zones (`"zones": []`), le repos reste dans le coin pause, comme avant.
@@ -81,6 +83,7 @@ Tout est facultatif :
   "titre": "Le bureau de l'équipe MediTrace",
   "ordre": ["backend-dev", "frontend-dev", "reviewer"],
   "repos": true,
+  "portrait": "~/Images/moi.jpg",
   "zones": ["tele", "tennis-de-table", "discussion", "dortoir", "salle-de-sport", "piscine", "gaming"],
   "agents": {
     "claude": { "nom": "Chef", "couleur": "#2F4B8F" },
@@ -107,6 +110,7 @@ Tout est facultatif :
 | `rayures`            | Couleur d'une rayure sur le haut, en hexadécimal, ou `false` pour l'enlever |
 | `repos`              | Au niveau du fichier : `false` coupe toutes les activités au repos (promenade, café, discussion, balle). Au niveau d'un agent : `false` le garde à sa place pendant que les autres s'animent. Par défaut : `true` |
 | `zones`              | Au niveau du fichier : les zones de l'espace détente, dans l'ordre (`tele`, `tennis-de-table`, `discussion`, `dortoir`, `salle-de-sport`, `piscine`, `gaming`). `[]` supprime l'espace détente. Par défaut : toutes |
+| `portrait`           | Au niveau du fichier : ta photo, encadrée sur le mur de la salle de travail. Chemin d'une image `.png`, `.jpg`, `.jpeg`, `.webp` ou `.gif` de 5 Mo au plus : `~/…` part de ton dossier personnel, un chemin relatif part du dossier du fichier de réglages. `false` enlève le tableau. Par défaut : une silhouette |
 | `masquer`            | `true` pour retirer l'agent du bureau (il reste dans le fil d'activité) |
 
 Un agent présent dans le fichier mais introuvable sur ta machine (par exemple `Explore`) rejoint quand même l'équipe, avec son propre poste.

@@ -228,6 +228,63 @@ function pickZones(value) {
   return [...new Set(value)].filter((id) => ZONE_IDS.includes(id));
 }
 
+/** Photo du propriétaire : formats acceptés et taille maximale. */
+const PORTRAIT_TYPES = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+};
+const PORTRAIT_MAX_BYTES = 5 * 1024 * 1024;
+
+/** Chemin absolu de la photo : `~/…` part du dossier personnel, un chemin relatif du dossier du fichier de réglages. */
+function portraitPath(value, baseDir, homeDir) {
+  if (value === "~" || value.startsWith("~/")) {
+    return path.join(homeDir, value.slice(1));
+  }
+  return path.resolve(baseDir, value);
+}
+
+/**
+ * Vérifie la photo choisie. Ne renvoie jamais le chemin au navigateur :
+ * seulement une version (pour recharger l'image quand le fichier change).
+ */
+function checkPortrait(value) {
+  if (value === undefined) {
+    return { team: null };
+  }
+  if (value === false) {
+    return { team: false };
+  }
+  if (typeof value !== "string" || !value) {
+    return { team: null, warning: "« portrait » doit être le chemin d'une image, ou false." };
+  }
+  const type = PORTRAIT_TYPES[path.extname(value).toLowerCase()];
+  if (!type) {
+    return {
+      team: null,
+      warning: `portrait : seules les images ${Object.keys(PORTRAIT_TYPES).join(", ")} sont acceptées.`,
+    };
+  }
+  let stat;
+  try {
+    stat = fs.statSync(value);
+  } catch {
+    return { team: null, warning: `portrait : fichier introuvable (${path.basename(value)}).` };
+  }
+  if (!stat.isFile()) {
+    return { team: null, warning: `portrait : ${path.basename(value)} n'est pas un fichier.` };
+  }
+  if (stat.size > PORTRAIT_MAX_BYTES) {
+    return { team: null, warning: "portrait : l'image dépasse 5 Mo." };
+  }
+  return {
+    team: { version: `${Math.round(stat.mtimeMs)}-${stat.size}` },
+    file: { path: value, type },
+  };
+}
+
 /** Valeurs du fichier de réglages qui ne seront pas appliquées, en phrases lisibles. */
 function configWarnings(config) {
   const warnings = [];
@@ -432,14 +489,27 @@ function resolveTeam({ homeDir, cwds = [], globalConfigFile }) {
       files.push(path.join(claudeDir, CONFIG_NAME));
     }
   }
-  const loaded = [...new Set(files)].map(loadConfig);
+  const unique = [...new Set(files)];
+  const loaded = unique.map(loadConfig);
+  loaded.forEach((l, i) => {
+    if (typeof l.config.portrait === "string" && l.config.portrait) {
+      l.config.portrait = portraitPath(
+        l.config.portrait,
+        path.dirname(unique[i]),
+        homeDir,
+      );
+    }
+  });
   const config = mergeConfigs(loaded.map((l) => l.config));
+  const portrait = checkPortrait(config.portrait);
   const errors = [
     ...loaded.map((l) => l.error).filter(Boolean),
     ...configWarnings(config),
+    ...(portrait.warning ? [portrait.warning] : []),
   ];
   const team = buildTeam(discoverAgents({ homeDir, cwds }), config);
-  return { team, errors };
+  team.portrait = portrait.team;
+  return { team, errors, portraitFile: portrait.file || null };
 }
 
 module.exports = {
@@ -452,5 +522,7 @@ module.exports = {
   loadConfig,
   mergeConfigs,
   resolveTeam,
+  checkPortrait,
+  PORTRAIT_MAX_BYTES,
   DEFAULT_TITLE,
 };

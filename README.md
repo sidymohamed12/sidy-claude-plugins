@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-24, `sidy-office` v1.10.0)** — ton portrait encadré au mur de la salle de travail, avec la photo de ton choix (réglage `portrait`).
+>
 > **Mise à jour (2026-11-24, `sidy-office` v1.9.0)** — quand Claude confie une mission à un agent, ils se retrouvent quelques secondes dans la salle de réunion avant de rejoindre leurs postes.
 >
 > **Mise à jour (2026-11-24, `sidy-office` v1.8.0)** — une salle de réunion vitrée dans la salle de travail, un espace gaming dans la détente et un mur de tableaux au fond de la détente.

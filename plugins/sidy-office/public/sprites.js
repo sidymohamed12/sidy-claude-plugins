@@ -392,7 +392,35 @@ function drawFloor(ctx, cols, rows) {
   }
 }
 
-function drawWall(ctx, cols) {
+/** Taille de la photo dans son cadre, en pixels du dessin. */
+export const PORTRAIT_W = 26;
+export const PORTRAIT_H = 32;
+const PORTRAIT_X = 192;
+const PORTRAIT_Y = 7;
+
+/**
+ * Tableau du propriétaire, à la place de la troisième fenêtre. `image` : la
+ * photo déjà réduite à PORTRAIT_W × PORTRAIT_H, ou null pour une silhouette.
+ */
+function drawPortrait(ctx, image) {
+  const x = PORTRAIT_X;
+  const y = PORTRAIT_Y;
+  px(ctx, "#8A6A2F", x - 4, y - 4, PORTRAIT_W + 8, PORTRAIT_H + 8); // cadre doré
+  px(ctx, "#C9A24A", x - 3, y - 3, PORTRAIT_W + 6, PORTRAIT_H + 6);
+  px(ctx, "#E2C27A", x - 3, y - 3, PORTRAIT_W + 6, 1);
+  px(ctx, "#8A6A2F", x - 1, y - 1, PORTRAIT_W + 2, PORTRAIT_H + 2);
+  if (image) {
+    ctx.drawImage(image, x, y);
+  } else {
+    px(ctx, "#DCE4EF", x, y, PORTRAIT_W, PORTRAIT_H);
+    px(ctx, "#9AA5B5", x + 9, y + 6, 8, 9); // tête
+    px(ctx, "#9AA5B5", x + 4, y + 18, 18, 14); // épaules
+  }
+  // petite applique lumineuse au-dessus
+  px(ctx, "#F6CF5B", x + PORTRAIT_W / 2 - 2, y - 7, 4, 2);
+}
+
+function drawWall(ctx, cols, portrait) {
   px(ctx, WHITE, 0, 0, cols * TILE, 3 * TILE);
   for (let x = 0; x < cols * TILE; x += 32) {
     px(ctx, "#F0F3F7", x, 0, 1, 3 * TILE - 4);
@@ -400,7 +428,11 @@ function drawWall(ctx, cols) {
   px(ctx, "#C9D2DD", 0, 3 * TILE - 4, cols * TILE, 4);
   drawWindow(ctx, 24, 10, 40);
   drawWindow(ctx, 104, 10, 40);
-  drawWindow(ctx, 184, 10, 40);
+  if (portrait === false) {
+    drawWindow(ctx, 184, 10, 40);
+  } else {
+    drawPortrait(ctx, portrait || null);
+  }
   // tableau blanc
   px(ctx, "#C9D2DD", 270, 8, 60, 30);
   px(ctx, WHITE, 272, 10, 56, 26);
@@ -668,12 +700,12 @@ function drawDecorWall(ctx, wall) {
 }
 
 /** Décor fixe, dessiné une seule fois par plan. */
-export function drawBackground(ctx, layout) {
+export function drawBackground(ctx, layout, { portrait } = {}) {
   const L = layout.loungeTop;
   // fond plein : aucun pixel ne reste transparent, sinon les personnages y laissent une traînée
   px(ctx, WHITE, 0, 0, layout.cols * TILE, layout.rows * TILE);
   drawFloor(ctx, layout.workCols, layout.rows);
-  drawWall(ctx, layout.workCols);
+  drawWall(ctx, layout.workCols, portrait);
   drawRack(ctx);
   drawLounge(ctx, L);
   drawPlant(ctx, 0.3 * TILE, 3.4 * TILE);

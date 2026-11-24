@@ -12,7 +12,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { createState, applyEvent, sweep, snapshot } = require("./state");
 const { runDemo } = require("./demo");
-const { resolveTeam } = require("./team");
+const { resolveTeam, PORTRAIT_MAX_BYTES } = require("./team");
 const { version: VERSION } = require("../.claude-plugin/plugin.json");
 
 const HOST = "127.0.0.1";
@@ -46,6 +46,29 @@ function createOfficeServer({
   let team = null;
   let configErrors = [];
   let teamJson = "";
+  let portraitFile = null; // { path, type } de la photo du propriétaire, jamais envoyé au navigateur
+
+  /** Sert la photo choisie dans les réglages, et rien d'autre. */
+  function servePortrait(res) {
+    if (!portraitFile) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+    fs.readFile(portraitFile.path, (err, data) => {
+      if (err || data.length > PORTRAIT_MAX_BYTES) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      res.writeHead(200, {
+        "Content-Type": portraitFile.type,
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      res.end(data);
+    });
+  }
 
   function fullSnapshot() {
     return { ...snapshot(state), team, configErrors };
@@ -65,6 +88,7 @@ function createOfficeServer({
     teamJson = json;
     team = resolved.team;
     configErrors = resolved.errors;
+    portraitFile = resolved.portraitFile;
     return true;
   }
 
@@ -184,6 +208,8 @@ function createOfficeServer({
       openStream(req, res);
     } else if (req.method === "GET" && pathname === "/state") {
       sendJson(res, 200, fullSnapshot());
+    } else if (req.method === "GET" && pathname === "/portrait") {
+      servePortrait(res);
     } else if (req.method === "GET" && pathname === "/health") {
       sendJson(res, 200, {
         app: "sidy-office",
