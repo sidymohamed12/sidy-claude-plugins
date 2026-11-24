@@ -64,8 +64,8 @@ spring:
   flyway:
     enabled: ${FLYWAY_ENABLED:false}
     url: ${FLYWAY_URL:${DB_URL}}
-    user: ${FLYWAY_USER}
-    password: ${FLYWAY_PASSWORD}
+    user: ${FLYWAY_USER:}
+    password: ${FLYWAY_PASSWORD:}
   data:
     redis:
       host: ${REDIS_HOST}
@@ -109,7 +109,7 @@ DB_URL=jdbc:postgresql://localhost:5432/app
 DB_USERNAME=app
 DB_PASSWORD=change-me
 
-# Flyway (compte DDL distinct en prod ; FLYWAY_ENABLED=false sur l'app si one-shot migrate)
+# Flyway (compte DDL distinct en prod ; FLYWAY_ENABLED=false sur l'app si one-shot migrate ; FLYWAY_USER / FLYWAY_PASSWORD ne sont donnés qu'au Job de migration, pas aux pods de l'app)
 FLYWAY_URL=jdbc:postgresql://localhost:5432/app
 FLYWAY_USER=flyway
 FLYWAY_PASSWORD=change-me
