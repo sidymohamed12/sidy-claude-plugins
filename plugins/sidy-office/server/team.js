@@ -209,9 +209,35 @@ const KNOWN_KEYS = new Set([
   "masquer",
 ]);
 
+/** Zones de l'espace détente (même liste que public/zones.js : un test les compare). */
+const ZONE_IDS = ["tele", "tennis-de-table"];
+
+/** Zones à afficher : toutes par défaut, aucune avec une liste vide, sinon celles qui existent. */
+function pickZones(value) {
+  if (!Array.isArray(value)) {
+    return [...ZONE_IDS];
+  }
+  return [...new Set(value)].filter((id) => ZONE_IDS.includes(id));
+}
+
 /** Valeurs du fichier de réglages qui ne seront pas appliquées, en phrases lisibles. */
 function configWarnings(config) {
   const warnings = [];
+  if (config.zones !== undefined) {
+    if (!Array.isArray(config.zones)) {
+      warnings.push(
+        `« zones » doit être une liste, par exemple ["tele", "tennis-de-table"].`,
+      );
+    } else {
+      for (const id of config.zones) {
+        if (!ZONE_IDS.includes(id)) {
+          warnings.push(
+            `zones : « ${id} » n'existe pas (zones connues : ${ZONE_IDS.join(", ")}).`,
+          );
+        }
+      }
+    }
+  }
   if (config.repos !== undefined && typeof config.repos !== "boolean") {
     warnings.push('« repos » doit valoir true ou false.');
   }
@@ -367,6 +393,7 @@ function buildTeam(discovered, config = {}) {
     members: orderMembers(members, config.ordre),
     hidden,
     leisure: config.repos !== false,
+    zones: pickZones(config.zones),
   };
 }
 
@@ -412,6 +439,7 @@ module.exports = {
   generateLook,
   customizeLook,
   configWarnings,
+  ZONE_IDS,
   roleFrom,
   loadConfig,
   mergeConfigs,

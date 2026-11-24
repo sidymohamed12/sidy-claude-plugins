@@ -1,5 +1,6 @@
 {
   "titre": "Le bureau de Sidy",
+  "zones": ["tele", "tennis-de-table"],
   "ordre": [
     "backend-dev",
     "designer",
