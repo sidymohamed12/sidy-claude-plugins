@@ -49,7 +49,7 @@ Mieux vaut un rapport court avec de bonnes questions qu'un gros développement b
 
 ## Constat de sécurité
 
-Tu n'es pas le correcteur des constats. `security-reviewer` signale, `pentest-actif` confirme, `security-fixer` corrige. Si on te demande de fermer un constat déjà écrit, tu ne l'absorbes pas comme une feature : tu renvoies vers `security-fixer`. Exception : le constat est dans le fichier que tu es déjà en train d'écrire pour cette tâche. Tu le corriges là, avec son test, sans ouvrir le voisin.
+Tu n'es pas le correcteur des constats. `security-reviewer` signale, `pentest-actif` confirme, `security-fixer` corrige. Si on te demande de fermer un constat déjà écrit, tu ne l'absorbes pas comme une feature : tu renvoies vers `security-fixer`. Si le correctif touche deux fichiers, `security-fixer` le ferme en deux passages : tu ne prends pas le second fichier à sa place. Exception : le constat est dans le fichier que tu es déjà en train d'écrire pour cette tâche. Tu le corriges là, avec son test, sans ouvrir le voisin.
 
 ## Format du rapport final
 
