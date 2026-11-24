@@ -77,7 +77,7 @@ describe("registre des zones", () => {
   test("pickZones : défaut = toutes, liste vide = aucune, inconnues et doublons écartés", () => {
     assert.deepEqual(Z.pickZones(undefined), Z.ZONE_IDS);
     assert.deepEqual(Z.pickZones([]), []);
-    assert.deepEqual(Z.pickZones(["tele", "piscine", "tele"]), ["tele"]);
+    assert.deepEqual(Z.pickZones(["tele", "plage", "tele"]), ["tele"]);
     assert.deepEqual(Z.pickZones("tele"), Z.ZONE_IDS);
   });
 
@@ -239,6 +239,49 @@ describe("activités de zone", () => {
     assert.equal(w.leisure.takenSeats("tele").size, 0);
   });
 
+  test("la discussion de groupe réunit au moins deux agents, sur des places différentes", () => {
+    const w = world(["discussion"], "a", "b", "c");
+    let grouped = false;
+    for (let i = 0; i < 4000; i += 1) {
+      w.run(0.1);
+      const acting = [...w.leisure.states.values()].filter(
+        (s) => s.kind === L.KIND.ZONE && s.phase === "act",
+      );
+      const seats = acting.map((s) => s.target.seat);
+      assert.equal(new Set(seats).size, seats.length);
+      if (acting.length >= 2) {
+        grouped = true;
+      }
+    }
+    assert.ok(grouped);
+  });
+
+  test("seul, personne ne se met à discuter en groupe", () => {
+    const w = world(["discussion"], "a");
+    for (let i = 0; i < 3000; i += 1) {
+      w.run(0.1);
+      assert.notEqual(w.leisure.stateOf("a").kind, L.KIND.ZONE);
+    }
+  });
+
+  test("le dortoir demande un long moment de repos, les autres zones moins", () => {
+    assert.ok(Z.ZONES.dortoir.after > Z.ZONES.tele.after);
+    assert.ok(Z.ZONES.dortoir.after > Z.ZONES.piscine.after);
+    const w = world(["dortoir"], "a");
+    w.run(Z.ZONES.dortoir.after - 5);
+    assert.notEqual(w.leisure.stateOf("a").kind, L.KIND.ZONE);
+  });
+
+  test("chaque zone a ses places libres, les textes du panneau et une pose connue", () => {
+    const poses = new Set(["sit", "stand", "chat", "lie", "run", "lift", "swim"]);
+    for (const [id, def] of Object.entries(Z.ZONES)) {
+      for (const seat of def.seats) {
+        assert.ok(poses.has(seat.pose), `${id} : pose ${seat.pose}`);
+      }
+      assert.ok(def.go && def.doing("x", def.seats[0]), id);
+    }
+  });
+
   test("sans zone, aucune activité de zone n'est jamais choisie", () => {
     const w = world([], "a", "b");
     for (let i = 0; i < 3000; i += 1) {
@@ -256,15 +299,15 @@ describe("réglage « zones »", () => {
   test("absent : toutes les zones ; vide : aucune ; sinon la liste filtrée", () => {
     assert.deepEqual(buildTeam([], {}).zones, SERVER_ZONE_IDS);
     assert.deepEqual(buildTeam([], { zones: [] }).zones, []);
-    assert.deepEqual(buildTeam([], { zones: ["tele", "piscine"] }).zones, ["tele"]);
+    assert.deepEqual(buildTeam([], { zones: ["tele", "plage"] }).zones, ["tele"]);
     assert.deepEqual(buildTeam([], { zones: "tele" }).zones, SERVER_ZONE_IDS);
   });
 
   test("les valeurs ignorées sont signalées", () => {
     assert.deepEqual(configWarnings({ ...base, zones: ["tele"] }), []);
-    const unknown = configWarnings({ ...base, zones: ["piscine"] });
+    const unknown = configWarnings({ ...base, zones: ["plage"] });
     assert.equal(unknown.length, 1);
-    assert.match(unknown[0], /piscine/);
+    assert.match(unknown[0], /plage/);
     assert.match(configWarnings({ ...base, zones: "tele" })[0], /liste/);
   });
 });

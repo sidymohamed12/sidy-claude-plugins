@@ -1,6 +1,8 @@
 // Décor des zones de l'espace détente, en pixel art (1 unité = 1 pixel).
 // drawZone trace le décor fixe ; drawZoneLive les parties qui bougent.
 
+import { ZONES } from "./zones.js";
+
 const TILE = 16;
 const INK = "#1A2233";
 const WHITE = "#FFFFFF";
@@ -77,12 +79,104 @@ function drawTennis(ctx, ox, oy) {
   px(ctx, WHITE, nx, ty - 6, 1, 8);
 }
 
+function drawDiscussion(ctx, ox, oy) {
+  rug(ctx, ox, oy, 1.6, 2.2, 6.2, 3.0, "#D6E2F0", "#C3D3E6");
+  const tx = ox + 4.7 * TILE;
+  const ty = oy + 3.6 * TILE;
+  px(ctx, "#6F7C90", tx - 1, ty + 3, 2, 8);
+  px(ctx, "#C3CEDC", tx - 11, ty - 4, 22, 8);
+  px(ctx, "#8E9BAD", tx - 11, ty + 3, 22, 2);
+  px(ctx, WHITE, tx - 6, ty - 3, 3, 3);
+  px(ctx, WHITE, tx + 3, ty - 2, 3, 3);
+}
+
+function drawDortoir(ctx, ox, oy) {
+  for (const seat of ZONES.dortoir.seats) {
+    const bx = ox + seat.x * TILE - 14;
+    const by = oy + seat.y * TILE - 13;
+    px(ctx, "#46526A", bx, by, 28, 15);
+    px(ctx, "#5D6A84", bx, by, 28, 2);
+    px(ctx, "#B9C8DC", bx + 2, by + 2, 24, 11);
+    px(ctx, "#46526A", bx, by + 15, 2, 3);
+    px(ctx, "#46526A", bx + 26, by + 15, 2, 3);
+  }
+  // table de nuit et lampe
+  px(ctx, "#8E9BAD", ox + 0.2 * TILE, oy + 2.9 * TILE, 8, 10);
+  px(ctx, "#F2C46D", ox + 0.2 * TILE + 2, oy + 2.9 * TILE - 4, 4, 4);
+}
+
+function drawSport(ctx, ox, oy) {
+  rug(ctx, ox, oy, 0.4, 2.0, 8.8, 3.3, "#E1E8F2", "#CBD5E3");
+  for (const seat of ZONES["salle-de-sport"].seats.filter((s) => s.pose === "run")) {
+    const x = ox + seat.x * TILE;
+    const y = oy + seat.y * TILE;
+    px(ctx, "#2A3344", x - 11, y - 4, 22, 7); // tapis
+    px(ctx, "#46526A", x - 11, y - 4, 22, 1);
+    px(ctx, "#6F7C90", x - 9, y - 26, 2, 22); // montants
+    px(ctx, "#6F7C90", x + 7, y - 26, 2, 22);
+    px(ctx, "#2A3344", x - 10, y - 29, 20, 5); // console
+    px(ctx, "#7FD39A", x - 6, y - 28, 6, 2);
+  }
+  // porte-haltères
+  const rx = ox + 5.2 * TILE;
+  const ry = oy + 2.3 * TILE;
+  px(ctx, "#6F7C90", rx, ry + 10, 52, 3);
+  for (let i = 0; i < 5; i += 1) {
+    px(ctx, i % 2 ? "#D64545" : "#2F6FEB", rx + 3 + i * 10, ry + 4, 6, 6);
+  }
+  // tapis de sol
+  px(ctx, "#7A4FD8", ox + 5.3 * TILE, oy + 3.9 * TILE, 3.4 * TILE, 5);
+}
+
+const POOL = { x: 0.6, y: 1.0, w: 8.3, h: 3.9 };
+
+function drawPiscine(ctx, ox, oy) {
+  const x = ox + POOL.x * TILE;
+  const y = oy + POOL.y * TILE;
+  const w = POOL.w * TILE;
+  const h = POOL.h * TILE;
+  px(ctx, "#C9D2DD", x - 4, y - 4, w + 8, h + 8); // margelle
+  px(ctx, "#8CC6F0", x, y, w, h);
+  px(ctx, "#A8D6F5", x, y, w, 3);
+  px(ctx, "#6BB0E0", x, y + h - 3, w, 3);
+  // lignes d'eau
+  for (let i = 1; i < 3; i += 1) {
+    const lx = x + Math.round((w * i) / 3);
+    for (let k = 0; k < h; k += 4) {
+      px(ctx, k % 8 ? "#E5484D" : WHITE, lx, y + k, 1, 3);
+    }
+  }
+  // échelle
+  px(ctx, "#9AA7B8", x + w - 10, y - 8, 2, 10);
+  px(ctx, "#9AA7B8", x + w - 5, y - 8, 2, 10);
+}
+
+/** Reflets qui glissent sur l'eau. */
+function drawPiscineLive(ctx, ox, oy, t) {
+  const x = ox + POOL.x * TILE;
+  const y = oy + POOL.y * TILE;
+  const w = POOL.w * TILE;
+  const h = POOL.h * TILE;
+  ctx.globalAlpha = 0.55;
+  for (let i = 0; i < 14; i += 1) {
+    const px0 = (i * 37 + t * 8 * (1 + (i % 3))) % (w - 8);
+    const py0 = 6 + ((i * 23) % (h - 12));
+    px(ctx, "#E8F5FF", x + px0, y + py0, 6, 1);
+  }
+  ctx.globalAlpha = 1;
+}
+
 const DRAWERS = {
+  discussion: drawDiscussion,
+  dortoir: drawDortoir,
+  "salle-de-sport": drawSport,
+  piscine: drawPiscine,
   tele: drawTele,
   "tennis-de-table": drawTennis,
 };
 
 const LIVE = {
+  piscine: drawPiscineLive,
   tele: drawTeleLive,
 };
 
