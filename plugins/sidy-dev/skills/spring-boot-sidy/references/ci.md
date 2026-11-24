@@ -28,7 +28,7 @@ Déclenché sur les PR vers `dev`, `preprod`, `main`, `prod` et sur chaque push 
 
 L'image reçoit aussi le nom de la branche (`dev`, `main`…) et `sha-<commit complet>`. La base est le dernier tag stable `vX.Y.Z` atteignable ; le niveau de montée vient des messages de commit depuis ce tag : `feat` = mineur, `type!:` ou `BREAKING CHANGE` = majeur, le reste = correctif. Sans nouveau commit depuis le dernier tag, `main`/`prod` republie ce tag. Le tag git n'est posé qu'après la publication réussie de l'image.
 
-**Registre.** Docker Hub par défaut (`docker.io`). Secret `REGISTRY_TOKEN` (jeton d'accès Docker Hub) et variable `REGISTRY_USERNAME`. Variable `IMAGE_NAME` (`monpseudo/mon-api`) ; à défaut, `propriétaire/dépôt` GitHub, ce qui ne convient que pour GHCR. Pour GHCR : `REGISTRY=ghcr.io`, et ajouter `packages: write` aux permissions du job `publish` (le `GITHUB_TOKEN` suffit alors). Le nom de l'image doit être en minuscules.
+**Registre.** Docker Hub, donc `docker.io`, par défaut : c'est le choix de Sidy. Secret `REGISTRY_TOKEN` (jeton d'accès Docker Hub) et variable `REGISTRY_USERNAME`. Variable `IMAGE_NAME` (`monpseudo/mon-api`) ; à défaut, `propriétaire/dépôt` GitHub, ce qui ne convient que pour GHCR. Pour GHCR : `REGISTRY=ghcr.io`, et ajouter `packages: write` aux permissions du job `publish` (le `GITHUB_TOKEN` suffit alors). Le nom de l'image doit être en minuscules.
 
 **Branches protégées.** Si `main` ou `prod` exigent une PR, le tag git est poussé par `github-actions[bot]` : un tag n'est pas une branche, mais une règle de protection de tags (`v*`) le refuserait. Autoriser le bot, ou ne pas protéger les tags.
 
