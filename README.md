@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-24, `sidy-office` v1.6.1)** — le bureau ne déborde plus de la page (tablette, téléphone, écran de 1024 px) et remplit l'écran sur les grands écrans au lieu de laisser des espaces blancs.
+>
 > **Mise à jour (2026-11-24, `sidy-office` v1.6.0)** — les agents au repos vivent maintenant tous dans l'espace détente (seul le café se prend dans le coin pause), et sur un grand écran la détente se place à droite du travail au lieu de dessous, pour remplir la largeur.
 >
 > **Mise à jour (2026-11-24, `sidy-office` v1.5.0)** — dans l'activité et dans le panneau de l'équipe, une commande trop longue reste coupée mais s'affiche en entier au survol, et un clic (ou Entrée) la déploie. Le texte complet est limité à 2 000 caractères et ne contient jamais le contenu d'un fichier.

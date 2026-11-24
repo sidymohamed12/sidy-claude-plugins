@@ -204,6 +204,42 @@ describe("espace détente à côté du travail (grands écrans)", () => {
   });
 });
 
+describe("le plan s'étire pour remplir l'écran", () => {
+  const team = ["a", "b", "c", "d", "e"];
+
+  for (const horizontal of [false, true]) {
+    test(`plus haut (${horizontal ? "détente à droite" : "détente dessous"}) : les zones s'écartent sans sortir du plan`, () => {
+      const base = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal });
+      const tall = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal, minRows: base.rows + 8 });
+      assert.equal(tall.rows, base.rows + 8);
+      assert.equal(tall.cols, base.cols);
+      const lowest = Math.max(...tall.zones.map((z) => z.y + z.h));
+      assert.ok(lowest < tall.rows - 0.6, "au-dessus du mur du bas");
+      assert.ok(lowest > Math.max(...base.zones.map((z) => z.y + z.h)), "les zones descendent");
+      assert.equal(tall.door.y, tall.rows - 0.4);
+    });
+  }
+
+  test("plus large (détente à droite) : les colonnes de zones se répartissent sans se chevaucher", () => {
+    const base = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal: true });
+    const wide = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal: true, minCols: base.cols + 10 });
+    assert.equal(wide.cols, base.cols + 10);
+    const xs = [...new Set(wide.zones.map((z) => z.x))].sort((a, b) => a - b);
+    for (let i = 1; i < xs.length; i += 1) {
+      assert.ok(xs[i] - xs[i - 1] >= Z.ZONE_W + 0.4);
+    }
+    assert.ok(xs.at(-1) + Z.ZONE_W <= wide.cols);
+    assert.ok(xs[0] > wide.workCols + 1);
+  });
+
+  test("nombre de colonnes imposé à droite : 1, 2 ou 3", () => {
+    for (const columns of [1, 2, 3]) {
+      const layout = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal: true, columns });
+      assert.equal(new Set(layout.zones.map((z) => z.x)).size, columns);
+    }
+  });
+});
+
 describe("au repos, on vit dans la détente", () => {
   test("avec des zones, les places de repos sont dans l'espace détente, au pied des zones", () => {
     for (const horizontal of [false, true]) {
