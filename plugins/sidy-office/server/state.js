@@ -8,6 +8,7 @@
 const MAIN_KEY = "main";
 const MAIN_TYPE = "claude";
 const FEED_LIMIT = 80;
+const FULL_DETAIL_MAX = 2000; // longueur maximale du texte complet d'une action
 const DONE_IDS_LIMIT = 500;
 const STALE_ACTIVE_MS = 15 * 60 * 1000;
 const STALE_SUBAGENT_MS = 30 * 60 * 1000;
@@ -146,6 +147,42 @@ function describeTool(toolName, input) {
   }
 }
 
+/**
+ * Texte complet de l'action quand la phrase courte la coupe (commande, chemin, URL).
+ * Vide quand la phrase courte dit déjà tout. Jamais le contenu des fichiers.
+ */
+function fullDetail(toolName, input) {
+  const i = input || {};
+  let full = "";
+  switch (toolName) {
+    case "Bash":
+      full = `$ ${String(i.command || "").trim()}`;
+      break;
+    case "Write":
+    case "Edit":
+    case "MultiEdit":
+    case "Read":
+      full = String(i.file_path || "");
+      break;
+    case "NotebookEdit":
+      full = String(i.notebook_path || "");
+      break;
+    case "WebFetch":
+      full = String(i.url || "");
+      break;
+    case "WebSearch":
+      full = String(i.query || "");
+      break;
+    case "Grep":
+    case "Glob":
+      full = String(i.pattern || "");
+      break;
+    default:
+      return "";
+  }
+  return full.length > FULL_DETAIL_MAX ? `${full.slice(0, FULL_DETAIL_MAX - 1)}…` : full;
+}
+
 function agentKey(sessionId, agentId) {
   return `${sessionId || "session"}:${agentId || MAIN_KEY}`;
 }
@@ -164,6 +201,7 @@ function ensureAgent(state, payload, now) {
       project: baseName(payload.cwd),
       status: STATUS.IDLE,
       detail: "",
+      detailFull: "",
       delegateTo: null,
       since: now,
       lastEventAt: now,
@@ -185,25 +223,30 @@ function ensureAgent(state, payload, now) {
   return agent;
 }
 
-function setStatus(agent, status, detail, now) {
+function setStatus(agent, status, detail, now, full = "") {
   if (agent.status !== status) {
     agent.since = now;
   }
   agent.status = status;
   agent.detail = detail;
+  agent.detailFull = full;
   if (status !== STATUS.DELEGATING) {
     agent.delegateTo = null;
   }
 }
 
-function pushFeed(state, agent, text, kind, now) {
-  state.feed.unshift({
+function pushFeed(state, agent, text, kind, now, full = "") {
+  const entry = {
     ts: now,
     type: agent.type,
     project: agent.project,
     text,
     kind,
-  });
+  };
+  if (full && full !== text) {
+    entry.full = full;
+  }
+  state.feed.unshift(entry);
   if (state.feed.length > FEED_LIMIT) {
     state.feed.length = FEED_LIMIT;
   }
@@ -241,7 +284,8 @@ function onPreToolUse(state, payload, now) {
   const input = payload.tool_input || {};
   const status = statusForTool(toolName);
   const detail = describeTool(toolName, input);
-  setStatus(agent, status, detail, now);
+  const full = fullDetail(toolName, input);
+  setStatus(agent, status, detail, now, full);
   if (status === STATUS.DELEGATING) {
     agent.delegateTo = normalizeType(input.subagent_type);
   }
@@ -252,7 +296,7 @@ function onPreToolUse(state, payload, now) {
       agent.files.add(file);
     }
   }
-  pushFeed(state, agent, detail, status, now);
+  pushFeed(state, agent, detail, status, now, full);
 }
 
 function onPostToolUse(state, payload, now, failed) {
@@ -402,6 +446,7 @@ function snapshot(state) {
       project: a.project,
       status: a.status,
       detail: a.detail,
+      detailFull: a.detailFull && a.detailFull !== a.detail ? a.detailFull : "",
       delegateTo: a.delegateTo,
       since: a.since,
       lastErrorAt: a.lastErrorAt,
@@ -422,5 +467,6 @@ module.exports = {
   snapshot,
   normalizeType,
   describeTool,
+  fullDetail,
   statusForTool,
 };
