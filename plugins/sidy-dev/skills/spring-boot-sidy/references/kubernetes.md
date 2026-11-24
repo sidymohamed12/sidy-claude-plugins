@@ -61,6 +61,8 @@ spring:
 
 **À l'arrêt — `preStop`.** Le kubelet retire le pod du Service avec un délai. `preStop` dort 10 s pour laisser ce délai, puis `SIGTERM`, puis les 30 s d'arrêt gracieux. `terminationGracePeriodSeconds: 45` (10 + 30 + marge). Descendre l'un sans l'autre coupe les requêtes en vol.
 
+`preStop` appelle `sh -c "sleep 10"` : l'image doit donc avoir un shell. Alpine et les images JRE classiques en ont un ; une image distroless ou « scratch » non. Dans ce cas le hook échoue et le pod s'arrête sans délai. Alternatives : `lifecycle.preStop.sleep.seconds: 10` (Kubernetes 1.30+, sans shell), ou une image qui embarque `/bin/sh`.
+
 Pas d'autre hook. Pas de `postStart`. Pas de commande qui écrit en base dans le lifecycle du pod.
 
 ## 3. Manifestes

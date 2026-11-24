@@ -83,6 +83,7 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 3
           lifecycle:
+            # Nécessite un shell dans l'image. Sans shell (distroless) : preStop.sleep.seconds: 10 (K8s 1.30+).
             preStop:
               exec:
                 command: ["sh", "-c", "sleep 10"]
