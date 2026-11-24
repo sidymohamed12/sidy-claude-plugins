@@ -112,19 +112,53 @@ export class Office {
     this.hidden = new Set(team.hidden || []);
     const types = team.members.map((m) => m.type);
     this.memberTypes = new Set(types);
-    const zoneIds = team.zones || [];
-    const key = `${types.join("|")}#${zoneIds.join("|")}`;
+    this.zoneIds = team.zones || [];
+    const key = `${types.join("|")}#${this.zoneIds.join("|")}`;
     const layoutChanged = key !== this.teamKey;
     if (layoutChanged) {
       this.teamKey = key;
-      this.layout = buildLayout(types, zoneIds);
-      this.buildBackground();
-      this.resize();
-      this.leisure = new Leisure(this.layout, {
-        walk: (c, target) => this.walkInLounge(c, target),
-      });
+      this.horizontal = false;
+      this.horizontal = this.pickOrientation();
+      this.applyLayout();
     }
     this.syncTeamCharacters(layoutChanged);
+  }
+
+  /** Construit le plan de l'équipe, dans l'orientation courante, et ce qui en dépend. */
+  applyLayout() {
+    this.layout = buildLayout([...this.memberTypes], this.zoneIds, {
+      horizontal: this.horizontal,
+    });
+    this.buildBackground();
+    this.leisure = new Leisure(this.layout, {
+      walk: (c, target) => this.walkInLounge(c, target),
+    });
+    this.resize();
+  }
+
+  /** Échelle d'affichage d'un plan dans la place disponible (en pixels par pixel d'image). */
+  fitOf(layout) {
+    const parent = this.canvas.parentElement;
+    if (!parent) {
+      return 1;
+    }
+    return Math.min(
+      parent.clientWidth / (layout.cols * TILE),
+      (window.innerHeight - MAX_HEIGHT_MARGIN) / (layout.rows * TILE),
+    );
+  }
+
+  /** Détente dessous ou à droite du travail : on garde ce qui s'affiche le plus grand. */
+  pickOrientation() {
+    if (!this.zoneIds.length) {
+      return false;
+    }
+    const types = [...this.memberTypes];
+    const below = this.fitOf(buildLayout(types, this.zoneIds));
+    const beside = this.fitOf(buildLayout(types, this.zoneIds, { horizontal: true }));
+    // même échelle d'affichage (par demi-pas) : on préfère la détente à côté, qui remplit mieux la largeur
+    const rounded = (fit) => Math.max(1, Math.floor(fit * 2) / 2);
+    return rounded(beside) >= rounded(below);
   }
 
   buildBackground() {
@@ -217,6 +251,13 @@ export class Office {
   resize() {
     const parent = this.canvas.parentElement;
     if (!parent || !this.layout) {
+      return;
+    }
+    const horizontal = this.pickOrientation();
+    if (horizontal !== this.horizontal) {
+      this.horizontal = horizontal;
+      this.applyLayout();
+      this.syncTeamCharacters(true);
       return;
     }
     const ratio = window.devicePixelRatio || 1;
@@ -446,7 +487,7 @@ export class Office {
     if (inLeisure(layout, to)) {
       return to.zoneId
         ? leisureEntry(layout, to)
-        : [{ x: layout.aisleX, y: to.y }, { x: to.x, y: to.y }];
+        : [layout.spineGate, { x: layout.aisleX, y: to.y }, { x: to.x, y: to.y }];
     }
     return this.inLounge(to)
       ? [{ x: to.x, y: to.y }]
