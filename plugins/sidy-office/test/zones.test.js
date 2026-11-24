@@ -470,7 +470,7 @@ describe("activités de zone", () => {
     assert.ok(slept);
   });
 
-  test("balle et gaming se jouent à deux, une place chacun", () => {
+  test("balle et gaming : à deux quand un collègue est libre, une place chacun", () => {
     for (const id of ["balle", "gaming"]) {
       const w = world([id], "a", "b");
       let both = false;
@@ -580,11 +580,64 @@ describe("salle de réunion et mur décoré", () => {
     assert.equal(LAYOUT.buildLayout(["a"]).decorWall, null);
   });
 
-  test("le gaming : deux joueurs assis devant la télé, manette en main", () => {
-    assert.equal(Z.ZONES.gaming.group, "pair");
+  test("le gaming : seul ou à deux, assis devant la télé, manette en main", () => {
+    assert.equal(Z.ZONES.gaming.group, "flex");
     assert.equal(Z.ZONES.gaming.seats.length, 2);
     assert.ok(Z.ZONES.gaming.seats.every((s) => s.pose === "game"));
     assert.equal(Z.ZONES.gaming.doing("b"), "Joue à la console avec b");
+    assert.equal(Z.ZONES.gaming.doing(""), "Joue à la console");
+  });
+
+  for (const [id, label, pose] of [
+    ["gaming", "Joue à la console", "game"],
+    ["balle", "Fait des jongles", "juggle"],
+  ]) {
+    test(`${id} : seul, on y joue aussi (${label})`, () => {
+      const w = world([id], "a");
+      let solo = false;
+      for (let i = 0; i < 400 && !solo; i += 1) {
+        w.run(0.5);
+        const s = w.leisure.stateOf("a");
+        if (s.kind === L.KIND.ZONE && s.phase === "act") {
+          solo = true;
+          assert.equal(s.partnerId, null);
+          assert.equal(s.target.pose, pose);
+          assert.equal(w.leisure.label("a"), label);
+        }
+      }
+      assert.ok(solo);
+    });
+  }
+
+  test("seul, on jongle au milieu du terrain, entre les deux places de passes", () => {
+    const layout = LAYOUT.buildLayout(["a"], ["balle"]);
+    const z = layout.zones[0];
+    assert.ok(z.soloSeat.x > z.seats[0].x && z.soloSeat.x < z.seats[1].x);
+    assert.equal(z.soloSeat.walkY, z.walkY);
+  });
+
+  test("piscine : des longueurs d'un bord à l'autre, sans sortir de l'eau, dans sa ligne", () => {
+    const layout = LAYOUT.buildLayout(["a"], ["piscine"]);
+    const z = layout.zones[0];
+    const ys = z.seats.map((s) => s.y);
+    assert.equal(new Set(ys).size, ys.length, "une ligne par nageur");
+    for (const seat of z.seats) {
+      const xs = [];
+      for (let t = 0; t < 40; t += 0.25) {
+        const x = Z.lapX(z, seat, t);
+        xs.push(x);
+        assert.equal(Z.inWater(layout.zones, { x, y: seat.y }), true);
+      }
+      assert.equal(Z.lapX(z, seat, 0).toFixed(3), seat.x.toFixed(3), "on part de sa place");
+      const span = Math.max(...xs) - Math.min(...xs);
+      assert.ok(span > z.def.water.w - 2, "d'un bord à l'autre");
+      // aller puis retour : le sens change
+      const dirs = new Set();
+      for (let i = 1; i < xs.length; i += 1) {
+        dirs.add(Math.sign(xs[i] - xs[i - 1]));
+      }
+      assert.ok(dirs.has(1) && dirs.has(-1));
+    }
   });
 
   test("les places de la piscine sont dans l'eau, son couloir non", () => {

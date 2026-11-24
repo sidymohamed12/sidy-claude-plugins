@@ -86,6 +86,15 @@ function placeZones(zoneIds, top, xs, gap = 0.4) {
         zoneId: id,
         walkY: y + ZONE_H - WALKWAY,
       })),
+      soloSeat: def.soloSeat
+        ? {
+            ...def.soloSeat,
+            x: x + def.soloSeat.x,
+            y: y + def.soloSeat.y,
+            zoneId: id,
+            walkY: y + ZONE_H - WALKWAY,
+          }
+        : null,
     };
   });
 }

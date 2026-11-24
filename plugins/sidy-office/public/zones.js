@@ -7,6 +7,8 @@
 /** Durée d'une activité de zone, en secondes : de 2 à 5 minutes. */
 const ACTIVITY = [120, 300];
 
+const SWIM_SPEED = 1; // tuiles par seconde
+
 export const ZONE_W = 9.5;
 export const ZONE_H = 6;
 /** Couloir libre le long du bas de la zone : on y marche pour rejoindre sa place. */
@@ -74,18 +76,19 @@ export const ZONES = {
     go: "Va à la piscine",
     doing: () => "Nage",
     water: { x: 0.6, y: 1.0, w: 8.3, h: 3.9 }, // le bassin : on y nage, on n'y marche pas
+    // une ligne d'eau chacun : on y fait des longueurs, d'un bord à l'autre
     seats: [
-      { x: 2.2, y: 2.9, pose: "swim" },
-      { x: 4.7, y: 3.7, pose: "swim" },
-      { x: 7.2, y: 2.9, pose: "swim" },
+      { x: 2.2, y: 2.3, pose: "swim" },
+      { x: 4.7, y: 3.4, pose: "swim" },
+      { x: 7.2, y: 4.5, pose: "swim" },
     ],
   },
   gaming: {
     label: "Gaming",
-    group: "pair", // une partie à deux, manette en main, devant la télé
+    group: "flex", // seul ou à deux, manette en main, devant la télé
     duration: ACTIVITY,
     go: "Va jouer à la console",
-    doing: (partner) => `Joue à la console avec ${partner}`,
+    doing: (partner) => (partner ? `Joue à la console avec ${partner}` : "Joue à la console"),
     seats: [
       { x: 3.9, y: 4.2, pose: "game" },
       { x: 5.6, y: 4.2, pose: "game" },
@@ -93,11 +96,12 @@ export const ZONES = {
   },
   balle: {
     label: "Jeu de balle",
-    group: "pair",
+    group: "flex", // à deux on se fait des passes, seul on jongle
     duration: ACTIVITY,
     go: "Va jouer à la balle",
-    doing: (partner) => `Joue à la balle avec ${partner}`,
+    doing: (partner) => (partner ? `Joue à la balle avec ${partner}` : "Fait des jongles"),
     ball: { period: 1.3, arc: 1.6 },
+    soloSeat: { x: 4.75, y: 4.0, pose: "juggle" },
     seats: [
       { x: 2.4, y: 4.0, pose: "stand" },
       { x: 7.1, y: 4.0, pose: "stand" },
@@ -130,4 +134,16 @@ export function inWater(zones, p) {
       p.y <= z.y + w.y + w.h
     );
   });
+}
+
+/** Abscisse d'un nageur qui fait des longueurs dans sa ligne (en tuiles), selon le temps passé dans l'eau. */
+export function lapX(zone, seat, elapsed) {
+  const w = zone.def.water;
+  const left = zone.x + w.x + 0.7;
+  const right = zone.x + w.x + w.w - 0.7;
+  const length = right - left;
+  // départ depuis sa place, vitesse de nage d'une tuile par seconde
+  const start = seat.x - left;
+  const d = (start + elapsed * SWIM_SPEED) % (2 * length);
+  return left + (d <= length ? d : 2 * length - d);
 }
