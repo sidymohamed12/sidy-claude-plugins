@@ -9,6 +9,7 @@ const {
   snapshot,
   normalizeType,
   describeTool,
+  fullDetail,
   STATUS,
 } = require("../server/state");
 const { buildScript } = require("../server/demo");
@@ -266,5 +267,50 @@ describe("scénario de démo", () => {
       "security-reviewer",
       "web",
     ]);
+  });
+});
+
+describe("texte complet d'une action", () => {
+  const LONG = "mvn -q -Dtest=ReservationServiceTest -DfailIfNoTests=false verify && echo terminé";
+
+  test("une commande longue garde son texte complet, la phrase courte reste coupée", () => {
+    assert.ok(describeTool("Bash", { command: LONG }).endsWith("…"));
+    assert.equal(fullDetail("Bash", { command: LONG }), `$ ${LONG}`);
+  });
+
+  test("chemin, adresse et recherche sont donnés en entier", () => {
+    assert.equal(fullDetail("Read", { file_path: "/a/b/C.java" }), "/a/b/C.java");
+    assert.equal(fullDetail("WebFetch", { url: "https://x.sn/a?b=1" }), "https://x.sn/a?b=1");
+    assert.equal(fullDetail("Grep", { pattern: "foo.*bar" }), "foo.*bar");
+  });
+
+  test("jamais le contenu d'un fichier, et rien pour les autres outils", () => {
+    assert.equal(fullDetail("Write", { file_path: "/a/B.java", content: "secret" }), "/a/B.java");
+    assert.equal(fullDetail("TodoWrite", { todos: [1] }), "");
+    assert.equal(fullDetail("mcp__x__y", {}), "");
+  });
+
+  test("le texte est borné", () => {
+    const full = fullDetail("Bash", { command: "x".repeat(5000) });
+    assert.ok(full.length <= 2000);
+    assert.ok(full.endsWith("…"));
+  });
+
+  test("l'instantané et le fil d'activité portent le texte complet seulement s'il apporte quelque chose", () => {
+    const state = createState();
+    const pre = (command, id) =>
+      applyEvent(
+        state,
+        ev("PreToolUse", { tool_name: "Bash", tool_use_id: id, tool_input: { command } }),
+        T0,
+      );
+    pre(LONG, "t1");
+    let snap = snapshot(state);
+    assert.equal(snap.feed[0].full, `$ ${LONG}`);
+    assert.equal(snap.agents[0].detailFull, `$ ${LONG}`);
+    pre("ls", "t2");
+    snap = snapshot(state);
+    assert.equal(snap.feed[0].full, undefined);
+    assert.equal(snap.agents[0].detailFull, "");
   });
 });

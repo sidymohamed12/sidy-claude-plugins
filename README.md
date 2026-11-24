@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-24, `sidy-office` v1.5.0)** — dans l'activité et dans le panneau de l'équipe, une commande trop longue reste coupée mais s'affiche en entier au survol, et un clic (ou Entrée) la déploie. Le texte complet est limité à 2 000 caractères et ne contient jamais le contenu d'un fichier.
+>
 > **Mise à jour (2026-11-24, `sidy-office` v1.4.0)** — quatre nouvelles zones dans l'espace détente : discussion de groupe, dortoir, salle de sport et piscine. Réglage `zones` pour choisir lesquelles garder.
 >
 > **Mise à jour (2026-11-24, `sidy-office` v1.3.0)** — le bureau a maintenant un espace travail et un espace détente, séparés par un passage. Premières zones : la télé et le tennis de table. Les agents au repos y vont après un moment, puis rentrent. Réglage `zones` dans `sidy-office.json` (`[]` pour ne garder que le travail). Voir le README de `sidy-office`.

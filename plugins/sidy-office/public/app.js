@@ -16,6 +16,8 @@ const configError = document.getElementById("config-error");
 
 let latest = { agents: [], history: {}, feed: [] };
 let hoveredId = null;
+/** Lignes dont on a déployé le texte complet (clé stable d'un rendu à l'autre). */
+const opened = new Set();
 
 const office = new Office(canvas, {
   onHover: (id) => {
@@ -67,6 +69,43 @@ function el(tag, className, text) {
   return node;
 }
 
+/**
+ * Texte court, avec le texte complet en info-bulle ; un clic (ou Entrée) le déploie.
+ * `full` vide : rien à déployer.
+ */
+function expandable(node, key, full) {
+  if (!full) {
+    return node;
+  }
+  node.classList.add("is-expandable");
+  node.title = full;
+  node.tabIndex = 0;
+  node.setAttribute("role", "button");
+  const show = (isOpen) => {
+    node.classList.toggle("is-open", isOpen);
+    node.setAttribute("aria-expanded", String(isOpen));
+    node.textContent = isOpen ? full : node.dataset.short;
+  };
+  node.dataset.short = node.textContent;
+  show(opened.has(key));
+  const toggle = () => {
+    if (opened.has(key)) {
+      opened.delete(key);
+    } else {
+      opened.add(key);
+    }
+    show(opened.has(key));
+  };
+  node.addEventListener("click", toggle);
+  node.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle();
+    }
+  });
+  return node;
+}
+
 /* ---------- panneau équipe ---------- */
 
 function avatar(look) {
@@ -106,6 +145,11 @@ function memberRow(character) {
   if (character.project) {
     name.append(el("span", "member-project", character.project));
   }
+  const agentNow = latest.agents.find(
+    (a) =>
+      a.type === character.type && (!character.guest || a.key === character.id),
+  );
+  const fullDetail = character.detail && agentNow ? agentNow.detailFull : "";
   body.append(
     name,
     el("div", "member-role", character.guest ? GUEST_ROLE : character.role),
@@ -113,10 +157,14 @@ function memberRow(character) {
   const status = el("div", "member-status");
   status.style.setProperty("--dot", info.color);
   status.append(
-    el(
-      "span",
-      "member-detail",
-      character.detail || character.activity || info.label,
+    expandable(
+      el(
+        "span",
+        "member-detail",
+        character.detail || character.activity || info.label,
+      ),
+      `member:${character.id}`,
+      fullDetail,
     ),
   );
   body.append(status);
@@ -185,7 +233,11 @@ function renderFeed() {
       const text = el("div");
       const who = displayName(item.type);
       text.append(el("span", "who", `${who} `));
-      const what = el("span", "what", item.text);
+      const what = expandable(
+        el("span", "what", item.text),
+        `feed:${item.ts}:${item.type}:${item.text}`,
+        item.full,
+      );
       if (item.text.startsWith("$ ")) {
         what.classList.add("is-command");
       }
@@ -198,6 +250,13 @@ function renderFeed() {
 
 /* ---------- info-bulle ---------- */
 
+function agentFullDetail(c) {
+  const agent = latest.agents.find(
+    (a) => a.type === c.type && (!c.guest || a.key === c.id),
+  );
+  return agent ? agent.detailFull : "";
+}
+
 function renderTooltip() {
   const c = office.characterList().find((x) => x.id === hoveredId);
   if (!c) {
@@ -207,7 +266,9 @@ function renderTooltip() {
   const info = STATUS_INFO[c.status] || STATUS_INFO.idle;
   tooltip.replaceChildren(
     el("strong", "", c.name),
-    document.createTextNode(c.detail || c.activity || info.label),
+    document.createTextNode(
+      (c.detail && agentFullDetail(c)) || c.detail || c.activity || info.label,
+    ),
   );
   const rect = canvas.getBoundingClientRect();
   const wrap = canvas.parentElement.getBoundingClientRect();
