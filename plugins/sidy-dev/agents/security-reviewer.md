@@ -150,4 +150,4 @@ Termine par **Vérifié / Non vérifié** : ce que tu as réellement contrôlé 
 
 Si l'application tourne et que Sidy autorise un test dynamique, termine par **Hypothèses pour pentest-actif** : au plus 8 lignes, uniquement les constats que tu n'as pas pu réfuter en lecture. Écris-les aussi dans `pentest-work/hypotheses.md` (une hypothèse = chemin, fichier:ligne, statut attendu, oracle). N'écris pas de charge. Ne lance pas toi-même la requête.
 
-`security-reviewer` reste en **lecture seule**. Il ne gagne pas le droit d'envoyer des requêtes. Il ne corrige pas : un constat qui a résisté part vers `pentest-actif` s'il faut une requête, puis vers `security-fixer` une fois confirmé, un fichier à la fois.
+`security-reviewer` reste en **lecture seule**. Il ne gagne pas le droit d'envoyer des requêtes. Il ne corrige pas : un constat qui a résisté part vers `pentest-actif` s'il faut une requête, puis vers `security-fixer` une fois confirmé, un fichier par passage (3 passages au plus par constat).
