@@ -39,6 +39,7 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-config
+          # Pas de FLYWAY_USER / FLYWAY_PASSWORD ici : le rôle DDL reste dans le Job de migration.
           env:
             - name: DB_URL
               valueFrom:
@@ -55,21 +56,6 @@ spec:
                 secretKeyRef:
                   name: app-secret
                   key: DB_PASSWORD
-            - name: FLYWAY_URL
-              valueFrom:
-                secretKeyRef:
-                  name: app-secret
-                  key: FLYWAY_URL
-            - name: FLYWAY_USER
-              valueFrom:
-                secretKeyRef:
-                  name: app-secret
-                  key: FLYWAY_USER
-            - name: FLYWAY_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: app-secret
-                  key: FLYWAY_PASSWORD
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -97,6 +83,7 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 3
           lifecycle:
+            # Nécessite un shell dans l'image. Sans shell (distroless) : preStop.sleep.seconds: 10 (K8s 1.30+).
             preStop:
               exec:
                 command: ["sh", "-c", "sleep 10"]

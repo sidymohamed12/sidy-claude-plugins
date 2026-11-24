@@ -45,7 +45,7 @@ Deux moments, pas un script dans le conteneur d'application.
 **Avant le roll — migration.** L'app tourne avec `FLYWAY_ENABLED=false`. Le schéma est appliqué par un Job, même image, profil `prod,migration`, `FLYWAY_ENABLED=true`. Il doit se terminer avant que les nouveaux pods servent.
 
 - Avec Helm : le Job porte les annotations `helm.sh/hook: pre-install,pre-upgrade`, `helm.sh/hook-weight: "-5"`, `helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded`.
-- Sans Helm : le pipeline fait `kubectl apply -f job-flyway.yaml` puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s`, et seulement ensuite le Deployment. Un Job en échec arrête le déploiement.
+- Sans Helm : le pipeline fait `kubectl delete job app-flyway -n app --ignore-not-found --wait=true`, puis `kubectl apply -f job-flyway.yaml`, puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s`, et seulement ensuite le Deployment. Un Job en échec arrête le déploiement. Le `delete` est obligatoire : le `spec.template` d'un Job est immuable, donc un `apply` avec un nouveau tag d'image sur un Job encore présent (`ttlSecondsAfterFinished: 600`) échoue avec « field is immutable ». Avec Helm, `before-hook-creation` fait cette suppression.
 
 Profil `application-migration.yml` :
 
@@ -61,11 +61,13 @@ spring:
 
 **À l'arrêt — `preStop`.** Le kubelet retire le pod du Service avec un délai. `preStop` dort 10 s pour laisser ce délai, puis `SIGTERM`, puis les 30 s d'arrêt gracieux. `terminationGracePeriodSeconds: 45` (10 + 30 + marge). Descendre l'un sans l'autre coupe les requêtes en vol.
 
+`preStop` appelle `sh -c "sleep 10"` : l'image doit donc avoir un shell. Alpine et les images JRE classiques en ont un ; une image distroless ou « scratch » non. Dans ce cas le hook échoue et le pod s'arrête sans délai. Alternatives : `lifecycle.preStop.sleep.seconds: 10` (Kubernetes 1.30+, sans shell), ou une image qui embarque `/bin/sh`.
+
 Pas d'autre hook. Pas de `postStart`. Pas de commande qui écrit en base dans le lifecycle du pod.
 
 ## 3. Manifestes
 
-Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'image `app-image:0.0.0`, les hôtes. `kubectl apply -k deploy/k8s`.
+Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'image `app-image:0.0.0`, les hôtes. Ordre de déploiement : (1) `kubectl apply -f deploy/k8s/job-flyway.yaml` puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s -n app` (§2) ; (2) seulement ensuite `kubectl apply -k deploy/k8s`. Le Job n'est pas dans le kustomization : un `apply -k` seul ne garantirait pas que la migration finisse avant le roll.
 
 | Fichier | Rôle |
 |---|---|
@@ -78,11 +80,13 @@ Copier `templates/k8s/` vers `deploy/k8s/`. Remplacer le namespace `app`, l'imag
 | `service.yaml` | `ClusterIP` 8080. Pas d'autre port |
 | `pdb.yaml` | `minAvailable: 1` |
 | `networkpolicy.yaml` | Entrée 8080 (les sondes kubelet ne viennent pas d'un pod). Sortie : 5432, 6379, DNS. Un appel HTTPS sortant se décide dans un ADR, on n'ouvre pas tout l'egress |
-| `kustomization.yaml` | Tout sauf le secret d'exemple |
+| `kustomization.yaml` | Tout sauf le secret d'exemple et le Job de migration (appliqué à part, avant) |
 
 UID du conteneur : celui de `USER app` dans l'image (`docker run --rm <image> id`), pas un nombre inventé. L'exemple Alpine est 100. Le verifier avant d'appliquer.
 
 `readOnlyRootFilesystem: true` exige des `emptyDir` sur `/tmp` et `/var/log/app`. Pas de limite CPU (évite le throttling) ; mémoire limitée à 768 Mi, comme le compose prod, avec `MaxRAMPercentage=75` déjà dans l'image.
+
+Ce plafond est un point de départ, pas une garantie. À 768 Mi, le heap peut monter à 576 Mi et il reste environ 190 Mi pour le metaspace, les piles de fils, les tampons natifs et le code compilé. Avec Java 25 et les fils virtuels, c'est juste. Avant la première mise en production : lancer une charge réaliste, relever la mémoire réelle du conteneur (`kubectl top pod`, ou `container_memory_working_set_bytes`), et chercher un `OOMKilled` (`kubectl describe pod`). Si la marge est sous 20 %, monter la limite, ou baisser `MaxRAMPercentage` à 65.
 
 `maxUnavailable: 0`, `maxSurge: 1`. Un roll ne descend pas sous les replicas prêts.
 
@@ -91,5 +95,6 @@ UID du conteneur : celui de `USER app` dans l'image (`docker run --rm <image> id
 - Exposer l'Actuator sur un second port « pour simplifier » sans chaîne de sécurité dédiée : sur Boot 4 ce port n'hérite pas de la `SecurityFilterChain` principale.
 - Mettre `db` ou `redis` dans `liveness`.
 - Lancer Flyway dans chaque pod **et** dans le Job.
+- Donner `FLYWAY_USER` / `FLYWAY_PASSWORD` (rôle propriétaire du schéma) aux pods de l'app. Seul le Job les reçoit. Les défauts vides de `application.yml` (`${FLYWAY_USER:}`) évitent l'échec de démarrage ; le Job, lui, doit toujours les avoir (sinon Flyway retombe sur le compte applicatif sans le dire).
 - Committer un Secret avec de vraies valeurs, ou un `change-me` que quelqu'un applique tel quel.
 - Pointer les sondes sur `/actuator/health`.

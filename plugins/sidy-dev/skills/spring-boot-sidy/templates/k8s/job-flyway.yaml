@@ -90,6 +90,10 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: logs
+              mountPath: /var/log/app
       volumes:
         - name: tmp
+          emptyDir: {}
+        - name: logs
           emptyDir: {}
