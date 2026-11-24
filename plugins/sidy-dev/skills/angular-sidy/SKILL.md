@@ -332,6 +332,7 @@ L'utilisateur ne doit pas être celui qui trouve les bugs de base. Quand l'envir
 - chaque état de données vérifié (§4) : chargement lent (throttling), réponse vide, erreur 500, réseau coupé (mode hors ligne), back arrêté / timeout ;
 - parcours principaux testés (Playwright) : navigation, formulaires, états d'erreur, hover ;
 - aucun appel à `localStorage` / `sessionStorage` dans le code (recherche globale) ;
+- `README.md` du projet à jour pour la partie front (stack, structure, commandes, variables d'environnement, thème). S'il n'existe pas, le créer depuis `spring-boot-sidy/templates/README.projet.md` : un projet a un seul README détaillé qui décrit le front **et** le back ;
 - si une étape n'a pas pu être exécutée, le dire clairement et indiquer la commande à lancer.
 
 ## 14. Déploiement
