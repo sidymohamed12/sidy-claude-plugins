@@ -321,11 +321,14 @@ describe("au repos, on vit dans la détente", () => {
 });
 
 describe("activités de zone", () => {
-  test("rien avant d'avoir assez traîné, puis un agent va regarder la télé", () => {
+  test("dès qu'il est libre, un agent va vite dans une zone", () => {
     const w = world(["tele"], "a");
-    w.run(Z.ZONES.tele.after - 4);
-    assert.equal(w.leisure.stateOf("a").kind === L.KIND.ZONE, false);
-    w.run(40);
+    let seen = false;
+    for (let i = 0; i < 200 && !seen; i += 1) {
+      w.run(0.5);
+      seen = w.leisure.stateOf("a").kind === L.KIND.ZONE;
+    }
+    assert.ok(seen, "en zone en moins de 100 s (même après un café)");
     const kinds = new Set();
     for (let i = 0; i < 3000; i += 1) {
       w.run(0.1);
@@ -374,21 +377,46 @@ describe("activités de zone", () => {
     }
   });
 
-  test("après la zone, l'agent rentre à sa place de repos", () => {
-    const w = world(["tele"], "a");
-    let inZone = false;
-    let backHome = false;
-    for (let i = 0; i < 4000 && !backHome; i += 1) {
+  test("après la zone, l'agent sort sur le couloir de la zone (pas dans l'eau ni au lit)", () => {
+    const w = world(["piscine"], "a");
+    let seat = null;
+    let out = false;
+    for (let i = 0; i < 4000 && !out; i += 1) {
       w.run(0.1);
       const s = w.leisure.stateOf("a");
       if (s.kind === L.KIND.ZONE && s.phase === "act") {
-        inZone = true;
-      } else if (inZone && s.kind === L.KIND.WANDER) {
-        assert.deepEqual(s.target, { x: w.chars[0].rest.x, y: w.chars[0].rest.y });
-        backHome = true;
+        seat = s.target;
+      } else if (seat && s.kind === L.KIND.WANDER) {
+        assert.deepEqual(s.target, { x: seat.x, y: seat.walkY });
+        assert.equal(Z.inWater(w.layout.zones, s.target), false);
+        out = true;
       }
     }
-    assert.ok(inZone && backHome);
+    assert.ok(out);
+  });
+
+  test("les zones d'abord : la plupart du temps, les agents libres sont en activité dans une zone", () => {
+    const w = world(Z.ZONE_IDS, "a", "b", "c", "d", "e");
+    w.run(120);
+    let inZone = 0;
+    let total = 0;
+    for (let i = 0; i < 2000; i += 1) {
+      w.run(0.5);
+      for (const s of w.leisure.states.values()) {
+        total += 1;
+        if (s.kind === L.KIND.ZONE) {
+          inZone += 1;
+        }
+      }
+    }
+    assert.ok(inZone / total > 0.75, `${Math.round((inZone / total) * 100)} % du temps en zone`);
+  });
+
+  test("on remplit d'abord les zones vides", () => {
+    const w = world(["tele", "dortoir"], "a", "b");
+    w.run(30);
+    const zones = [...w.leisure.states.values()].filter((s) => s.kind === L.KIND.ZONE).map((s) => s.zoneId);
+    assert.deepEqual(zones.sort(), ["dortoir", "tele"]);
   });
 
   test("du travail arrive : l'activité s'arrête et la place se libère", () => {
@@ -431,12 +459,43 @@ describe("activités de zone", () => {
     }
   });
 
-  test("le dortoir demande un long moment de repos, les autres zones moins", () => {
-    assert.ok(Z.ZONES.dortoir.after > Z.ZONES.tele.after);
-    assert.ok(Z.ZONES.dortoir.after > Z.ZONES.piscine.after);
+  test("le dortoir sert vraiment : seul avec lui, l'agent finit au lit", () => {
     const w = world(["dortoir"], "a");
-    w.run(Z.ZONES.dortoir.after - 5);
-    assert.notEqual(w.leisure.stateOf("a").kind, L.KIND.ZONE);
+    let slept = false;
+    for (let i = 0; i < 400 && !slept; i += 1) {
+      w.run(0.5);
+      const s = w.leisure.stateOf("a");
+      slept = s.kind === L.KIND.ZONE && s.phase === "act" && s.target.pose === "lie";
+    }
+    assert.ok(slept);
+  });
+
+  test("balle et gaming se jouent à deux, une place chacun", () => {
+    for (const id of ["balle", "gaming"]) {
+      const w = world([id], "a", "b");
+      let both = false;
+      for (let i = 0; i < 400 && !both; i += 1) {
+        w.run(0.5);
+        const [sa, sb] = ["a", "b"].map((x) => w.leisure.stateOf(x));
+        both = sa.kind === L.KIND.ZONE && sa.phase === "act" && sb.phase === "act";
+        if (both) {
+          assert.equal(sa.partnerId, "b");
+          assert.notEqual(sa.target.seat, sb.target.seat);
+        }
+      }
+      assert.ok(both, id);
+    }
+  });
+
+  test("avec des zones, plus de balle ni de discussion à côté d'une zone : elles ont leur zone", () => {
+    const w = world(Z.ZONE_IDS, "a", "b", "c", "d");
+    for (let i = 0; i < 3000; i += 1) {
+      w.run(0.5);
+      for (const s of w.leisure.states.values()) {
+        assert.notEqual(s.kind, L.KIND.PLAY);
+        assert.notEqual(s.kind, L.KIND.CHAT);
+      }
+    }
   });
 
   test("chaque zone a ses places libres, les textes du panneau et une pose connue", () => {
@@ -521,9 +580,19 @@ describe("salle de réunion et mur décoré", () => {
     assert.equal(LAYOUT.buildLayout(["a"]).decorWall, null);
   });
 
-  test("le gaming a trois postes, on y joue assis", () => {
-    assert.equal(Z.ZONES.gaming.seats.length, 3);
+  test("le gaming : deux joueurs assis devant la télé, manette en main", () => {
+    assert.equal(Z.ZONES.gaming.group, "pair");
+    assert.equal(Z.ZONES.gaming.seats.length, 2);
     assert.ok(Z.ZONES.gaming.seats.every((s) => s.pose === "game"));
-    assert.equal(Z.ZONES.gaming.doing(), "Joue aux jeux vidéo");
+    assert.equal(Z.ZONES.gaming.doing("b"), "Joue à la console avec b");
+  });
+
+  test("les places de la piscine sont dans l'eau, son couloir non", () => {
+    const layout = LAYOUT.buildLayout(["a"], ["piscine"]);
+    const zone = layout.zones[0];
+    for (const seat of zone.seats) {
+      assert.equal(Z.inWater(layout.zones, seat), true);
+      assert.equal(Z.inWater(layout.zones, { x: seat.x, y: seat.walkY }), false);
+    }
   });
 });

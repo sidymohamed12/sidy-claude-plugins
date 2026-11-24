@@ -12,12 +12,12 @@ export const KIND = {
 
 const PHASE = { DWELL: "dwell", TRAVEL: "travel", ACT: "act" };
 
-// On se détend : chaque activité, et chaque pause sans rien faire, dure de 2 à 5 minutes.
-export const FIRST_DWELL = [3, 10]; // secondes avant la première envie, quand on devient libre
-export const DWELL = [120, 300]; // secondes de repos entre deux activités
+// On se détend : chaque activité dure de 2 à 5 minutes ; entre deux, une courte pause.
+export const FIRST_DWELL = [3, 8]; // secondes avant la première envie, quand on devient libre
+export const DWELL = [5, 15]; // courte pause entre deux activités : on ne reste pas planté
 const ACTIVITY = [120, 300];
 const DURATION = {
-  [KIND.COFFEE]: ACTIVITY,
+  [KIND.COFFEE]: [30, 60], // un café, vite fait : on retourne ensuite dans les zones
   [KIND.CHAT]: ACTIVITY,
   [KIND.PLAY]: ACTIVITY,
 };
@@ -41,7 +41,17 @@ const COFFEE_AT = { x: 1.5, dy: 1.6 };
 export const BALL_PERIOD = 1.3; // secondes pour un aller de balle
 export const BALL_ARC = 1.6; // hauteur du lob, en tuiles
 const RETURN_DELAY = 0.8; // secondes avant de rentrer après une zone
-const ZONE_WEIGHT = 0.5; // poids d'une envie d'aller à l'espace détente
+/** Envies quand il y a un espace détente : les zones avant tout, un café de temps en temps. */
+const WITH_ZONES = [
+  [KIND.ZONE, 1],
+  [KIND.COFFEE, 0.08],
+  [KIND.WANDER, 0.04],
+];
+
+/** Où sortir d'une place de zone : sur le couloir de la zone, juste en dessous. */
+function exitOf(seat) {
+  return seat && seat.walkY !== undefined ? { x: seat.x, y: seat.walkY } : null;
+}
 
 const random = (rng, [min, max]) => min + rng() * (max - min);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -220,7 +230,7 @@ export class Leisure {
       slot: 0,
       target: null,
       zoneId: null,
-      returnHome: false,
+      exitTo: null,
       elapsed: 0,
       age: 0, // temps passé au repos, qui ne se remet pas à zéro entre deux envies
     };
@@ -237,9 +247,10 @@ export class Leisure {
     if (s.timer > 0) {
       return;
     }
-    if (s.returnHome) {
-      s.age = 0;
-      this.startSolo(c, s, KIND.WANDER, { x: c.rest.x, y: c.rest.y });
+    if (s.exitTo) {
+      const exit = s.exitTo;
+      s.exitTo = null;
+      this.startSolo(c, s, KIND.WANDER, exit);
       return;
     }
     const kind = this.pickKind(c, free);
@@ -259,9 +270,11 @@ export class Leisure {
     const coffeeTaken = [...this.states.values()].some(
       (x) => x.kind === KIND.COFFEE && x.phase !== PHASE.DWELL,
     );
-    const weights = this.zoneChoices(c, free).length
-      ? [...WEIGHTS, [KIND.ZONE, ZONE_WEIGHT]]
-      : WEIGHTS;
+    // avec un espace détente, on va surtout dans les zones (la balle et la discussion y sont aussi)
+    let weights = WEIGHTS;
+    if (this.layout.zones.length) {
+      weights = this.zoneChoices(c, free).length ? WITH_ZONES : WITH_ZONES.filter(([k]) => k !== KIND.ZONE);
+    }
     const options = weights.filter(([kind]) => {
       if (kind === KIND.COFFEE) {
         return !coffeeTaken;
@@ -290,24 +303,19 @@ export class Leisure {
     return taken;
   }
 
-  /** Zones où ce personnage peut aller : assez de repos, une place libre (et un partenaire si on joue à deux). */
+  /** Zones où ce personnage peut aller : une place libre, et assez de monde pour les zones à plusieurs. */
   zoneChoices(c, free) {
-    const s = this.states.get(c.id);
-    const age = s ? s.age : 0;
-    return this.layout.zones.filter((z) => {
-      if (age < z.def.after) {
-        return false;
-      }
+    const partners = this.partnerCandidates(c, free).length;
+    const possible = this.layout.zones.filter((z) => {
       const used = this.takenSeats(z.id, c.id).size;
-      if (z.def.group === "pair") {
-        return used === 0 && this.partnerCandidates(c, free).length > 0;
-      }
-      if (z.def.group === "circle") {
-        // on ne discute pas seul : il faut quelqu'un à entraîner
-        return used === 0 && this.partnerCandidates(c, free).length > 0;
+      if (z.def.group === "pair" || z.def.group === "circle") {
+        return used === 0 && partners > 0;
       }
       return used < z.seats.length;
     });
+    // d'abord les zones vides : il y a du monde partout
+    const empty = possible.filter((z) => this.takenSeats(z.id, c.id).size === 0);
+    return empty.length ? empty : possible;
   }
 
   startZone(c, s, free) {
@@ -480,10 +488,10 @@ export class Leisure {
     s.elapsed = 0;
   }
 
-  /** Après une activité de zone, on rentre au bout d'un court instant. */
-  leaveZone(s, fromZone) {
-    if (fromZone) {
-      s.returnHome = true;
+  /** Après une activité de zone, on sort sur le couloir de la zone (on ne reste pas dans l'eau ou au lit). */
+  leaveZone(s, exit) {
+    if (exit) {
+      s.exitTo = exit;
       s.timer = RETURN_DELAY;
     }
   }
@@ -495,12 +503,10 @@ export class Leisure {
       return;
     }
     const other = s.partnerId ? this.states.get(s.partnerId) : null;
-    const fromZone = s.kind === KIND.ZONE;
-    this.toDwell(s);
-    this.leaveZone(s, fromZone);
-    if (other) {
-      this.toDwell(other);
-      this.leaveZone(other, fromZone);
+    for (const st of other ? [s, other] : [s]) {
+      const exit = st.kind === KIND.ZONE ? exitOf(st.target) : null;
+      this.toDwell(st);
+      this.leaveZone(st, exit);
     }
   }
 }

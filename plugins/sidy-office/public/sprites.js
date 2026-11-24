@@ -795,6 +795,14 @@ const BUBBLE_ICONS = {
       [1, 3, 5, 1],
     ],
   ],
+  game: [
+    "#7A4FD8",
+    [
+      [1, 2, 7, 3],
+      [0, 3, 1, 2],
+      [8, 3, 1, 2],
+    ],
+  ],
   smile: [
     "#E5A000",
     [
@@ -890,12 +898,18 @@ export function drawSwimmer(ctx, x, y, look, t) {
 }
 
 export function drawZzz(ctx, x, y, t) {
-  const phase = (t * 0.7) % 1;
-  const zy = Math.round(y - 4 - phase * 8);
-  ctx.globalAlpha = 1 - phase;
-  px(ctx, "#7D8AA0", x + 4, zy, 3, 1);
-  px(ctx, "#7D8AA0", x + 5, zy + 1, 1, 1);
-  px(ctx, "#7D8AA0", x + 4, zy + 2, 3, 1);
+  // deux « Z » qui montent l'un après l'autre en s'effaçant
+  for (const [shift, size] of [[0, 6], [0.5, 4]]) {
+    const phase = (t * 0.6 + shift) % 1;
+    const zx = Math.round(x + 4 + phase * 8);
+    const zy = Math.round(y - 6 - phase * 14);
+    ctx.globalAlpha = 1 - phase * 0.8;
+    px(ctx, "#4A5872", zx, zy, size, 1);
+    for (let i = 1; i < size - 1; i += 1) {
+      px(ctx, "#4A5872", zx + size - 1 - i, zy + i, 1, 1);
+    }
+    px(ctx, "#4A5872", zx, zy + size - 1, size, 1);
+  }
   ctx.globalAlpha = 1;
 }
 

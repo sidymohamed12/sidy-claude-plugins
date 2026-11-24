@@ -1,6 +1,6 @@
 {
   "titre": "Le bureau de Sidy",
-  "zones": ["tele", "tennis-de-table", "discussion", "dortoir", "salle-de-sport", "piscine", "gaming"],
+  "zones": ["tele", "tennis-de-table", "discussion", "dortoir", "salle-de-sport", "piscine", "gaming", "balle"],
   "ordre": [
     "backend-dev",
     "designer",
