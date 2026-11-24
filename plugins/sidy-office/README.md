@@ -37,7 +37,9 @@ Pas de session en cours ? Clique sur **Voir une démo** : tes quatre premiers ag
 
 **Voir la commande en entier.** Les lignes de l'activité et du panneau de l'équipe sont coupées quand elles sont longues. Survole une ligne pour lire le texte complet (commande, chemin, adresse, recherche), ou clique dessus (ou Entrée au clavier) pour la déployer. Le texte complet est limité à 2 000 caractères et ne contient jamais le contenu d'un fichier. Il passe par ton ordinateur seulement : le serveur n'écoute que sur `127.0.0.1`.
 
-**Deux espaces : travail et détente.** Le bureau est maintenant en deux parties, séparées par un mur avec un passage au milieu. En haut, l'espace travail (les postes, le coin pause). En bas, l'espace détente, fait de zones : six zones : la **télé** (on s'assoit à plusieurs sur le canapé, l'écran s'allume), le **tennis de table** (à deux, avec la balle), la **discussion** (un petit groupe autour d'une table, les bulles se répondent), le **dortoir** (sieste, avec les « Zzz »), la **salle de sport** (tapis de course, haltères) et la **piscine**. Plus un agent reste longtemps sans rien faire, plus il va loin : la discussion arrive vite, la sieste seulement après un long moment. Un agent qui traîne au repos finit par aller dans une zone, puis rentre à sa place ; dès qu'il reçoit du travail, il laisse tout et retourne à son poste par le passage. Choisis les zones avec `"zones"` dans `sidy-office.json` : `["tele"]`, `["tele", "dortoir", "piscine"]`, ou `[]` pour ne garder que l'espace travail (voir *Personnaliser*). `"repos": false` coupe aussi les zones.
+**Deux espaces : travail et détente.** Le bureau est maintenant en deux parties, séparées par un mur avec un passage au milieu. En haut, l'espace travail (les postes, le coin pause). En bas, l'espace détente, fait de zones : six zones : la **télé** (on s'assoit à plusieurs sur le canapé, l'écran s'allume), le **tennis de table** (à deux, avec la balle), la **discussion** (un petit groupe autour d'une table, les bulles se répondent), le **dortoir** (sieste, avec les « Zzz »), la **salle de sport** (tapis de course, haltères), la **piscine** et le **gaming** (trois postes avec fauteuils gamer, les écrans s'animent quand on joue). Au fond de la détente, un mur décoré : des tableaux (bateau en mer, fusée, code, baobab au coucher du soleil) et une guirlande lumineuse.
+
+**Salle de réunion.** Dans la salle de travail, une salle vitrée avec une grande table, des chaises et un écran au mur. Elle prend la place de deux postes de la dernière rangée (la salle de travail ajoute une rangée si besoin, il reste toujours des postes pour les renforts). Les agents la contournent. Plus un agent reste longtemps sans rien faire, plus il va loin : la discussion arrive vite, la sieste seulement après un long moment. Un agent qui traîne au repos finit par aller dans une zone, puis rentre à sa place ; dès qu'il reçoit du travail, il laisse tout et retourne à son poste par le passage. Choisis les zones avec `"zones"` dans `sidy-office.json` : `["tele"]`, `["tele", "dortoir", "piscine"]`, ou `[]` pour ne garder que l'espace travail (voir *Personnaliser*). `"repos": false` coupe aussi les zones.
 
 **Au repos, tout le monde est dans la détente.** Dès qu'un agent n'a plus de travail, il rejoint l'espace détente et y reste : il se promène le long des zones, discute, joue ou va dans une zone. Seul le café se prend dans le coin pause, côté travail ; après, il revient. Sans zones (`"zones": []`), le repos reste dans le coin pause, comme avant.
 
@@ -79,7 +81,7 @@ Tout est facultatif :
   "titre": "Le bureau de l'équipe MediTrace",
   "ordre": ["backend-dev", "frontend-dev", "reviewer"],
   "repos": true,
-  "zones": ["tele", "tennis-de-table", "discussion", "dortoir", "salle-de-sport", "piscine"],
+  "zones": ["tele", "tennis-de-table", "discussion", "dortoir", "salle-de-sport", "piscine", "gaming"],
   "agents": {
     "claude": { "nom": "Chef", "couleur": "#2F4B8F" },
     "backend-dev": { "nom": "Back", "role": "API Spring Boot", "couleur": "#2E9E5B", "accessoire": "casque", "coupe": "afro", "pantalon": "#2F3A4C", "rayures": "#FFFFFF" },
@@ -104,7 +106,7 @@ Tout est facultatif :
 | `pantalon`           | Couleur du pantalon, en hexadécimal                                   |
 | `rayures`            | Couleur d'une rayure sur le haut, en hexadécimal, ou `false` pour l'enlever |
 | `repos`              | Au niveau du fichier : `false` coupe toutes les activités au repos (promenade, café, discussion, balle). Au niveau d'un agent : `false` le garde à sa place pendant que les autres s'animent. Par défaut : `true` |
-| `zones`              | Au niveau du fichier : les zones de l'espace détente, dans l'ordre (`tele`, `tennis-de-table`, `discussion`, `dortoir`, `salle-de-sport`, `piscine`). `[]` supprime l'espace détente. Par défaut : toutes |
+| `zones`              | Au niveau du fichier : les zones de l'espace détente, dans l'ordre (`tele`, `tennis-de-table`, `discussion`, `dortoir`, `salle-de-sport`, `piscine`, `gaming`). `[]` supprime l'espace détente. Par défaut : toutes |
 | `masquer`            | `true` pour retirer l'agent du bureau (il reste dans le fil d'activité) |
 
 Un agent présent dans le fichier mais introuvable sur ta machine (par exemple `Explore`) rejoint quand même l'équipe, avec son propre poste.

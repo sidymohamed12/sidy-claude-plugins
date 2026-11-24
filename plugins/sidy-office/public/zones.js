@@ -85,6 +85,15 @@ export const ZONES = {
       { x: 7.2, y: 2.9, pose: "swim" },
     ],
   },
+  gaming: {
+    label: "Gaming",
+    group: "solo",
+    after: 20,
+    duration: ACTIVITY,
+    go: "Va jouer aux jeux vidéo",
+    doing: () => "Joue aux jeux vidéo",
+    seats: [1.9, 4.75, 7.6].map((x) => ({ x, y: 3.9, pose: "game" })),
+  },
 };
 
 export const ZONE_IDS = Object.keys(ZONES);

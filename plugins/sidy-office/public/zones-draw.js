@@ -166,7 +166,57 @@ function drawPiscineLive(ctx, ox, oy, t) {
   ctx.globalAlpha = 1;
 }
 
+const GAME_SCREEN = { dy: -2.35, w: 22, h: 13 }; // écran de chaque poste, au-dessus de la place
+
+function drawGaming(ctx, ox, oy) {
+  rug(ctx, ox, oy, 0.5, 1.4, 8.5, 3.9, "#2A2440", "#3A3358");
+  for (const seat of ZONES.gaming.seats) {
+    const x = ox + seat.x * TILE;
+    const y = oy + seat.y * TILE;
+    // bureau, écran, bande LED
+    px(ctx, "#1A1F2B", x - 18, y - 24, 36, 7);
+    px(ctx, "#E5484D", x - 18, y - 17, 12, 1);
+    px(ctx, "#7A4FD8", x - 6, y - 17, 12, 1);
+    px(ctx, "#2F6FEB", x + 6, y - 17, 12, 1);
+    px(ctx, INK, x - 12, y + GAME_SCREEN.dy * TILE - 2, GAME_SCREEN.w + 2, GAME_SCREEN.h + 2);
+    px(ctx, "#243042", x - 11, y + GAME_SCREEN.dy * TILE - 1, GAME_SCREEN.w, GAME_SCREEN.h);
+    px(ctx, "#3A465C", x - 1, y - 26, 2, 3);
+    // fauteuil gamer, vu de dos : appui-tête, dossier noir à bandes rouges, accoudoirs, pied
+    px(ctx, "#1A1F2B", x - 3, y - 14, 6, 3);
+    px(ctx, "#1A1F2B", x - 5, y - 11, 10, 9);
+    px(ctx, "#D64545", x - 5, y - 11, 2, 9);
+    px(ctx, "#D64545", x + 3, y - 11, 2, 9);
+    px(ctx, "#D64545", x - 1, y - 13, 2, 1);
+    px(ctx, "#3A465C", x - 7, y - 5, 2, 3);
+    px(ctx, "#3A465C", x + 5, y - 5, 2, 3);
+    px(ctx, "#3A465C", x - 1, y - 2, 2, 2);
+    px(ctx, "#3A465C", x - 4, y, 8, 1);
+  }
+  // pouf et néon
+  px(ctx, "#7A4FD8", ox + 0.6 * TILE, oy + 4.3 * TILE, 12, 8);
+  px(ctx, "#9B76F0", ox + 0.6 * TILE, oy + 4.3 * TILE, 12, 2);
+}
+
+/** Écrans de jeu : ils s'animent tant que quelqu'un joue. */
+function drawGamingLive(ctx, ox, oy, t, active) {
+  ZONES.gaming.seats.forEach((seat, i) => {
+    const x = ox + seat.x * TILE - 11;
+    const y = oy + (seat.y + GAME_SCREEN.dy) * TILE - 1;
+    if (!active) {
+      px(ctx, "#243042", x, y, GAME_SCREEN.w, GAME_SCREEN.h);
+      return;
+    }
+    const f = Math.floor(t * 4 + i * 3);
+    px(ctx, "#13203A", x, y, GAME_SCREEN.w, GAME_SCREEN.h);
+    px(ctx, "#3CCB6E", x, y + GAME_SCREEN.h - 3, GAME_SCREEN.w, 3); // sol
+    px(ctx, "#F6CF5B", x + 3 + (f % 14), y + GAME_SCREEN.h - 6, 3, 3); // héros
+    px(ctx, "#E5484D", x + GAME_SCREEN.w - 4 - ((f * 2) % 16), y + GAME_SCREEN.h - 5, 2, 2);
+    px(ctx, "#8FB7FF", x + ((f * 3) % 20), y + 2, 2, 1);
+  });
+}
+
 const DRAWERS = {
+  gaming: drawGaming,
   discussion: drawDiscussion,
   dortoir: drawDortoir,
   "salle-de-sport": drawSport,
@@ -176,6 +226,7 @@ const DRAWERS = {
 };
 
 const LIVE = {
+  gaming: drawGamingLive,
   piscine: drawPiscineLive,
   tele: drawTeleLive,
 };

@@ -507,6 +507,166 @@ function drawLeisureFloor(ctx, layout) {
   }
 }
 
+/* ---------- salle de réunion ---------- */
+
+/** Salle de réunion vitrée : grande table, chaises, écran au mur. */
+function drawMeetingRoom(ctx, m) {
+  const x = m.x * TILE;
+  const y = m.y * TILE;
+  const w = m.w * TILE;
+  const h = m.h * TILE;
+  const glass = "#A9C7E8";
+  const frame = "#6F86A6";
+  // moquette
+  px(ctx, "#DCE4EF", x, y, w, h);
+  for (let i = 0; i < w; i += 6) {
+    px(ctx, "#D3DCE8", x + i, y + 10, 3, h - 12);
+  }
+  // mur du fond avec l'écran (un graphique qui monte)
+  px(ctx, "#EEF2F7", x, y, w, 10);
+  const sx = x + w / 2 - 22;
+  px(ctx, INK, sx, y + 1, 44, 13);
+  px(ctx, "#20324D", sx + 1, y + 2, 42, 11);
+  const bars = [3, 5, 4, 7, 9];
+  bars.forEach((b, i) => px(ctx, i === 4 ? "#3CCB6E" : "#5B8DEF", sx + 6 + i * 7, y + 12 - b, 4, b));
+  // table et chaises
+  const tx = x + 26;
+  const tw = w - 52;
+  const ty = y + h / 2 - 2;
+  for (let i = 0; i < 3; i += 1) {
+    const cx = tx + 8 + i * ((tw - 16) / 2);
+    px(ctx, CHAIR, cx - 4, ty - 9, 8, 6); // chaises du haut
+    px(ctx, CHAIR_LIGHT, cx - 4, ty - 9, 8, 1);
+    px(ctx, CHAIR, cx - 4, ty + 13, 8, 6); // chaises du bas
+    px(ctx, CHAIR_LIGHT, cx - 4, ty + 13, 8, 1);
+  }
+  px(ctx, CHAIR, tx - 9, ty + 2, 6, 8);
+  px(ctx, CHAIR, tx + tw + 3, ty + 2, 6, 8);
+  px(ctx, "#7A5236", tx, ty - 2, tw, 14);
+  px(ctx, "#93673F", tx, ty - 2, tw, 2);
+  px(ctx, "#5E3E28", tx, ty + 12, tw, 2);
+  px(ctx, WHITE, tx + 10, ty + 3, 6, 4); // dossiers posés sur la table
+  px(ctx, WHITE, tx + tw - 20, ty + 4, 6, 4);
+  px(ctx, "#2F6FEB", tx + tw / 2 - 2, ty + 3, 4, 4); // téléphone de conférence
+  // parois vitrées (porte en bas à gauche)
+  ctx.globalAlpha = 0.85;
+  px(ctx, glass, x, y, 2, h);
+  px(ctx, glass, x + w - 2, y, 2, h);
+  px(ctx, glass, x, y + h - 2, 10, 2);
+  px(ctx, glass, x + 34, y + h - 2, w - 34, 2);
+  ctx.globalAlpha = 1;
+  px(ctx, frame, x, y + h - 3, 1, 3);
+  px(ctx, frame, x + 10, y + h - 4, 1, 4);
+  px(ctx, frame, x + 34, y + h - 4, 1, 4);
+  px(ctx, frame, x + w - 1, y, 1, h);
+  // plante dans le coin
+  px(ctx, "#3DBB6E", x + w - 12, y + 12, 6, 5);
+  px(ctx, "#5B6B82", x + w - 11, y + 17, 4, 4);
+}
+
+/* ---------- tableaux de la détente (créations originales) ---------- */
+
+function posterShip(ctx, x, y) {
+  px(ctx, "#9FD3F5", x, y, 36, 16);
+  px(ctx, "#FFFFFF", x + 4, y + 3, 6, 2);
+  px(ctx, "#F6CF5B", x + 28, y + 2, 4, 4);
+  px(ctx, "#2F6FEB", x, y + 16, 36, 8);
+  px(ctx, "#8FB7FF", x + 3, y + 18, 4, 1);
+  px(ctx, "#8FB7FF", x + 22, y + 20, 5, 1);
+  px(ctx, "#7A4A2A", x + 9, y + 13, 18, 4); // coque
+  px(ctx, "#5E3A22", x + 11, y + 17, 14, 1);
+  px(ctx, "#4A3020", x + 17, y + 2, 1, 11); // mât
+  px(ctx, "#FFFFFF", x + 12, y + 4, 5, 8); // voiles
+  px(ctx, "#FFFFFF", x + 18, y + 5, 5, 7);
+  px(ctx, INK, x + 17, y, 4, 2); // drapeau
+}
+
+function posterRocket(ctx, x, y) {
+  px(ctx, "#1A2233", x, y, 36, 24);
+  for (const [sx, sy] of [[4, 3], [30, 5], [9, 14], [27, 16], [20, 2], [33, 20]]) {
+    px(ctx, "#FFFFFF", x + sx, y + sy, 1, 1);
+  }
+  px(ctx, "#D64545", x + 17, y + 2, 2, 2); // nez
+  px(ctx, "#E8EDF3", x + 16, y + 4, 4, 10); // corps
+  px(ctx, "#8FB7FF", x + 17, y + 7, 2, 2); // hublot
+  px(ctx, "#D64545", x + 14, y + 11, 2, 4); // ailerons
+  px(ctx, "#D64545", x + 20, y + 11, 2, 4);
+  px(ctx, "#F2A33A", x + 16, y + 14, 4, 3); // flamme
+  px(ctx, "#F6CF5B", x + 17, y + 17, 2, 2);
+  px(ctx, "#9AA5B5", x + 10, y + 20, 16, 4); // fumée
+  px(ctx, "#C9D2DD", x + 13, y + 19, 10, 2);
+}
+
+function posterCode(ctx, x, y) {
+  px(ctx, "#243042", x, y, 36, 24);
+  px(ctx, "#F2C46D", x + 3, y + 3, 2, 1); // accolade
+  px(ctx, "#F2C46D", x + 2, y + 4, 1, 6);
+  px(ctx, "#F2C46D", x + 1, y + 10, 1, 1);
+  px(ctx, "#F2C46D", x + 2, y + 11, 1, 6);
+  px(ctx, "#F2C46D", x + 3, y + 17, 2, 1);
+  const lines = [
+    [7, 4, 14, "#E39BC4"],
+    [9, 8, 20, "#8FB7FF"],
+    [11, 12, 12, "#7FD39A"],
+    [11, 16, 18, "#B7C3D6"],
+    [7, 20, 6, "#E39BC4"],
+  ];
+  for (const [lx, ly, lw, c] of lines) {
+    px(ctx, c, x + lx, y + ly, lw, 2);
+  }
+  px(ctx, "#FFFFFF", x + 32, y + 20, 1, 2); // curseur
+}
+
+function posterBaobab(ctx, x, y) {
+  const bands = ["#F6CF5B", "#F2A33A", "#E9785A", "#C9567A"];
+  bands.forEach((c, i) => px(ctx, c, x, y + i * 5, 36, 5));
+  px(ctx, "#6A2F4F", x, y + 20, 36, 4);
+  px(ctx, "#FCE6A0", x + 24, y + 6, 6, 6); // soleil
+  px(ctx, "#2A1F22", x + 9, y + 9, 6, 11); // tronc du baobab
+  px(ctx, "#2A1F22", x + 5, y + 6, 14, 3); // branches
+  px(ctx, "#2A1F22", x + 4, y + 4, 2, 2);
+  px(ctx, "#2A1F22", x + 11, y + 3, 2, 3);
+  px(ctx, "#2A1F22", x + 18, y + 4, 2, 2);
+}
+
+const POSTERS = [posterShip, posterRocket, posterCode, posterBaobab];
+
+/** Mur du fond de la détente, avec ses tableaux. */
+function drawDecorWall(ctx, wall) {
+  const x0 = wall.x0 * TILE;
+  const x1 = wall.x1 * TILE;
+  const y = wall.y * TILE;
+  const h = 3 * TILE;
+  px(ctx, "#F7F4FB", x0, y, x1 - x0, h);
+  for (let x = x0; x < x1; x += 32) {
+    px(ctx, "#EFEAF6", x, y, 1, h - 4);
+  }
+  px(ctx, "#C9D2DD", x0, y + h - 4, x1 - x0, 4);
+  // guirlande de lumières
+  for (let x = x0 + 6; x < x1 - 4; x += 12) {
+    const colors = ["#F6CF5B", "#E39BC4", "#8FB7FF", "#7FD39A"];
+    px(ctx, colors[(x / 12) % 4 | 0], x, y + 3, 2, 2);
+  }
+  const usable = x1 - x0;
+  const count = Math.max(1, Math.min(8, Math.floor(usable / 72)));
+  const step = usable / count;
+  for (let i = 0; i < count; i += 1) {
+    const px0 = Math.round(x0 + step * i + step / 2 - 20);
+    if (wall.opening !== null && Math.abs(px0 + 20 - wall.opening * TILE) < 40) {
+      continue; // pas de tableau au-dessus du passage
+    }
+    px(ctx, "#5E4B3C", px0, y + 9, 40, 28); // cadre
+    px(ctx, "#7A6350", px0, y + 9, 40, 1);
+    POSTERS[i % POSTERS.length](ctx, px0 + 2, y + 11);
+  }
+  if (wall.opening !== null) {
+    const ox = (wall.opening - 1) * TILE;
+    px(ctx, "#E6ECF5", ox, y, 2 * TILE, h);
+    px(ctx, "#9AA7B8", ox - 2, y, 2, h);
+    px(ctx, "#9AA7B8", ox + 2 * TILE, y, 2, h);
+  }
+}
+
 /** Décor fixe, dessiné une seule fois par plan. */
 export function drawBackground(ctx, layout) {
   const L = layout.loungeTop;
@@ -527,9 +687,15 @@ export function drawBackground(ctx, layout) {
   if (layout.zones.length) {
     drawLeisureFloor(ctx, layout);
     drawPartition(ctx, layout);
+    if (layout.decorWall) {
+      drawDecorWall(ctx, layout.decorWall);
+    }
     for (const zone of layout.zones) {
       drawZone(ctx, zone);
     }
+  }
+  if (layout.meeting) {
+    drawMeetingRoom(ctx, layout.meeting);
   }
   drawLowerWall(ctx, layout);
 }
