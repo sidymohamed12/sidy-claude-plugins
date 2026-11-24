@@ -10,6 +10,7 @@ export const MAIN = "claude";
 
 const FIRST_DESK_ROW = 3;
 const ROW_SPACING = 4;
+const MEETING_XS = [12, 17]; // postes remplacés par la salle de réunion
 const MAX_ROW_SPACING = 5.5; // au-delà, les postes paraîtraient perdus
 const FILL_ROW_SPACING = 4.6; // écart visé quand on ajoute des rangées pour remplir la hauteur
 const DESK_XS = [2, 7, 12, 17];
@@ -101,6 +102,7 @@ function leisureRests(zones, count) {
   });
 }
 
+const DECOR_WALL = 3; // mur du fond de la détente, où sont accrochés les tableaux (en tuiles)
 const WALL = 1; // épaisseur du mur entre travail et détente (en tuiles, entière pour que rien ne reste sans sol)
 
 /** Dimensions et passages de l'espace détente, dessous (écran étroit) ou à droite du travail. */
@@ -135,15 +137,17 @@ function leisureSpace({
   const height = 0.4 + Math.ceil(zoneIds.length / 2) * (ZONE_H + 0.4);
   if (!side) {
     const top = loungeTop + 4;
-    const rows = Math.max(Math.ceil(top + height + 0.6), minRows);
+    const zonesTop = top + DECOR_WALL; // sous le mur décoré
+    const rows = Math.max(Math.ceil(zonesTop + height + 0.6), minRows);
     const zoneRows = Math.ceil(zoneIds.length / 2);
     return {
       zones: placeZones(
         zoneIds,
-        top,
+        zonesTop,
         [ZONE_X_LEFT, ZONE_X_RIGHT],
-        spreadGap(rows, top, zoneRows),
+        spreadGap(rows, zonesTop, zoneRows),
       ),
+      decorWall: { x0: 0, x1: COLS, y: top, opening: AISLE_X },
       cols: COLS,
       rows,
       top,
@@ -151,14 +155,14 @@ function leisureSpace({
       partitionY: loungeTop + 3.4,
       aisleX: AISLE_X,
       gate: { x: AISLE_X, y: loungeTop + 3 },
-      spineGate: { x: AISLE_X, y: top + 0.2 },
+      spineGate: { x: AISLE_X, y: zonesTop + 0.2 },
     };
   }
   // à droite : un couloir le long du mur, puis des colonnes de zones. Le nombre
   // de rangées est celui qui donne une hauteur proche de celle du travail.
   const x0 = COLS + WALL;
   const spineX = x0 + 0.5;
-  const rowsFor = (r) => 0.4 + r * (ZONE_H + 0.4);
+  const rowsFor = (r) => DECOR_WALL + 0.4 + r * (ZONE_H + 0.4);
   // pour r rangées voulues : autant de colonnes qu'il faut, donc le nombre de rangées réellement posées
   const usedRows = (r) => Math.ceil(zoneIds.length / Math.ceil(zoneIds.length / r));
   let bestRows = 1;
@@ -187,7 +191,8 @@ function leisureSpace({
   );
   const gateY = loungeTop + 2.4;
   return {
-    zones: placeZones(zoneIds, 0, xs, spreadGap(rows, 0, zoneRows)),
+    zones: placeZones(zoneIds, DECOR_WALL, xs, spreadGap(rows, DECOR_WALL, zoneRows)),
+    decorWall: { x0: x0, x1: cols, y: 0, opening: null },
     cols,
     rows,
     top: 0,
@@ -207,19 +212,24 @@ function leisureSpace({
 function workArea(rowCount, spacing, loungeTop) {
   const slots = [];
   const corridors = [];
+  const meetingRow = rowCount - 1; // la salle de réunion prend la place de deux postes de la dernière rangée
   for (let row = 0; row < rowCount; row += 1) {
     const y = FIRST_DESK_ROW + row * spacing;
     for (const x of DESK_XS) {
-      if (!(row === CLAUDE_DESK.row && x === CLAUDE_DESK.x)) {
+      const claude = row === CLAUDE_DESK.row && x === CLAUDE_DESK.x;
+      const meeting = row === meetingRow && MEETING_XS.includes(x);
+      if (!claude && !meeting) {
         slots.push({ x, y });
       }
     }
     corridors.push(y + 3);
   }
+  const lastY = FIRST_DESK_ROW + meetingRow * spacing;
   const top = loungeTop ?? FIRST_DESK_ROW + rowCount * spacing;
   return {
     slots,
     corridors,
+    meeting: { x: MEETING_XS[0] - 0.4, y: lastY - 0.8, w: 9, h: 3.4 },
     loungeTop: top,
     rows: top + 4,
     claudeY: FIRST_DESK_ROW + CLAUDE_DESK.row * spacing,
@@ -239,8 +249,11 @@ export function buildLayout(
   { horizontal = false, columns, minRows, minCols } = {},
 ) {
   const needed = memberTypes.length + MIN_GUEST_DESKS;
-  // chaque rangée a 4 postes ; la 2e en perd un pour Claude
-  const rowCount = Math.max(2, Math.ceil((needed + 1) / DESK_XS.length));
+  // chaque rangée a 4 postes ; la 2e en perd un pour Claude, la dernière deux pour la salle de réunion
+  const rowCount = Math.max(
+    2,
+    Math.ceil((needed + 1 + MEETING_XS.length) / DESK_XS.length),
+  );
   let work = workArea(rowCount, ROW_SPACING, null);
   const side = horizontal && zoneIds.length > 0;
   const spaces = leisureSpace({
@@ -304,6 +317,8 @@ export function buildLayout(
     rests,
     corridors,
     aisles: AISLES,
+    meeting: work.meeting,
+    decorWall: spaces.decorWall || null,
     door: { x: AISLE_X, y: spaces.rows - 0.4 },
   };
 }
@@ -375,4 +390,15 @@ export function leisureRoute(layout, from, to) {
   }
   steps.push({ x: to.x, y: toWalk }, { x: to.x, y: to.y });
   return steps;
+}
+
+/** Une allée verticale entre y1 et y2 traverserait la salle de réunion. */
+export function crossesMeeting(layout, x, y1, y2) {
+  const m = layout.meeting;
+  if (!m) {
+    return false;
+  }
+  const top = Math.min(y1, y2);
+  const bottom = Math.max(y1, y2);
+  return x > m.x && x < m.x + m.w && bottom > m.y && top < m.y + m.h;
 }

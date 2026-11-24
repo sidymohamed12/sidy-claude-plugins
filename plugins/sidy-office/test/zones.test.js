@@ -440,7 +440,7 @@ describe("activités de zone", () => {
   });
 
   test("chaque zone a ses places libres, les textes du panneau et une pose connue", () => {
-    const poses = new Set(["sit", "stand", "chat", "lie", "run", "lift", "swim"]);
+    const poses = new Set(["sit", "stand", "chat", "lie", "run", "lift", "swim", "game"]);
     for (const [id, def] of Object.entries(Z.ZONES)) {
       for (const seat of def.seats) {
         assert.ok(poses.has(seat.pose), `${id} : pose ${seat.pose}`);
@@ -476,5 +476,54 @@ describe("réglage « zones »", () => {
     assert.equal(unknown.length, 1);
     assert.match(unknown[0], /plage/);
     assert.match(configWarnings({ ...base, zones: "tele" })[0], /liste/);
+  });
+});
+
+describe("salle de réunion et mur décoré", () => {
+  for (const [label, zones, opts] of [
+    ["sans détente", [], {}],
+    ["détente dessous", SERVER_ZONE_IDS, {}],
+    ["détente à droite", SERVER_ZONE_IDS, { horizontal: true }],
+    ["à droite, étiré", SERVER_ZONE_IDS, { horizontal: true, minRows: 40 }],
+  ]) {
+    test(`la salle de réunion ne chevauche aucun poste ni couloir (${label})`, () => {
+      const team = ["a", "b", "c", "d", "e", "f", "g"];
+      const layout = LAYOUT.buildLayout(team, zones, opts);
+      const m = layout.meeting;
+      assert.ok(m.x + m.w <= layout.workCols);
+      const desks = [...layout.memberDesks.values(), ...layout.guestDesks, layout.claudeDesk];
+      for (const d of desks) {
+        const overlaps = d.x + 3 > m.x && d.x < m.x + m.w && d.y + 2 > m.y && d.y - 0.5 < m.y + m.h;
+        assert.equal(overlaps, false, `poste ${d.x},${d.y}`);
+      }
+      assert.equal(new Set(team.map((t) => `${layout.memberDesks.get(t).x},${layout.memberDesks.get(t).y}`)).size, team.length);
+      for (const y of layout.corridors) {
+        assert.ok(y <= m.y || y >= m.y + m.h, `couloir ${y} dans la salle`);
+      }
+      assert.ok(layout.guestDesks.length >= 2, "toujours des postes pour les renforts");
+      // au moins une allée permet de passer d'une rangée à l'autre sans traverser la salle
+      const [c1, c2] = [layout.corridors.at(-2), layout.corridors.at(-1)];
+      assert.ok(layout.aisles.some((a) => !LAYOUT.crossesMeeting(layout, a, c1, c2)));
+      assert.ok(LAYOUT.crossesMeeting(layout, m.x + m.w / 2, c1, c2));
+    });
+  }
+
+  test("le mur décoré est en haut de la détente, les zones en dessous", () => {
+    for (const horizontal of [false, true]) {
+      const layout = LAYOUT.buildLayout(["a"], Z.ZONE_IDS, { horizontal });
+      const wall = layout.decorWall;
+      assert.ok(wall);
+      for (const z of layout.zones) {
+        assert.ok(z.y >= wall.y + 3, `zone ${z.id} sous le mur`);
+      }
+      assert.ok(layout.spineGate.y > wall.y + 3, "le passage débouche sous le mur");
+    }
+    assert.equal(LAYOUT.buildLayout(["a"]).decorWall, null);
+  });
+
+  test("le gaming a trois postes, on y joue assis", () => {
+    assert.equal(Z.ZONES.gaming.seats.length, 3);
+    assert.ok(Z.ZONES.gaming.seats.every((s) => s.pose === "game"));
+    assert.equal(Z.ZONES.gaming.doing(), "Joue aux jeux vidéo");
   });
 });

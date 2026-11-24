@@ -12,6 +12,7 @@ import {
   leisureExit,
   leisureEntry,
   leisureRoute,
+  crossesMeeting,
 } from "./layout.js";
 import {
   drawBackground,
@@ -516,8 +517,12 @@ export class Office {
     );
   }
 
-  nearestAisle(x) {
-    const { aisles } = this.layout;
+  /** Allée la plus proche de x qui ne traverse pas la salle de réunion entre y1 et y2. */
+  nearestAisle(x, y1 = 0, y2 = 0) {
+    const open = this.layout.aisles.filter(
+      (a) => !crossesMeeting(this.layout, a, y1, y2),
+    );
+    const aisles = open.length ? open : this.layout.aisles;
     return aisles.reduce(
       (best, a) => (Math.abs(a - x) < Math.abs(best - x) ? a : best),
       aisles[0],
@@ -577,7 +582,7 @@ export class Office {
     const c2 = this.corridorFor(to.y);
     const path = [{ x: from.x, y: c1 }];
     if (c1 !== c2) {
-      const aisle = this.nearestAisle((from.x + to.x) / 2);
+      const aisle = this.nearestAisle((from.x + to.x) / 2, c1, c2);
       path.push({ x: aisle, y: c1 }, { x: aisle, y: c2 });
     }
     path.push({ x: to.x, y: c2 }, { x: to.x, y: to.y });
@@ -816,6 +821,9 @@ export class Office {
         return true;
       case "swim":
         drawSwimmer(ctx, x, y, c.look, tt);
+        return true;
+      case "game":
+        drawSeatedBack(ctx, x, y, c.look, "typing", tt);
         return true;
       case "run":
         drawStanding(ctx, x, y, c.look, {
