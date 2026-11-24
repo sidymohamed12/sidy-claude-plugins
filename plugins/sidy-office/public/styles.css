@@ -117,6 +117,7 @@ h1 {
 
 canvas {
   display: block;
+  max-width: 100%;
   image-rendering: pixelated;
   border: 2px solid var(--ink);
 }
@@ -347,7 +348,7 @@ h2 {
 
 @media (max-width: 960px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .stage {

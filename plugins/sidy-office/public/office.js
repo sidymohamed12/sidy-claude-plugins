@@ -40,7 +40,11 @@ const IDLE = "idle";
 const PLACE_DESK = "desk";
 const PLACE_REST = "rest";
 const PLACE_DOOR = "door";
-const MAX_HEIGHT_MARGIN = 120;
+const MIN_SCALE = 0.25;
+const RESIZE_DELAY_MS = 150;
+const STRETCH_ROWS = 1.6; // le plan peut gagner jusqu'à 60 % de hauteur pour remplir l'écran
+const STRETCH_COLS = 1.4; // et 40 % de largeur (détente à droite seulement)
+const KEEP_MARGIN = 0.02; // on garde la disposition courante si l'autre n'est pas nettement plus grande
 const AT_SPOT = 0.05; // distance (tuiles) en deçà de laquelle on est « sur » sa place
 const CHAT_TURN = 1.7; // secondes de parole avant que l'autre réponde
 const LOUNGE_FLOOR = 1.3; // sous cette hauteur (depuis le haut du coin pause), on marche en ligne droite
@@ -94,7 +98,17 @@ export class Office {
       hidden: [],
     });
     this.bindPointer();
-    window.addEventListener("resize", () => this.resize());
+    // on attend la fin du redimensionnement : changer de plan remet chacun à sa place
+    let pending = 0;
+    const later = () => {
+      clearTimeout(pending);
+      pending = setTimeout(() => this.resize(), RESIZE_DELAY_MS);
+    };
+    window.addEventListener("resize", later);
+    // la place disponible change aussi sans redimensionner la fenêtre (panneau, bandeau d'erreur…)
+    if (typeof ResizeObserver !== "undefined" && canvas.parentElement) {
+      new ResizeObserver(later).observe(canvas.parentElement);
+    }
   }
 
   get W() {
@@ -117,48 +131,101 @@ export class Office {
     const layoutChanged = key !== this.teamKey;
     if (layoutChanged) {
       this.teamKey = key;
-      this.horizontal = false;
-      this.horizontal = this.pickOrientation();
+      this.arrangement = null;
+      this.arrangement = this.pickArrangement();
       this.applyLayout();
     }
     this.syncTeamCharacters(layoutChanged);
   }
 
-  /** Construit le plan de l'équipe, dans l'orientation courante, et ce qui en dépend. */
+  /** Construit le plan de l'équipe, dans la disposition courante, et ce qui en dépend. */
   applyLayout() {
-    this.layout = buildLayout([...this.memberTypes], this.zoneIds, {
-      horizontal: this.horizontal,
-    });
+    this.layout = buildLayout(
+      [...this.memberTypes],
+      this.zoneIds,
+      this.arrangement || {},
+    );
     this.buildBackground();
     this.leisure = new Leisure(this.layout, {
       walk: (c, target) => this.walkInLounge(c, target),
     });
+    this.sizeKey = "";
     this.resize();
   }
 
-  /** Échelle d'affichage d'un plan dans la place disponible (en pixels par pixel d'image). */
-  fitOf(layout) {
+  /** Place disponible pour le canevas, en pixels CSS : la largeur du conteneur, la hauteur sous l'en-tête et au-dessus de la légende. */
+  available() {
     const parent = this.canvas.parentElement;
-    if (!parent) {
-      return 1;
-    }
+    const width = parent ? parent.clientWidth : 0;
+    const top = parent ? parent.getBoundingClientRect().top + window.scrollY : 0;
+    const legend = document.getElementById("legend");
+    const below = (legend ? legend.offsetHeight + 14 : 40) + 24;
+    const height = Math.max(240, window.innerHeight - top - below);
+    return { width, height };
+  }
+
+  /** Échelle d'affichage d'un plan dans la place disponible (pixels CSS par pixel d'image). */
+  fitOf(layout, room = this.available()) {
     return Math.min(
-      parent.clientWidth / (layout.cols * TILE),
-      (window.innerHeight - MAX_HEIGHT_MARGIN) / (layout.rows * TILE),
+      room.width / (layout.cols * TILE),
+      room.height / (layout.rows * TILE),
     );
   }
 
-  /** Détente dessous ou à droite du travail : on garde ce qui s'affiche le plus grand. */
-  pickOrientation() {
+  /** Dispositions possibles : détente dessous, ou à droite sur 1, 2 ou 3 colonnes de zones. */
+  arrangements() {
     if (!this.zoneIds.length) {
-      return false;
+      return [{ horizontal: false }];
     }
+    const options = [{ horizontal: false }];
+    for (let columns = 1; columns <= Math.min(3, this.zoneIds.length); columns += 1) {
+      options.push({ horizontal: true, columns });
+    }
+    return options;
+  }
+
+  /** La disposition qui s'affiche le plus grand dans la place disponible. */
+  pickArrangement() {
     const types = [...this.memberTypes];
-    const below = this.fitOf(buildLayout(types, this.zoneIds));
-    const beside = this.fitOf(buildLayout(types, this.zoneIds, { horizontal: true }));
-    // même échelle d'affichage (par demi-pas) : on préfère la détente à côté, qui remplit mieux la largeur
-    const rounded = (fit) => Math.max(1, Math.floor(fit * 2) / 2);
-    return rounded(beside) >= rounded(below);
+    const room = this.available();
+    const key = (a) => `${a.horizontal}:${a.columns || 0}`;
+    let best = null;
+    let current = null;
+    for (const a of this.arrangements()) {
+      const fit = this.fitOf(buildLayout(types, this.zoneIds, a), room);
+      if (!best || fit > best.fit) {
+        best = { a, fit };
+      }
+      if (this.arrangement && key(a) === key(this.arrangement)) {
+        current = { a, fit };
+      }
+    }
+    const chosen =
+      current && current.fit >= best.fit * (1 - KEEP_MARGIN) ? current.a : best.a;
+    return { ...chosen, ...this.stretchFor(chosen, room) };
+  }
+
+  /**
+   * Agrandit le plan dans la direction où il reste de la place (le sol s'étend,
+   * les zones s'écartent), pour que le bureau remplisse l'écran au lieu de
+   * laisser des bandes blanches.
+   */
+  stretchFor(arrangement, room) {
+    const base = buildLayout([...this.memberTypes], this.zoneIds, {
+      horizontal: arrangement.horizontal,
+      columns: arrangement.columns,
+    });
+    const fitW = room.width / (base.cols * TILE);
+    const fitH = room.height / (base.rows * TILE);
+    if (fitW < fitH) {
+      const rows = Math.floor(room.height / (fitW * TILE));
+      return { minRows: Math.min(rows, Math.ceil(base.rows * STRETCH_ROWS)) };
+    }
+    if (arrangement.horizontal && base.horizontal) {
+      const cols = Math.floor(room.width / (fitH * TILE));
+      return { minCols: Math.min(cols, Math.ceil(base.cols * STRETCH_COLS)) };
+    }
+    return {};
   }
 
   buildBackground() {
@@ -249,27 +316,33 @@ export class Office {
   }
 
   resize() {
-    const parent = this.canvas.parentElement;
-    if (!parent || !this.layout) {
+    if (!this.canvas.parentElement || !this.layout) {
       return;
     }
-    const horizontal = this.pickOrientation();
-    if (horizontal !== this.horizontal) {
-      this.horizontal = horizontal;
+    const next = this.pickArrangement();
+    const full = (a) =>
+      a ? `${a.horizontal}:${a.columns || 0}:${a.minRows || 0}:${a.minCols || 0}` : "";
+    if (full(next) !== full(this.arrangement)) {
+      this.arrangement = next;
       this.applyLayout();
       this.syncTeamCharacters(true);
       return;
     }
     const ratio = window.devicePixelRatio || 1;
-    const fit = Math.min(
-      parent.clientWidth / this.W,
-      (window.innerHeight - MAX_HEIGHT_MARGIN) / this.H,
-    );
-    this.scale = Math.max(1, Math.floor(fit * 2) / 2);
-    this.canvas.style.width = `${this.W * this.scale}px`;
-    this.canvas.style.height = `${this.H * this.scale}px`;
-    this.canvas.width = Math.round(this.W * this.scale * ratio);
-    this.canvas.height = Math.round(this.H * this.scale * ratio);
+    // échelle exacte : le bureau remplit la place, sans déborder ni laisser de bandes vides
+    const scale = Math.max(MIN_SCALE, this.fitOf(this.layout));
+    const width = Math.floor(this.W * scale);
+    const height = Math.floor(this.H * scale);
+    const sizeKey = `${width}x${height}@${ratio}`;
+    if (sizeKey === this.sizeKey) {
+      return;
+    }
+    this.sizeKey = sizeKey;
+    this.scale = width / this.W;
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+    this.canvas.width = Math.round(width * ratio);
+    this.canvas.height = Math.round(height * ratio);
     this.ratio = ratio;
   }
 

@@ -62,9 +62,8 @@ function restSpots(L, count) {
   return spots;
 }
 
-/** Zones posées sur deux colonnes (x gauche et x droit), de haut en bas à partir de `top`. */
-function placeZones(zoneIds, top, xs) {
-  const gap = 0.4;
+/** Zones posées en colonnes (une abscisse par colonne), de haut en bas à partir de `top`. */
+function placeZones(zoneIds, top, xs, gap = 0.4) {
   return zoneIds.map((id, i) => {
     const def = ZONES[id];
     const x = xs[i % xs.length];
@@ -103,12 +102,26 @@ function leisureRests(zones, count) {
 const WALL = 1; // épaisseur du mur entre travail et détente (en tuiles, entière pour que rien ne reste sans sol)
 
 /** Dimensions et passages de l'espace détente, dessous (écran étroit) ou à droite du travail. */
-function leisureSpace({ zoneIds, side, loungeTop, workRows }) {
+/** Écart vertical entre les rangées de zones pour occuper `rows` tuiles de haut (au moins l'écart normal). */
+function spreadGap(rows, top, zoneRows) {
+  const free = rows - 0.6 - top - zoneRows * ZONE_H;
+  return Math.max(0.4, free / (zoneRows + 1));
+}
+
+function leisureSpace({
+  zoneIds,
+  side,
+  loungeTop,
+  workRows,
+  columns: wantedColumns,
+  minRows = 0,
+  minCols = 0,
+}) {
   if (zoneIds.length === 0) {
     return {
       zones: [],
       cols: COLS,
-      rows: workRows,
+      rows: Math.max(workRows, minRows),
       top: workRows,
       minX: 0,
       partitionY: loungeTop + 3.4,
@@ -120,10 +133,17 @@ function leisureSpace({ zoneIds, side, loungeTop, workRows }) {
   const height = 0.4 + Math.ceil(zoneIds.length / 2) * (ZONE_H + 0.4);
   if (!side) {
     const top = loungeTop + 4;
+    const rows = Math.max(Math.ceil(top + height + 0.6), minRows);
+    const zoneRows = Math.ceil(zoneIds.length / 2);
     return {
-      zones: placeZones(zoneIds, top, [ZONE_X_LEFT, ZONE_X_RIGHT]),
+      zones: placeZones(
+        zoneIds,
+        top,
+        [ZONE_X_LEFT, ZONE_X_RIGHT],
+        spreadGap(rows, top, zoneRows),
+      ),
       cols: COLS,
-      rows: Math.ceil(top + height + 0.6),
+      rows,
       top,
       minX: 0,
       partitionY: loungeTop + 3.4,
@@ -146,16 +166,28 @@ function leisureSpace({ zoneIds, side, loungeTop, workRows }) {
       bestRows = r;
     }
   }
+  if (wantedColumns) {
+    bestRows = Math.ceil(zoneIds.length / Math.min(wantedColumns, zoneIds.length));
+  }
   const columns = Math.ceil(zoneIds.length / bestRows);
+  const zoneRows = usedRows(bestRows);
+  const baseCols = Math.ceil(x0 + 1.5 + columns * (ZONE_W + 0.4) + 0.1);
+  const cols = Math.max(baseCols, minCols);
+  // place en plus sur la largeur : répartie entre les colonnes de zones
+  const extra = (cols - baseCols) / (columns + 1);
   const xs = Array.from(
     { length: columns },
-    (_, c) => x0 + 1.5 + c * (ZONE_W + 0.4),
+    (_, c) => x0 + 1.5 + extra + c * (ZONE_W + 0.4 + extra),
+  );
+  const rows = Math.max(
+    Math.ceil(Math.max(workRows, rowsFor(zoneRows) + 0.5)),
+    minRows,
   );
   const gateY = loungeTop + 2.4;
   return {
-    zones: placeZones(zoneIds, 0, xs),
-    cols: Math.ceil(xs[columns - 1] + ZONE_W + 0.5),
-    rows: Math.ceil(Math.max(workRows, rowsFor(usedRows(bestRows)) + 0.5)),
+    zones: placeZones(zoneIds, 0, xs, spreadGap(rows, 0, zoneRows)),
+    cols,
+    rows,
     top: 0,
     minX: COLS,
     partitionY: 0,
@@ -169,8 +201,14 @@ function leisureSpace({ zoneIds, side, loungeTop, workRows }) {
  * @param memberTypes types des agents de l'équipe, dans l'ordre d'affichage
  * @param zoneIds zones de l'espace détente (vide : pas d'espace détente)
  * @param options.horizontal la détente à droite du travail (grands écrans) au lieu de dessous
+ * @param options.columns à droite : nombre de colonnes de zones (par défaut, la hauteur suit celle du travail)
+ * @param options.minRows / options.minCols taille minimale du plan, pour occuper tout l'écran
  */
-export function buildLayout(memberTypes, zoneIds = [], { horizontal = false } = {}) {
+export function buildLayout(
+  memberTypes,
+  zoneIds = [],
+  { horizontal = false, columns, minRows, minCols } = {},
+) {
   const needed = memberTypes.length + MIN_GUEST_DESKS;
   // chaque rangée a 4 postes ; la 2e en perd un pour Claude
   const rowCount = Math.max(2, Math.ceil((needed + 1) / DESK_XS.length));
@@ -192,7 +230,15 @@ export function buildLayout(memberTypes, zoneIds = [], { horizontal = false } = 
   }
   const workRows = loungeTop + 4;
   const side = horizontal && zoneIds.length > 0;
-  const spaces = leisureSpace({ zoneIds, side, loungeTop, workRows });
+  const spaces = leisureSpace({
+    zoneIds,
+    side,
+    loungeTop,
+    workRows,
+    columns,
+    minRows,
+    minCols,
+  });
   const rests = spaces.zones.length
     ? new Map(
         memberTypes.map((type, i) => [
