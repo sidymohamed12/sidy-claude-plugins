@@ -13,6 +13,7 @@ const path = require("node:path");
 const { createState, applyEvent, sweep, snapshot } = require("./state");
 const { runDemo } = require("./demo");
 const { resolveTeam } = require("./team");
+const { version: VERSION } = require("../.claude-plugin/plugin.json");
 
 const HOST = "127.0.0.1";
 const DEFAULT_PORT = 4848;
@@ -184,7 +185,12 @@ function createOfficeServer({
     } else if (req.method === "GET" && pathname === "/state") {
       sendJson(res, 200, fullSnapshot());
     } else if (req.method === "GET" && pathname === "/health") {
-      sendJson(res, 200, { app: "sidy-office", ok: true });
+      sendJson(res, 200, {
+        app: "sidy-office",
+        ok: true,
+        version: VERSION,
+        pid: process.pid,
+      });
     } else if (req.method === "GET") {
       serveStatic(req, res);
     } else {
