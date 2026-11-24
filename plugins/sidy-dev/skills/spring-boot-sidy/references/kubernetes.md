@@ -45,7 +45,7 @@ Deux moments, pas un script dans le conteneur d'application.
 **Avant le roll — migration.** L'app tourne avec `FLYWAY_ENABLED=false`. Le schéma est appliqué par un Job, même image, profil `prod,migration`, `FLYWAY_ENABLED=true`. Il doit se terminer avant que les nouveaux pods servent.
 
 - Avec Helm : le Job porte les annotations `helm.sh/hook: pre-install,pre-upgrade`, `helm.sh/hook-weight: "-5"`, `helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded`.
-- Sans Helm : le pipeline fait `kubectl apply -f job-flyway.yaml` puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s`, et seulement ensuite le Deployment. Un Job en échec arrête le déploiement.
+- Sans Helm : le pipeline fait `kubectl delete job app-flyway -n app --ignore-not-found --wait=true`, puis `kubectl apply -f job-flyway.yaml`, puis `kubectl wait --for=condition=complete job/app-flyway --timeout=180s`, et seulement ensuite le Deployment. Un Job en échec arrête le déploiement. Le `delete` est obligatoire : le `spec.template` d'un Job est immuable, donc un `apply` avec un nouveau tag d'image sur un Job encore présent (`ttlSecondsAfterFinished: 600`) échoue avec « field is immutable ». Avec Helm, `before-hook-creation` fait cette suppression.
 
 Profil `application-migration.yml` :
 
