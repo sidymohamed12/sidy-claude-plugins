@@ -17,6 +17,7 @@ Cible (nouveau projet, nov. 2026) : **Spring Boot 4.2.0**, **Java 25** (LTS), **
 | `references/concurrence-idempotence.md` | **tout code qui écrit** : race conditions, verrou optimiste, mises à jour atomiques, `Idempotency-Key`, événements et jobs idempotents, tests de concurrence |
 | `references/infra.md` | profils YAML, `.env.example`, time zone configurable, pool Hikari, cache Redis, ShedLock, logs et rétention, Dockerfile, docker-compose (dev / mid-dev / prod), dossier `docs/` |
 | `references/ci.md` | CI / CD GitHub Actions : tests, couverture, Sonar, validation des manifestes, image, déploiement par digest, Dependabot (gabarits dans `templates/ci/`) |
+| `references/sonarqube-local.md` | SonarQube Community Build en local sur Docker Desktop, lié à la CI par un runner GitHub auto-hébergé (gabarits dans `templates/sonarqube/`) |
 | `references/kubernetes.md` | Actuator (groupes liveness / readiness), hooks de déploiement (Job Flyway, `preStop`), manifestes Kubernetes |
 | `references/clean-code.md` | **tout code à écrire, relire ou refactorer** : noms, fonctions, formatage, objets, erreurs, tests (3 lois du TDD, F.I.R.S.T.), classes et façades, SOLID, heuristiques |
 | `references/sonar.md` | **tout code à écrire ou relire** : catalogue des règles Sonar à respecter (`equals`/`hashCode`, tests, streams, code inutilisé, conception des classes, concurrence) |
