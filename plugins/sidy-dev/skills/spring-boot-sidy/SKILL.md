@@ -54,7 +54,7 @@ Elles s'appliquent à chaque projet, sans que l'utilisateur ait à les rappeler.
 15. **Profils** `application-dev.yml`, `application-prod.yml` et `application-test.yml` ; **`dev` actif par défaut** (`spring.profiles.default: dev`), `prod` toujours activé explicitement en production.
 16. **`.env.example` mis à jour** à chaque clé ajoutée dans `application-prod.yml`.
 17. **Dockerfile** léger : layers, utilisateur non-root, `HEALTHCHECK` sur l'Actuator.
-17 bis. **Actuator et Kubernetes** : sondes `liveness` / `readiness` seulement, Job de migration avant le roll, `preStop` + arrêt gracieux. Manifestes dans `templates/k8s/`, règles dans `references/kubernetes.md`.
+17 bis. **Actuator et Kubernetes** : sondes `liveness` / `readiness` seulement, Job de migration avant le roll, `preStop` + arrêt gracieux. Manifestes dans `templates/k8s/` (routes Gateway API sur `/api` seulement), règles dans `references/kubernetes.md`.
 18. **Trois docker-compose** : `dev` (tout dedans), `mid-dev` (Redis et annexes, sans PostgreSQL), `prod`.
 19. **Time zone** : valeur lue dans le YAML (`app.timezone`, variable `APP_TIMEZONE`, défaut UTC), source unique pour `Clock`, Jackson, Hibernate, crons et logs.
 20. **Logs** essentiels, sans donnée sensible, avec rétention limitée et archives en zip.
@@ -490,5 +490,5 @@ Checklist avant de livrer :
 - [ ] Swagger désactivé en prod ; Dockerfile non-root avec healthcheck.
 - [ ] CI : `ci.yml` vert (tests, couverture, Quality Gate, manifestes, image) ; `deploy.yml` par digest, environnement `production` avec relecteurs ; `main` protégée.
 - [ ] Actuator : `liveness` = `livenessState` seul ; `readiness` = `readinessState,db,redis,diskSpace` ; `validate-group-membership` pas à `false` ; seuls `GET /actuator/health/liveness` et `readiness` sont publics ; les sondes ne passent pas par le rate-limit.
-- [ ] Déploiement Kubernetes : Job Flyway (`prod,migration`) terminé avant le roll ; `preStop` + `terminationGracePeriodSeconds` ≥ preStop + 30 s ; `FLYWAY_ENABLED=false` sur les pods de l'app ; aucun secret dans les manifestes.
+- [ ] Déploiement Kubernetes : Job Flyway (`prod,migration`) terminé avant le roll ; `preStop` + `terminationGracePeriodSeconds` ≥ preStop + 30 s ; `FLYWAY_ENABLED=false` sur les pods de l'app ; aucun secret dans les manifestes ; routes : `/api` seulement, jamais `/actuator`, pas d'`ingress-nginx` (archivé).
 - [ ] `docs/http/` à jour, ADR / diagrammes / flows ajoutés si nécessaire.
