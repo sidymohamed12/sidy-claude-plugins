@@ -12,16 +12,19 @@ export const KIND = {
 
 const PHASE = { DWELL: "dwell", TRAVEL: "travel", ACT: "act" };
 
-export const DWELL = [2.5, 8]; // secondes passées sans bouger entre deux envies
+// On se détend : chaque activité, et chaque pause sans rien faire, dure de 2 à 5 minutes.
+export const FIRST_DWELL = [3, 10]; // secondes avant la première envie, quand on devient libre
+export const DWELL = [120, 300]; // secondes de repos entre deux activités
+const ACTIVITY = [120, 300];
 const DURATION = {
-  [KIND.COFFEE]: [4, 6],
-  [KIND.CHAT]: [6, 10],
-  [KIND.PLAY]: [7, 11],
+  [KIND.COFFEE]: ACTIVITY,
+  [KIND.CHAT]: ACTIVITY,
+  [KIND.PLAY]: ACTIVITY,
 };
 const TRAVEL_TIMEOUT = 14; // un partenaire qui n'arrive pas : on abandonne
 const GO_HOME_CHANCE = 0.2;
 const WEIGHTS = [
-  [KIND.WANDER, 0.4],
+  [KIND.WANDER, 0.15], // une courte marche, puis on se repose ailleurs
   [KIND.COFFEE, 0.15],
   [KIND.CHAT, 0.25],
   [KIND.PLAY, 0.2],
@@ -188,7 +191,7 @@ export class Leisure {
     }
     for (const c of free.values()) {
       if (!this.states.has(c.id)) {
-        this.states.set(c.id, this.newDwell());
+        this.states.set(c.id, this.newDwell(FIRST_DWELL));
       }
     }
     for (const c of free.values()) {
@@ -207,11 +210,11 @@ export class Leisure {
     }
   }
 
-  newDwell() {
+  newDwell(range = DWELL) {
     return {
       phase: PHASE.DWELL,
       kind: null,
-      timer: random(this.rng, DWELL),
+      timer: random(this.rng, range),
       partnerId: null,
       partnerName: "",
       slot: 0,
