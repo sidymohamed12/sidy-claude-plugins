@@ -42,6 +42,10 @@ const IDLE = "idle";
 const PLACE_DESK = "desk";
 const PLACE_REST = "rest";
 const PLACE_DOOR = "door";
+const PLACE_MEETING = "meeting";
+const BRIEF_SECONDS = 5;
+const HURRY = 2.2; // on presse le pas pour rejoindre une réunion // durée de la réunion une fois les deux dans la salle
+const BRIEF_TIMEOUT = 40; // l'agent n'arrive pas : Claude rentre à son poste
 const MIN_SCALE = 0.25;
 const RESIZE_DELAY_MS = 150;
 const STRETCH_ROWS = 1.6; // le plan peut gagner jusqu'à 60 % de hauteur pour remplir l'écran
@@ -142,6 +146,7 @@ export class Office {
 
   /** Construit le plan de l'équipe, dans la disposition courante, et ce qui en dépend. */
   applyLayout() {
+    this.briefing = null;
     this.layout = buildLayout(
       [...this.memberTypes],
       this.zoneIds,
@@ -294,6 +299,9 @@ export class Office {
         this.characters.set(type, c);
       } else if (layoutChanged) {
         // nouveau plan : on remet chacun à sa place sans animation
+        if (c.place === PLACE_MEETING) {
+          c.place = rest ? PLACE_REST : PLACE_DESK; // la réunion est annulée avec l'ancien plan
+        }
         const home = c.place === PLACE_DESK || !rest ? chairOf(desk) : rest;
         c.x = home.x;
         c.y = home.y;
@@ -413,7 +421,14 @@ export class Office {
         continue;
       }
       const wantDesk = instances.length > 0;
-      if (wantDesk && c.place !== PLACE_DESK) {
+      const briefed = this.briefing && this.briefing.target === type;
+      if (wantDesk && briefed) {
+        if (c.place !== PLACE_MEETING) {
+          this.sendToMeeting(c, this.meetingSpot(1));
+        }
+      } else if (wantDesk && c.place === PLACE_MEETING) {
+        // réunion terminée pendant qu'il marchait : rien à faire, stepBriefing l'a déjà renvoyé
+      } else if (wantDesk && c.place !== PLACE_DESK) {
         this.leisure?.release(c.id);
         this.send(c, chairOf(c.desk), PLACE_DESK);
       } else if (!wantDesk && c.place !== PLACE_REST) {
@@ -498,6 +513,7 @@ export class Office {
       return;
     }
     this.lastDelegation = key;
+    this.startBriefing(main.delegateTo);
     const targetDesk = this.layout.memberDesks.get(main.delegateTo);
     const from = chairOf(this.layout.claudeDesk);
     const to = targetDesk ? chairOf(targetDesk) : this.layout.door;
@@ -506,6 +522,103 @@ export class Office {
       to: { x: to.x, y: to.y - 1.4 },
       t: 0,
     });
+  }
+
+  /* ---------- réunion de lancement ---------- */
+
+  /**
+   * Claude confie une mission à un agent de l'équipe : ils se retrouvent un
+   * court instant dans la salle de réunion, puis chacun rejoint son poste.
+   */
+  startBriefing(type) {
+    const claude = this.characters.get(MAIN);
+    const agent = this.characters.get(type);
+    const m = this.layout.meeting;
+    if (
+      !m ||
+      !claude ||
+      !agent ||
+      agent.guest ||
+      reducedMotion ||
+      this.briefing ||
+      (agent.place === PLACE_DESK && agent.path.length === 0)
+    ) {
+      return;
+    }
+    this.briefing = { target: type, elapsed: 0, together: 0 };
+    this.sendToMeeting(claude, this.meetingSpot(0));
+  }
+
+  /** Places debout au bord de la table, côté porte. */
+  meetingSpot(i) {
+    const m = this.layout.meeting;
+    return { x: m.x + 3.2 + i * 1.5, y: m.y + 3.0 };
+  }
+
+  meetingDoor() {
+    const m = this.layout.meeting;
+    return {
+      inside: { x: m.x + 1.4, y: m.y + 2.9 },
+      outside: { x: m.x + 1.4, y: m.y + m.h + 0.4 },
+    };
+  }
+
+  inMeeting(p) {
+    const m = this.layout.meeting;
+    return Boolean(m) && p.x > m.x && p.x < m.x + m.w && p.y > m.y && p.y < m.y + m.h;
+  }
+
+  sendToMeeting(c, spot) {
+    this.leisure?.release(c.id);
+    c.place = PLACE_MEETING;
+    c.hurry = true;
+    c.path = this.planPath({ x: c.x, y: c.y }, spot);
+  }
+
+  /** Avance la réunion : on attend les deux, on discute, puis chacun repart. */
+  stepBriefing(dt) {
+    const b = this.briefing;
+    if (!b) {
+      return;
+    }
+    const claude = this.characters.get(MAIN);
+    const agent = this.characters.get(b.target);
+    b.elapsed += dt;
+    const here = (c) => c && c.place === PLACE_MEETING && c.path.length === 0;
+    if (here(claude) && here(agent)) {
+      b.together += dt;
+    }
+    const agentLeft = agent && b.joined && agent.place !== PLACE_MEETING;
+    if (agent && agent.place === PLACE_MEETING) {
+      b.joined = true;
+    }
+    if (b.together < BRIEF_SECONDS && b.elapsed < BRIEF_TIMEOUT && !agentLeft && agent) {
+      return;
+    }
+    this.briefing = null;
+    if (claude) {
+      this.send(claude, chairOf(claude.desk), PLACE_DESK);
+    }
+    if (agent && agent.place === PLACE_MEETING) {
+      if (agent.instances > 0 || !agent.rest) {
+        this.send(agent, chairOf(agent.desk), PLACE_DESK);
+      } else {
+        this.send(agent, agent.rest, PLACE_REST);
+      }
+    }
+  }
+
+  /** Texte du panneau pendant la réunion. */
+  briefingLabel(c) {
+    const b = this.briefing;
+    if (!b || c.place !== PLACE_MEETING) {
+      return null;
+    }
+    if (c.id === MAIN) {
+      const agent = this.characters.get(b.target);
+      return `Réunion avec ${agent ? agent.name : b.target}`;
+    }
+    return "En réunion avec Claude";
   }
 
   /* ---------- déplacements ---------- */
@@ -532,6 +645,15 @@ export class Office {
   /** Chemin jusqu'à la cible : couloirs et allées au travail, passage central vers la détente. */
   planPath(from, to) {
     const { layout } = this;
+    if (this.inMeeting(from) || this.inMeeting(to)) {
+      const door = this.meetingDoor();
+      const out = this.inMeeting(from) ? [door.inside, door.outside] : [];
+      const start = this.inMeeting(from) ? door.outside : from;
+      if (this.inMeeting(to)) {
+        return [...out, ...this.planPath(start, door.outside), door.inside, { x: to.x, y: to.y }];
+      }
+      return [...out, ...this.planPath(start, to)];
+    }
     if (!inLeisure(layout, from) && !inLeisure(layout, to)) {
       if (this.inLounge(from) && this.inLounge(to)) {
         return [{ x: to.x, y: to.y }];
@@ -628,8 +750,11 @@ export class Office {
     if (this.leisure && !leisureOn && this.leisure.states.size > 0) {
       this.leisure.reset(this.layout);
     }
+    this.stepBriefing(dt);
     for (const c of this.characters.values()) {
-      c.activity = this.leisure && leisureOn ? this.leisure.label(c.id) : null;
+      c.activity =
+        this.briefingLabel(c) ||
+        (this.leisure && leisureOn ? this.leisure.label(c.id) : null);
       // activités coupées (réglage « repos ») : celui qui traîne ailleurs rentre à sa place
       const mustStay = !leisureOn || c.stays;
       if (
@@ -641,7 +766,10 @@ export class Office {
       ) {
         this.walkInLounge(c, c.rest);
       }
-      let budget = SPEED * dt;
+      if (c.path.length === 0) {
+        c.hurry = false;
+      }
+      let budget = SPEED * dt * (c.hurry ? HURRY : 1);
       while (budget > 0 && c.path.length) {
         const next = c.path[0];
         const dx = next.x - c.x;
@@ -749,6 +877,21 @@ export class Office {
         facing: c.dirUp ? "back" : "front",
         step,
       });
+      return;
+    }
+    if (c.place === PLACE_MEETING) {
+      drawStanding(ctx, x, y, c.look, { facing: "front", blink });
+      const b = this.briefing;
+      const together =
+        b && [...this.characters.values()].filter((o) => o.place === PLACE_MEETING && o.path.length === 0).length >= 2;
+      if (together) {
+        // Claude explique, l'agent répond : chacun son tour
+        const turn = Math.floor(b.together / CHAT_TURN);
+        const speaker = turn % 2 === 0 ? MAIN : b.target;
+        if (c.id === speaker) {
+          drawBubble(ctx, x, y - SPRITE_H + 4, c.id === MAIN ? "idea" : "smile", tt);
+        }
+      }
       return;
     }
     if (c.place === PLACE_DESK) {
