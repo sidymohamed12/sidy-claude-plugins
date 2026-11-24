@@ -39,6 +39,10 @@ Pas de session en cours ? Clique sur **Voir une démo** : tes quatre premiers ag
 
 **Deux espaces : travail et détente.** Le bureau est maintenant en deux parties, séparées par un mur avec un passage au milieu. En haut, l'espace travail (les postes, le coin pause). En bas, l'espace détente, fait de zones : six zones : la **télé** (on s'assoit à plusieurs sur le canapé, l'écran s'allume), le **tennis de table** (à deux, avec la balle), la **discussion** (un petit groupe autour d'une table, les bulles se répondent), le **dortoir** (sieste, avec les « Zzz »), la **salle de sport** (tapis de course, haltères) et la **piscine**. Plus un agent reste longtemps sans rien faire, plus il va loin : la discussion arrive vite, la sieste seulement après un long moment. Un agent qui traîne au repos finit par aller dans une zone, puis rentre à sa place ; dès qu'il reçoit du travail, il laisse tout et retourne à son poste par le passage. Choisis les zones avec `"zones"` dans `sidy-office.json` : `["tele"]`, `["tele", "dortoir", "piscine"]`, ou `[]` pour ne garder que l'espace travail (voir *Personnaliser*). `"repos": false` coupe aussi les zones.
 
+**Au repos, tout le monde est dans la détente.** Dès qu'un agent n'a plus de travail, il rejoint l'espace détente et y reste : il se promène le long des zones, discute, joue ou va dans une zone. Seul le café se prend dans le coin pause, côté travail ; après, il revient. Sans zones (`"zones": []`), le repos reste dans le coin pause, comme avant.
+
+**Grands écrans : les deux espaces côte à côte.** La page choisit toute seule la disposition qui s'affiche le plus grand. Sur un écran large, l'espace détente passe à droite de l'espace travail (séparé par un mur avec un passage) et remplit la largeur ; sur un écran étroit ou haut, il reste dessous. Redimensionne la fenêtre : la disposition change d'elle-même.
+
 Le bureau montre toutes tes sessions Claude Code en même temps. Si un même agent tourne dans deux sessions, son nom porte « ×2 ».
 
 ## Ton équipe, détectée automatiquement
