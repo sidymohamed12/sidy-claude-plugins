@@ -31,6 +31,8 @@ import {
   drawSwimmer,
   CHAT_ICONS,
   SPRITE_H,
+  PORTRAIT_W,
+  PORTRAIT_H,
 } from "./sprites.js";
 import { Leisure, KIND, ballAt } from "./leisure.js";
 import { drawZoneLive } from "./zones-draw.js";
@@ -60,6 +62,27 @@ const HAND_LIFT = 7; // hauteur des mains, en pixels, d'où part la balle
 const reducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
+
+/** Réduit la photo au format du cadre (recadrée au centre, vers le haut pour garder le visage). */
+function pixelPortrait(img) {
+  const out = document.createElement("canvas");
+  out.width = PORTRAIT_W;
+  out.height = PORTRAIT_H;
+  const ctx = out.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  const ratio = PORTRAIT_W / PORTRAIT_H;
+  let sw = img.naturalWidth;
+  let sh = sw / ratio;
+  if (sh > img.naturalHeight) {
+    sh = img.naturalHeight;
+    sw = sh * ratio;
+  }
+  const sx = (img.naturalWidth - sw) / 2;
+  const sy = Math.max(0, (img.naturalHeight - sh) * 0.25);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, PORTRAIT_W, PORTRAIT_H);
+  return out;
+}
 
 /** Choisit l'instance la plus parlante quand un agent tourne dans plusieurs sessions. */
 function pickInstance(instances) {
@@ -129,6 +152,7 @@ export class Office {
 
   setTeam(team) {
     this.team = team;
+    this.loadPortrait(team.portrait);
     this.hidden = new Set(team.hidden || []);
     const types = team.members.map((m) => m.type);
     this.memberTypes = new Set(types);
@@ -142,6 +166,41 @@ export class Office {
       this.applyLayout();
     }
     this.syncTeamCharacters(layoutChanged);
+  }
+
+  /** Photo à dessiner : false (pas de tableau), null (silhouette) ou l'image réduite. */
+  portraitImage() {
+    if (!this.team || this.team.portrait === false) {
+      return false;
+    }
+    return this.portrait || null;
+  }
+
+  /** Charge la photo du propriétaire quand elle change, la réduit en pixel art et redessine le décor. */
+  loadPortrait(info) {
+    const version = info ? info.version : String(info);
+    if (version === this.portraitVersion) {
+      return;
+    }
+    this.portraitVersion = version;
+    this.portrait = null;
+    if (!info) {
+      if (this.layout) {
+        this.paintBackground();
+      }
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      if (this.portraitVersion !== version) {
+        return;
+      }
+      this.portrait = pixelPortrait(img);
+      if (this.layout) {
+        this.paintBackground();
+      }
+    };
+    img.src = `/portrait?v=${encodeURIComponent(version)}`;
   }
 
   /** Construit le plan de l'équipe, dans la disposition courante, et ce qui en dépend. */
@@ -240,8 +299,15 @@ export class Office {
       c.width = this.W;
       c.height = this.H;
     }
+    this.paintBackground();
+    // le plan a changé : les renforts reprennent un poste libre
+    this.guestSeats.clear();
+  }
+
+  /** Dessine le décor fixe (sans toucher aux places des renforts). */
+  paintBackground() {
     const ctx = this.background.getContext("2d");
-    drawBackground(ctx, this.layout);
+    drawBackground(ctx, this.layout, { portrait: this.portraitImage() });
     this.screens = new Map();
     const { claudeDesk, memberDesks, guestDesks } = this.layout;
     this.screens.set(
@@ -254,8 +320,6 @@ export class Office {
     guestDesks.forEach((desk, i) => {
       this.screens.set(`guest-${i}`, drawDesk(ctx, desk.x, desk.y));
     });
-    // le plan a changé : les renforts reprennent un poste libre
-    this.guestSeats.clear();
   }
 
   memberProfile(type) {
