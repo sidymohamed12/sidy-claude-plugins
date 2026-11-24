@@ -111,6 +111,9 @@ Le dépôt peut aussi fournir `.github/pull_request_template.md` : copie `templa
 - Commit de secrets : si l'un a été commité, arrête et dis-le, ne le « corrige » pas en silence (le retirer de l'historique est une décision de Sidy).
 - Supprimer ou réécrire des commits qui ne sont pas les tiens.
 
-## 7. Garde-fous automatiques du plugin
+## 7. Garde-fous automatiques
 
-Le plugin installe un hook `PreToolUse` (`hooks/guard-git.mjs`) qui refuse les commandes Bash qui poussent, fusionnent, rebasent ou réinitialisent `main` ou `prod`, les `--force` non sécurisés et `--no-verify`. Ce n'est pas une raison de contourner la règle : si le hook refuse, la règle s'applique.
+- **Hook du plugin** (`hooks/guard-git.mjs`, `PreToolUse` sur Bash, Node 20 ou plus) : refuse push, merge, commit, rebase, reset et tag quand la branche courante est `main` ou `prod`, tout push vers `main` ou `prod`, `--force` (sauf `--force-with-lease`), `--all`, `--mirror`, `--no-verify`, `gh pr merge` et une PR dont la base est `main` ou `prod`. Si le hook refuse, la règle s'applique : on ne cherche pas à le contourner.
+- **Dérogation de Sidy** : variable `SIDY_GIT_ALLOW_PROTECTED=1` dans l'environnement de Claude Code, posée par lui avant la session. Elle est refusée si elle apparaît dans une commande.
+- **Limite** : le hook lit la commande, il n'est pas une barrière de sécurité (une commande très indirecte peut passer). La vraie protection est côté GitHub : règle de protection de branche sur `main` et `prod` (PR obligatoire, pas de push direct, pas de force-push, checks requis).
+- **Contrôle en CI** : `templates/conventions.yml` + `templates/check-conventions.mjs` (à copier dans `.github/workflows/` et `.github/scripts/`) vérifient sur chaque PR le nom de la branche, la cible (`dev` ou `preprod` ; `main` et `prod` seulement depuis `dev` ou `preprod`, pour la promotion de Sidy) et le format des commits et du titre. Les PR de promotion `dev`/`preprod` vers `main`/`prod` et celles de Dependabot ne sont pas contrôlées sur leurs commits.

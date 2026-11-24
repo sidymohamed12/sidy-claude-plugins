@@ -1,0 +1,17 @@
+{
+  "description": "Garde-fou Git de sidy-dev : refuse push, merge, commit, rebase et reset sur main ou prod, les force-push et --no-verify.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/guard-git.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
