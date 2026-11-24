@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-24, `sidy-office` v1.3.0)** — le bureau a maintenant un espace travail et un espace détente, séparés par un passage. Premières zones : la télé et le tennis de table. Les agents au repos y vont après un moment, puis rentrent. Réglage `zones` dans `sidy-office.json` (`[]` pour ne garder que le travail). Voir le README de `sidy-office`.
+>
 > **Mise à jour (2026-11-24, `sidy-office` v1.2.1)** — après une mise à jour du plugin, le démarrage remplace maintenant l'ancien serveur du bureau au lieu de le laisser servir l'ancienne version (c'est pour ça que les agents ne bougeaient pas). Voir « Après une mise à jour » dans le README de `sidy-office`.
 >
 > **Mise à jour (2026-11-24, `sidy-office` v1.2.0)** — réglage `repos` pour couper les activités au repos (partout ou pour un seul agent), nouveaux réglages de style (`coupe`, `pantalon`, `rayures`), et la page signale les réglages invalides.

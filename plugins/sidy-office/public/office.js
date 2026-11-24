@@ -8,6 +8,9 @@ import {
   GUEST_LOOKS,
   buildLayout,
   chairOf,
+  inLeisure,
+  leisureExit,
+  leisureEntry,
 } from "./layout.js";
 import {
   drawBackground,
@@ -26,6 +29,7 @@ import {
   SPRITE_H,
 } from "./sprites.js";
 import { Leisure, KIND, ballAt } from "./leisure.js";
+import { drawZoneLive } from "./zones-draw.js";
 
 const SPEED = 3.4; // tuiles par seconde
 const ERROR_FLASH_MS = 1800;
@@ -106,11 +110,12 @@ export class Office {
     this.hidden = new Set(team.hidden || []);
     const types = team.members.map((m) => m.type);
     this.memberTypes = new Set(types);
-    const key = types.join("|");
+    const zoneIds = team.zones || [];
+    const key = `${types.join("|")}#${zoneIds.join("|")}`;
     const layoutChanged = key !== this.teamKey;
     if (layoutChanged) {
       this.teamKey = key;
-      this.layout = buildLayout(types);
+      this.layout = buildLayout(types, zoneIds);
       this.buildBackground();
       this.resize();
       this.leisure = new Leisure(this.layout, {
@@ -402,8 +407,52 @@ export class Office {
     );
   }
 
-  /** Chemin par les couloirs et les allées, sans traverser les bureaux. */
+  /** Chemin jusqu'à la cible : couloirs et allées au travail, passage central vers la détente. */
   planPath(from, to) {
+    const { layout } = this;
+    if (!inLeisure(layout, from) && !inLeisure(layout, to)) {
+      if (this.inLounge(from) && this.inLounge(to)) {
+        return [{ x: to.x, y: to.y }];
+      }
+      return this.planOffice(from, to);
+    }
+    return [...this.pathToGate(from), ...this.pathFromGate(to)];
+  }
+
+  /** Dans le coin pause (hors espace détente), on marche en ligne droite. */
+  inLounge(p) {
+    return (
+      !inLeisure(this.layout, p) &&
+      p.y >= this.layout.loungeTop + LOUNGE_FLOOR
+    );
+  }
+
+  /** De n'importe où jusqu'au passage entre le travail et la détente. */
+  pathToGate(from) {
+    const { layout } = this;
+    if (inLeisure(layout, from)) {
+      return leisureExit(layout, from);
+    }
+    return this.inLounge(from)
+      ? [layout.gate]
+      : this.planOffice(from, layout.gate);
+  }
+
+  /** Du passage jusqu'à la cible. */
+  pathFromGate(to) {
+    const { layout } = this;
+    if (inLeisure(layout, to)) {
+      return to.zoneId
+        ? leisureEntry(layout, to)
+        : [{ x: layout.aisleX, y: to.y }, { x: to.x, y: to.y }];
+    }
+    return this.inLounge(to)
+      ? [{ x: to.x, y: to.y }]
+      : this.planOffice(layout.gate, to);
+  }
+
+  /** Chemin par les couloirs et les allées de l'espace travail, sans traverser les bureaux. */
+  planOffice(from, to) {
     const c1 = this.corridorFor(from.y);
     const c2 = this.corridorFor(to.y);
     const path = [{ x: from.x, y: c1 }];
@@ -427,13 +476,9 @@ export class Office {
     c.path = this.planPath({ x: c.x, y: c.y }, target);
   }
 
-  /** Dans le coin pause on marche droit vers la cible ; ailleurs, par les couloirs. */
+  /** Lance la marche d'un personnage vers une cible, par le bon chemin. */
   walkInLounge(c, target) {
-    const floor = this.layout.loungeTop + LOUNGE_FLOOR;
-    c.path =
-      c.y >= floor && target.y >= floor
-        ? [{ x: target.x, y: target.y }]
-        : this.planPath({ x: c.x, y: c.y }, target);
+    c.path = this.planPath({ x: c.x, y: c.y }, target);
   }
 
   atRest(c) {
@@ -503,6 +548,9 @@ export class Office {
     const ctx = this.bctx;
     ctx.drawImage(this.background, 0, 0);
     drawRackLights(ctx, reducedMotion ? 0 : t);
+    for (const zone of this.layout.zones) {
+      drawZoneLive(ctx, zone, reducedMotion ? 0 : t, this.zoneInUse(zone.id));
+    }
     const now = Date.now();
     const seated = new Map();
     for (const c of this.characters.values()) {
@@ -552,6 +600,19 @@ export class Office {
     }
   }
 
+  /** Quelqu'un est en train de se servir de cette zone. */
+  zoneInUse(id) {
+    if (!this.leisure) {
+      return false;
+    }
+    for (const s of this.leisure.states.values()) {
+      if (s.kind === KIND.ZONE && s.zoneId === id && s.phase === "act") {
+        return true;
+      }
+    }
+    return false;
+  }
+
   drawCharacter(ctx, c, t, now) {
     const x = c.x * TILE;
     const y = c.y * TILE;
@@ -595,11 +656,15 @@ export class Office {
   /** Un personnage au repos qui discute, joue ou boit un café. */
   drawLeisure(ctx, c, act, x, y, t, blink) {
     let wave = false;
-    if (act.kind === KIND.PLAY) {
+    if (act.kind === KIND.ZONE && act.target.pose === "sit") {
+      drawSeatedBack(ctx, x, y, c.look, IDLE, t);
+      return;
+    }
+    if (act.kind === KIND.PLAY || act.kind === KIND.ZONE) {
       const partner = this.characters.get(act.partnerId);
       if (partner) {
         const [first, second] = act.slot === 0 ? [c, partner] : [partner, c];
-        const ball = ballAt(first, second, act.elapsed);
+        const ball = ballAt(first, second, act.elapsed, this.ballOptions(act));
         // le bras se lève juste avant de lancer et à la réception
         wave =
           (ball.thrower === act.slot && ball.progress < THROW_ARM) ||
@@ -619,6 +684,11 @@ export class Office {
     }
   }
 
+  /** Rythme de la balle : propre à la zone (tennis de table), sinon celui du lancer. */
+  ballOptions(act) {
+    return act.kind === KIND.ZONE ? this.leisure.zoneOf(act.zoneId)?.def.ball : undefined;
+  }
+
   /** La balle des joueurs, dessinée une seule fois par paire (côté du premier). */
   drawBalls(ctx) {
     if (!this.leisure) {
@@ -626,14 +696,15 @@ export class Office {
     }
     for (const c of this.characters.values()) {
       const act = this.leisure.stateOf(c.id);
-      if (!act || act.kind !== KIND.PLAY || act.phase !== "act" || act.slot !== 0) {
+      const plays = act && (act.kind === KIND.PLAY || (act.kind === KIND.ZONE && act.partnerId));
+      if (!plays || act.phase !== "act" || act.slot !== 0) {
         continue;
       }
       const partner = this.characters.get(act.partnerId);
       if (!partner) {
         continue;
       }
-      const ball = ballAt(c, partner, act.elapsed);
+      const ball = ballAt(c, partner, act.elapsed, this.ballOptions(act));
       drawBall(ctx, ball.x * TILE, ball.y * TILE - HAND_LIFT);
     }
   }

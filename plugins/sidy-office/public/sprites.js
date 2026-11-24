@@ -2,6 +2,7 @@
 // avec des rectangles sur un canvas basse résolution (1 unité = 1 pixel).
 
 import { TILE } from "./layout.js";
+import { drawZone } from "./zones-draw.js";
 
 const INK = "#1A2233";
 const WHITE = "#FFFFFF";
@@ -464,12 +465,33 @@ function drawLounge(ctx, L) {
 
 function drawLowerWall(ctx, layout) {
   const bottom = layout.rows * TILE;
-  const y = (layout.loungeTop + 3.4) * TILE;
+  const y = (layout.rows - 0.6) * TILE;
   px(ctx, "#C9D2DD", 0, y, layout.cols * TILE, bottom - y);
   const dx = (layout.door.x - 1) * TILE;
   px(ctx, "#EBEFF5", dx, y, 2 * TILE, bottom - y);
   px(ctx, "#9AA7B8", dx - 2, y, 2, bottom - y);
   px(ctx, "#9AA7B8", dx + 2 * TILE, y, 2, bottom - y);
+}
+
+/** Mur entre l'espace travail et l'espace détente, ouvert au niveau du couloir central. */
+function drawPartition(ctx, layout) {
+  const y = layout.partitionY * TILE;
+  const h = (layout.leisureTop - layout.partitionY) * TILE;
+  px(ctx, "#C9D2DD", 0, y, layout.cols * TILE, h);
+  px(ctx, "#9AA7B8", 0, y + h - 2, layout.cols * TILE, 2);
+  const open = (layout.aisleX - 1) * TILE;
+  px(ctx, "#EBEFF5", open, y, 2 * TILE, h);
+  px(ctx, "#9AA7B8", open - 2, y, 2, h);
+  px(ctx, "#9AA7B8", open + 2 * TILE, y, 2, h);
+}
+
+/** Sol de l'espace détente : un damier plus froid que celui des bureaux. */
+function drawLeisureFloor(ctx, layout) {
+  for (let ty = Math.floor(layout.leisureTop); ty < layout.rows; ty += 1) {
+    for (let tx = 0; tx < layout.cols; tx += 1) {
+      px(ctx, (tx + ty) % 2 ? "#E6ECF5" : "#DFE6F1", tx * TILE, ty * TILE, TILE, TILE);
+    }
+  }
 }
 
 /** Décor fixe, dessiné une seule fois par plan. */
@@ -485,6 +507,13 @@ export function drawBackground(ctx, layout) {
   }
   drawPlant(ctx, 7.4 * TILE, (L + 1.2) * TILE);
   drawPlant(ctx, 22.4 * TILE, (L + 1.6) * TILE);
+  if (layout.zones.length) {
+    drawLeisureFloor(ctx, layout);
+    drawPartition(ctx, layout);
+    for (const zone of layout.zones) {
+      drawZone(ctx, zone);
+    }
+  }
   drawLowerWall(ctx, layout);
 }
 

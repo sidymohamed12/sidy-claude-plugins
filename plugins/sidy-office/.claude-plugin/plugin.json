@@ -1,6 +1,6 @@
 {
   "name": "sidy-office",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Le bureau des agents : une page web locale en pixel art qui montre Claude et tes agents en train de travailler, en direct. L'équipe est détectée automatiquement et se personnalise avec sidy-office.json.",
   "author": {
     "name": "Sidy Mohamed SAIZONOU"

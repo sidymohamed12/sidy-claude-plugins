@@ -35,6 +35,8 @@ Pas de session en cours ? Clique sur **Voir une démo** : tes quatre premiers ag
 
 **Au repos, le bureau vit.** Les agents qui ne travaillent pas ne restent pas plantés devant leur canapé : ils se promènent dans le coin pause, vont prendre un café, discutent à deux (les bulles se répondent) ou se lancent une balle. Dès qu'un agent reçoit du travail, il laisse tout et rejoint son poste. Le panneau de l'équipe dit ce que chacun fait (« Discute avec reviewer », « Joue à la balle avec designer »). Si ton système demande moins d'animations (`prefers-reduced-motion`), les agents restent à leur place. Pour tout couper : `"repos": false` dans `sidy-office.json` (voir *Personnaliser*).
 
+**Deux espaces : travail et détente.** Le bureau est maintenant en deux parties, séparées par un mur avec un passage au milieu. En haut, l'espace travail (les postes, le coin pause). En bas, l'espace détente, fait de zones : pour l'instant la **télé** (on s'assoit à plusieurs sur le canapé, l'écran s'allume) et le **tennis de table** (à deux, avec la balle). Un agent qui traîne au repos finit par aller dans une zone, puis rentre à sa place ; dès qu'il reçoit du travail, il laisse tout et retourne à son poste par le passage. Choisis les zones avec `"zones"` dans `sidy-office.json` : `["tele"]`, `["tele", "tennis-de-table"]`, ou `[]` pour ne garder que l'espace travail (voir *Personnaliser*). `"repos": false` coupe aussi les zones.
+
 Le bureau montre toutes tes sessions Claude Code en même temps. Si un même agent tourne dans deux sessions, son nom porte « ×2 ».
 
 ## Ton équipe, détectée automatiquement
@@ -69,6 +71,7 @@ Tout est facultatif :
   "titre": "Le bureau de l'équipe MediTrace",
   "ordre": ["backend-dev", "frontend-dev", "reviewer"],
   "repos": true,
+  "zones": ["tele", "tennis-de-table"],
   "agents": {
     "claude": { "nom": "Chef", "couleur": "#2F4B8F" },
     "backend-dev": { "nom": "Back", "role": "API Spring Boot", "couleur": "#2E9E5B", "accessoire": "casque", "coupe": "afro", "pantalon": "#2F3A4C", "rayures": "#FFFFFF" },
@@ -93,6 +96,7 @@ Tout est facultatif :
 | `pantalon`           | Couleur du pantalon, en hexadécimal                                   |
 | `rayures`            | Couleur d'une rayure sur le haut, en hexadécimal, ou `false` pour l'enlever |
 | `repos`              | Au niveau du fichier : `false` coupe toutes les activités au repos (promenade, café, discussion, balle). Au niveau d'un agent : `false` le garde à sa place pendant que les autres s'animent. Par défaut : `true` |
+| `zones`              | Au niveau du fichier : les zones de l'espace détente, dans l'ordre (`tele`, `tennis-de-table`). `[]` supprime l'espace détente. Par défaut : toutes |
 | `masquer`            | `true` pour retirer l'agent du bureau (il reste dans le fil d'activité) |
 
 Un agent présent dans le fichier mais introuvable sur ta machine (par exemple `Explore`) rejoint quand même l'équipe, avec son propre poste.

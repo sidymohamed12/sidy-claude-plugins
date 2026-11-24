@@ -7,6 +7,7 @@ export const KIND = {
   COFFEE: "coffee",
   CHAT: "chat",
   PLAY: "play",
+  ZONE: "zone", // une activité de l'espace détente (télé, tennis de table…)
 };
 
 const PHASE = { DWELL: "dwell", TRAVEL: "travel", ACT: "act" };
@@ -37,6 +38,8 @@ const COFFEE_AT = { x: 1.5, dy: 1.6 };
 
 export const BALL_PERIOD = 1.3; // secondes pour un aller de balle
 export const BALL_ARC = 1.6; // hauteur du lob, en tuiles
+const RETURN_DELAY = 0.8; // secondes avant de rentrer après une zone
+const ZONE_WEIGHT = 0.5; // poids d'une envie d'aller à l'espace détente
 
 const random = (rng, [min, max]) => min + rng() * (max - min);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -70,13 +73,13 @@ export function meetingSpots(layout, rng, avoid = []) {
 }
 
 /** Position de la balle : elle va et vient entre a et b en décrivant un lob. */
-export function ballAt(a, b, elapsed) {
-  const cycle = Math.floor(elapsed / BALL_PERIOD);
-  const p = (elapsed / BALL_PERIOD) % 1;
+export function ballAt(a, b, elapsed, { period = BALL_PERIOD, arc = BALL_ARC } = {}) {
+  const cycle = Math.floor(elapsed / period);
+  const p = (elapsed / period) % 1;
   const [from, to] = cycle % 2 === 0 ? [a, b] : [b, a];
   return {
     x: from.x + (to.x - from.x) * p,
-    y: from.y + (to.y - from.y) * p - Math.sin(p * Math.PI) * BALL_ARC,
+    y: from.y + (to.y - from.y) * p - Math.sin(p * Math.PI) * arc,
     thrower: cycle % 2,
     progress: p,
   };
@@ -124,6 +127,10 @@ export class Leisure {
     }
   }
 
+  zoneOf(id) {
+    return this.layout.zones.find((z) => z.id === id) || null;
+  }
+
   stateOf(id) {
     return this.states.get(id) || null;
   }
@@ -139,6 +146,13 @@ export class Leisure {
     }
     if (s.kind === KIND.COFFEE) {
       return s.phase === PHASE.ACT ? "Prend un café" : "Va prendre un café";
+    }
+    if (s.kind === KIND.ZONE) {
+      const def = this.zoneOf(s.zoneId)?.def;
+      if (!def) {
+        return null;
+      }
+      return s.phase === PHASE.ACT ? def.doing(s.partnerName) : def.go;
     }
     const verb = s.kind === KIND.CHAT ? "Discute avec" : "Joue à la balle avec";
     return `${verb} ${s.partnerName}`;
@@ -166,6 +180,7 @@ export class Leisure {
       if (!s) {
         continue;
       }
+      s.age += dt;
       if (s.phase === PHASE.DWELL) {
         this.tickDwell(c, s, dt, free);
       } else if (s.phase === PHASE.TRAVEL) {
@@ -185,13 +200,17 @@ export class Leisure {
       partnerName: "",
       slot: 0,
       target: null,
-      actStart: 0,
+      zoneId: null,
+      returnHome: false,
       elapsed: 0,
+      age: 0, // temps passé au repos, qui ne se remet pas à zéro entre deux envies
     };
   }
 
   toDwell(s) {
+    const { age } = s;
     Object.assign(s, this.newDwell());
+    s.age = age;
   }
 
   tickDwell(c, s, dt, free) {
@@ -199,8 +218,15 @@ export class Leisure {
     if (s.timer > 0) {
       return;
     }
+    if (s.returnHome) {
+      s.age = 0;
+      this.startSolo(c, s, KIND.WANDER, { x: c.rest.x, y: c.rest.y });
+      return;
+    }
     const kind = this.pickKind(c, free);
-    if (kind === KIND.CHAT || kind === KIND.PLAY) {
+    if (kind === KIND.ZONE) {
+      this.startZone(c, s, free);
+    } else if (kind === KIND.CHAT || kind === KIND.PLAY) {
       this.startPair(c, kind, free);
     } else if (kind === KIND.COFFEE) {
       this.startSolo(c, s, kind, coffeeSpot(this.layout));
@@ -214,11 +240,14 @@ export class Leisure {
     const coffeeTaken = [...this.states.values()].some(
       (x) => x.kind === KIND.COFFEE && x.phase !== PHASE.DWELL,
     );
-    const options = WEIGHTS.filter(([kind]) => {
+    const weights = this.zoneChoices(c, free).length
+      ? [...WEIGHTS, [KIND.ZONE, ZONE_WEIGHT]]
+      : WEIGHTS;
+    const options = weights.filter(([kind]) => {
       if (kind === KIND.COFFEE) {
         return !coffeeTaken;
       }
-      return kind === KIND.WANDER || hasPartner;
+      return kind === KIND.WANDER || kind === KIND.ZONE || hasPartner;
     });
     const total = options.reduce((sum, [, w]) => sum + w, 0);
     let roll = this.rng() * total;
@@ -229,6 +258,67 @@ export class Leisure {
       }
     }
     return KIND.WANDER;
+  }
+
+  /** Places d'une zone déjà prises, ou visées, par quelqu'un. */
+  takenSeats(zoneId, exceptId = null) {
+    const taken = new Set();
+    for (const [id, st] of this.states) {
+      if (id !== exceptId && st.kind === KIND.ZONE && st.zoneId === zoneId) {
+        taken.add(st.target?.seat);
+      }
+    }
+    return taken;
+  }
+
+  /** Zones où ce personnage peut aller : assez de repos, une place libre (et un partenaire si on joue à deux). */
+  zoneChoices(c, free) {
+    const s = this.states.get(c.id);
+    const age = s ? s.age : 0;
+    return this.layout.zones.filter((z) => {
+      if (age < z.def.after) {
+        return false;
+      }
+      const used = this.takenSeats(z.id, c.id).size;
+      if (z.def.group === "pair") {
+        return used === 0 && this.partnerCandidates(c, free).length > 0;
+      }
+      return used < z.seats.length;
+    });
+  }
+
+  startZone(c, s, free) {
+    const zones = this.zoneChoices(c, free);
+    if (!zones.length) {
+      this.startSolo(c, s, KIND.WANDER, this.wanderTarget(c, free));
+      return;
+    }
+    const zone = zones[Math.floor(this.rng() * zones.length)];
+    if (zone.def.group === "pair") {
+      this.startZonePair(c, zone, free);
+      return;
+    }
+    const taken = this.takenSeats(zone.id, c.id);
+    const seats = zone.seats.filter((_, i) => !taken.has(i));
+    const seat = seats[Math.floor(this.rng() * seats.length)];
+    this.startSolo(c, s, KIND.ZONE, { ...seat, seat: zone.seats.indexOf(seat) });
+    s.zoneId = zone.id;
+  }
+
+  startZonePair(c, zone, free) {
+    const partner = this.partnerFor(c, free);
+    const duo = [
+      [c, partner, 0],
+      [partner, c, 1],
+    ];
+    for (const [who, other, i] of duo) {
+      const st = this.states.get(who.id);
+      this.startSolo(who, st, KIND.ZONE, { ...zone.seats[i], seat: i });
+      st.zoneId = zone.id;
+      st.partnerId = other.id;
+      st.partnerName = other.name || other.id;
+      st.slot = i;
+    }
   }
 
   /** Les autres personnages libres, qui ne font rien pour l'instant. */
@@ -330,7 +420,7 @@ export class Leisure {
       return;
     }
     if (arrived) {
-      if (s.kind === KIND.COFFEE) {
+      if (s.kind === KIND.COFFEE || s.kind === KIND.ZONE) {
         this.beginAct(s);
       } else {
         this.toDwell(s);
@@ -342,8 +432,18 @@ export class Leisure {
 
   beginAct(s) {
     s.phase = PHASE.ACT;
-    s.timer = random(this.rng, DURATION[s.kind]);
+    const range =
+      s.kind === KIND.ZONE ? this.zoneOf(s.zoneId).def.duration : DURATION[s.kind];
+    s.timer = random(this.rng, range);
     s.elapsed = 0;
+  }
+
+  /** Après une activité de zone, on rentre au bout d'un court instant. */
+  leaveZone(s, fromZone) {
+    if (fromZone) {
+      s.returnHome = true;
+      s.timer = RETURN_DELAY;
+    }
   }
 
   tickAct(s, dt) {
@@ -353,9 +453,12 @@ export class Leisure {
       return;
     }
     const other = s.partnerId ? this.states.get(s.partnerId) : null;
+    const fromZone = s.kind === KIND.ZONE;
     this.toDwell(s);
+    this.leaveZone(s, fromZone);
     if (other) {
       this.toDwell(other);
+      this.leaveZone(other, fromZone);
     }
   }
 }
