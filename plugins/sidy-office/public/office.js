@@ -11,6 +11,7 @@ import {
   inLeisure,
   leisureExit,
   leisureEntry,
+  leisureRoute,
 } from "./layout.js";
 import {
   drawBackground,
@@ -531,6 +532,9 @@ export class Office {
         return [{ x: to.x, y: to.y }];
       }
       return this.planOffice(from, to);
+    }
+    if (inLeisure(layout, from) && inLeisure(layout, to)) {
+      return leisureRoute(layout, from, to);
     }
     return [...this.pathToGate(from), ...this.pathFromGate(to)];
   }

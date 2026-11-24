@@ -41,7 +41,9 @@ Pas de session en cours ? Clique sur **Voir une démo** : tes quatre premiers ag
 
 **Au repos, tout le monde est dans la détente.** Dès qu'un agent n'a plus de travail, il rejoint l'espace détente et y reste : il se promène le long des zones, discute, joue ou va dans une zone. Seul le café se prend dans le coin pause, côté travail ; après, il revient. Sans zones (`"zones": []`), le repos reste dans le coin pause, comme avant.
 
-**S'adapte à tous les écrans.** La page essaie plusieurs dispositions (détente dessous, ou à droite avec une à trois colonnes de zones) et garde celle qui s'affiche le plus grand. Le bureau ne déborde jamais de la page : sur un téléphone, il prend toute la largeur. S'il reste de la place, le plan s'étire (le sol s'agrandit, les zones s'écartent) pour occuper l'écran sans bandes blanches. Redimensionne la fenêtre : la disposition change d'elle-même.
+**On se détend pour de vrai.** Chaque activité (télé, sieste, sport, piscine, discussion, balle, café) dure de 2 à 5 minutes, et entre deux activités l'agent se repose aussi 2 à 5 minutes sans bouger. La promenade est rare. Seule la première envie, quand un agent vient de finir son travail, arrive vite (quelques secondes). D'une zone à l'autre, les agents restent dans la détente : ils longent le couloir sans repasser par la porte.
+
+**S'adapte à tous les écrans.** La page essaie plusieurs dispositions (détente dessous, ou à droite avec une à trois colonnes de zones) et garde celle qui s'affiche le plus grand. Le bureau ne déborde jamais de la page : sur un téléphone, il prend toute la largeur. S'il reste de la place, le plan s'étire pour occuper l'écran sans bandes blanches : les zones de détente s'écartent, et la salle de travail gagne des rangées de postes (utiles aux renforts), avec le coin pause en bas. Redimensionne la fenêtre : la disposition change d'elle-même.
 
 Le bureau montre toutes tes sessions Claude Code en même temps. Si un même agent tourne dans deux sessions, son nom porte « ×2 ».
 

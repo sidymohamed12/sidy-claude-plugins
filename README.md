@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-24, `sidy-office` v1.7.0)** — les agents se détendent pour de vrai : chaque activité et chaque pause dure de 2 à 5 minutes, et ils marchent beaucoup moins. D'une zone à l'autre, ils ne ressortent plus par le passage. Sur grand écran, la salle de travail gagne des rangées de postes au lieu de laisser un vide en bas.
+>
 > **Mise à jour (2026-11-24, `sidy-office` v1.6.1)** — le bureau ne déborde plus de la page (tablette, téléphone, écran de 1024 px) et remplit l'écran sur les grands écrans au lieu de laisser des espaces blancs.
 >
 > **Mise à jour (2026-11-24, `sidy-office` v1.6.0)** — les agents au repos vivent maintenant tous dans l'espace détente (seul le café se prend dans le coin pause), et sur un grand écran la détente se place à droite du travail au lieu de dessous, pour remplir la largeur.

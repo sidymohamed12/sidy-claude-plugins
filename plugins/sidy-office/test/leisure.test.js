@@ -58,7 +58,7 @@ function makeWorld(rng, ...chars) {
   return { layout, leisure, tick, arrive, chars };
 }
 
-const LONG = 20; // plus long que toute attente
+const LONG = 301; // plus long que toute attente (activités et pauses durent 2 à 5 min)
 
 /** Fait avancer le temps par pas réalistes (0,1 s au plus, comme la boucle d'animation). */
 function run(world, seconds, dt = 0.1) {
@@ -303,11 +303,11 @@ describe("discussion et jeu à deux", () => {
     w.arrive();
     w.tick(0.1);
     let guard = 0;
-    while (w.leisure.stateOf("a").phase === "act" && guard < 300) {
-      w.tick(0.1);
+    while (w.leisure.stateOf("a").phase === "act" && guard < 400) {
+      w.tick(1);
       guard += 1;
     }
-    assert.ok(guard > 20 && guard < 300, "la discussion dure plusieurs secondes");
+    assert.ok(guard >= 119 && guard <= 301, `la discussion dure de 2 à 5 minutes (${guard} s)`);
     for (const id of ["a", "b"]) {
       assert.equal(w.leisure.stateOf(id).phase, "dwell");
       assert.equal(w.leisure.label(id), null);
@@ -404,5 +404,12 @@ describe("robustesse", () => {
     assert.ok(w.leisure.stateOf("a"));
     w.leisure.reset(LAYOUT.buildLayout(["a", "b"]));
     assert.equal(w.leisure.stateOf("a"), null);
+  });
+});
+
+describe("on se détend longtemps", () => {
+  test("une pause sans rien faire dure de 2 à 5 minutes, la première est courte", () => {
+    assert.deepEqual(L.DWELL, [120, 300]);
+    assert.ok(L.FIRST_DWELL[1] <= 10);
   });
 });

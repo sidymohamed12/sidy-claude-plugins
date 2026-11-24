@@ -10,6 +10,8 @@ export const MAIN = "claude";
 
 const FIRST_DESK_ROW = 3;
 const ROW_SPACING = 4;
+const MAX_ROW_SPACING = 5.5; // au-delà, les postes paraîtraient perdus
+const FILL_ROW_SPACING = 4.6; // écart visé quand on ajoute des rangées pour remplir la hauteur
 const DESK_XS = [2, 7, 12, 17];
 const CLAUDE_DESK = { row: 1, x: 12 };
 const MIN_GUEST_DESKS = 2;
@@ -198,6 +200,33 @@ function leisureSpace({
 }
 
 /**
+ * Postes, couloirs et coin pause de l'espace travail.
+ * @param spacing écart entre deux rangées de postes, en tuiles
+ * @param loungeTop haut du coin pause (null : juste sous la dernière rangée)
+ */
+function workArea(rowCount, spacing, loungeTop) {
+  const slots = [];
+  const corridors = [];
+  for (let row = 0; row < rowCount; row += 1) {
+    const y = FIRST_DESK_ROW + row * spacing;
+    for (const x of DESK_XS) {
+      if (!(row === CLAUDE_DESK.row && x === CLAUDE_DESK.x)) {
+        slots.push({ x, y });
+      }
+    }
+    corridors.push(y + 3);
+  }
+  const top = loungeTop ?? FIRST_DESK_ROW + rowCount * spacing;
+  return {
+    slots,
+    corridors,
+    loungeTop: top,
+    rows: top + 4,
+    claudeY: FIRST_DESK_ROW + CLAUDE_DESK.row * spacing,
+  };
+}
+
+/**
  * @param memberTypes types des agents de l'équipe, dans l'ordre d'affichage
  * @param zoneIds zones de l'espace détente (vide : pas d'espace détente)
  * @param options.horizontal la détente à droite du travail (grands écrans) au lieu de dessous
@@ -212,33 +241,38 @@ export function buildLayout(
   const needed = memberTypes.length + MIN_GUEST_DESKS;
   // chaque rangée a 4 postes ; la 2e en perd un pour Claude
   const rowCount = Math.max(2, Math.ceil((needed + 1) / DESK_XS.length));
-  const slots = [];
-  for (let row = 0; row < rowCount; row += 1) {
-    for (const x of DESK_XS) {
-      if (!(row === CLAUDE_DESK.row && x === CLAUDE_DESK.x)) {
-        slots.push({ x, y: FIRST_DESK_ROW + row * ROW_SPACING });
-      }
-    }
-  }
-  const lastDeskY = FIRST_DESK_ROW + (rowCount - 1) * ROW_SPACING;
-  const loungeTop = lastDeskY + ROW_SPACING;
-  const memberDesks = new Map(memberTypes.map((type, i) => [type, slots[i]]));
-  const spots = restSpots(loungeTop, memberTypes.length);
-  const corridors = [];
-  for (let row = 0; row < rowCount; row += 1) {
-    corridors.push(FIRST_DESK_ROW + row * ROW_SPACING + 3);
-  }
-  const workRows = loungeTop + 4;
+  let work = workArea(rowCount, ROW_SPACING, null);
   const side = horizontal && zoneIds.length > 0;
   const spaces = leisureSpace({
     zoneIds,
     side,
-    loungeTop,
-    workRows,
+    loungeTop: work.loungeTop,
+    workRows: work.rows,
     columns,
     minRows,
     minCols,
   });
+  // L'espace travail occupe toute la hauteur (détente à droite, ou pas de détente) :
+  // s'il reste de la place, les rangées de postes s'écartent et le coin pause descend en bas.
+  const workFillsHeight = side || zoneIds.length === 0;
+  if (workFillsHeight && spaces.rows > work.rows) {
+    // assez de place : des rangées de postes en plus (pour les renforts), puis on les répartit
+    const room = spaces.rows - 4 - FIRST_DESK_ROW;
+    const rowsThatFit = Math.max(rowCount, Math.round(room / FILL_ROW_SPACING));
+    const spacing = Math.min(MAX_ROW_SPACING, room / rowsThatFit);
+    work = workArea(rowsThatFit, spacing, spaces.rows - 4);
+    if (side) {
+      const gateY = work.loungeTop + 2.4;
+      spaces.gate = { ...spaces.gate, y: gateY };
+      spaces.spineGate = { ...spaces.spineGate, y: gateY };
+    } else {
+      spaces.partitionY = work.loungeTop + 3.4;
+      spaces.gate = { ...spaces.gate, y: work.loungeTop + 3 };
+    }
+  }
+  const { slots, loungeTop, corridors } = work;
+  const memberDesks = new Map(memberTypes.map((type, i) => [type, slots[i]]));
+  const spots = restSpots(loungeTop, memberTypes.length);
   const rests = spaces.zones.length
     ? new Map(
         memberTypes.map((type, i) => [
@@ -262,7 +296,7 @@ export function buildLayout(
     spineGate: spaces.spineGate,
     claudeDesk: {
       x: CLAUDE_DESK.x,
-      y: FIRST_DESK_ROW + CLAUDE_DESK.row * ROW_SPACING,
+      y: work.claudeY,
       monitors: 2,
     },
     memberDesks,
@@ -316,5 +350,29 @@ export function leisureEntry(layout, seat) {
     steps.push({ x: seat.x, y: seat.walkY });
   }
   steps.push({ x: seat.x, y: seat.y });
+  return steps;
+}
+
+/**
+ * Trajet entre deux points de l'espace détente, sans repasser par le passage :
+ * on rejoint le couloir de sa zone, on longe le couloir central si besoin, puis
+ * le couloir de la zone d'arrivée.
+ */
+export function leisureRoute(layout, from, to) {
+  const walkOf = (p) => {
+    const zone = zoneAt(layout, p);
+    return zone ? zone.walkY : p.y;
+  };
+  const fromWalk = walkOf(from);
+  const toWalk = walkOf(to);
+  const steps = [];
+  if (Math.abs(from.y - fromWalk) > 0.01) {
+    steps.push({ x: from.x, y: fromWalk });
+  }
+  const sameZone = zoneAt(layout, from) === zoneAt(layout, to) && zoneAt(layout, to);
+  if (!sameZone && Math.abs(fromWalk - toWalk) > 0.01) {
+    steps.push({ x: layout.aisleX, y: fromWalk }, { x: layout.aisleX, y: toWalk });
+  }
+  steps.push({ x: to.x, y: toWalk }, { x: to.x, y: to.y });
   return steps;
 }

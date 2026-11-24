@@ -41,6 +41,8 @@ function makeChar(id, x, y) {
   };
 }
 
+const STEP = 0.5; // secondes par pas : les activités durent plusieurs minutes
+
 /** Monde de test : la marche est instantanée, le temps avance par pas de 0,1 s. */
 function world(zoneIds, ...ids) {
   const layout = LAYOUT.buildLayout(["a", "b", "c", "d"], zoneIds);
@@ -59,10 +61,10 @@ function world(zoneIds, ...ids) {
         c.path = [];
       }
     }
-    leisure.update(0.1, chars);
+    leisure.update(STEP, chars);
   };
   const run = (seconds) => {
-    for (let t = 0; t < seconds; t += 0.1) {
+    for (let t = 0; t < seconds - 1e-9; t += STEP) {
       tick();
     }
   };
@@ -240,6 +242,48 @@ describe("le plan s'étire pour remplir l'écran", () => {
   });
 });
 
+describe("trajets dans la détente", () => {
+  for (const horizontal of [false, true]) {
+    test(`d'une zone à l'autre, on ne repasse jamais par le passage (${horizontal ? "à droite" : "dessous"})`, () => {
+      const layout = LAYOUT.buildLayout(["a", "b"], Z.ZONE_IDS, { horizontal });
+      const spots = layout.zones.flatMap((z) => z.seats);
+      for (const from of spots) {
+        for (const to of spots) {
+          const route = LAYOUT.leisureRoute(layout, from, to);
+          assert.deepEqual(route.at(-1), { x: to.x, y: to.y });
+          for (const p of route) {
+            assert.equal(LAYOUT.inLeisure(layout, p), true, `${JSON.stringify(p)} hors de la détente`);
+            assert.notDeepEqual(p, layout.gate);
+          }
+        }
+      }
+    });
+  }
+
+  test("dans la même zone, on longe son couloir sans passer par le couloir central", () => {
+    const layout = LAYOUT.buildLayout(["a"], ["tele"], { horizontal: true });
+    const [a, b] = layout.zones[0].seats;
+    const route = LAYOUT.leisureRoute(layout, a, b);
+    assert.ok(route.every((p) => p.x !== layout.aisleX));
+  });
+});
+
+describe("la salle de travail occupe toute la hauteur", () => {
+  test("détente à droite et plan étiré : les postes s'écartent et le coin pause descend en bas", () => {
+    const team = ["a", "b", "c", "d", "e"];
+    const base = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal: true });
+    const tall = LAYOUT.buildLayout(team, Z.ZONE_IDS, { horizontal: true, minRows: base.rows + 8 });
+    assert.equal(tall.loungeTop, tall.rows - 4, "coin pause en bas");
+    const ys = [...new Set([...tall.memberDesks.values()].map((d) => d.y))].sort((a, b) => a - b);
+    const baseYs = [...new Set([...base.memberDesks.values()].map((d) => d.y))].sort((a, b) => a - b);
+    assert.ok(ys[1] - ys[0] > baseYs[1] - baseYs[0], "rangées plus espacées");
+    assert.ok(ys[1] - ys[0] <= 5.5);
+    assert.equal(tall.gate.y, tall.loungeTop + 2.4);
+    assert.equal(tall.spineGate.y, tall.gate.y);
+    assert.ok(tall.claudeDesk.y > base.claudeDesk.y);
+  });
+});
+
 describe("au repos, on vit dans la détente", () => {
   test("avec des zones, les places de repos sont dans l'espace détente, au pied des zones", () => {
     for (const horizontal of [false, true]) {
@@ -283,7 +327,7 @@ describe("activités de zone", () => {
     assert.equal(w.leisure.stateOf("a").kind === L.KIND.ZONE, false);
     w.run(40);
     const kinds = new Set();
-    for (let i = 0; i < 400; i += 1) {
+    for (let i = 0; i < 3000; i += 1) {
       w.run(0.1);
       kinds.add(w.leisure.stateOf("a")?.kind);
     }

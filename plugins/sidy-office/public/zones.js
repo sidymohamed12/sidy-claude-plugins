@@ -4,6 +4,9 @@
 //
 // Coordonnées des places : en tuiles, relatives au coin haut-gauche de la zone.
 
+/** Durée d'une activité de zone, en secondes : de 2 à 5 minutes. */
+const ACTIVITY = [120, 300];
+
 export const ZONE_W = 9.5;
 export const ZONE_H = 6;
 /** Couloir libre le long du bas de la zone : on y marche pour rejoindre sa place. */
@@ -14,7 +17,7 @@ export const ZONES = {
     label: "Télé",
     group: "solo", // chacun prend une place
     after: 12, // secondes de repos avant d'avoir envie d'y aller
-    duration: [14, 26],
+    duration: ACTIVITY,
     go: "Va regarder la télé",
     doing: () => "Regarde la télé",
     seats: [3.1, 4.3, 5.5, 6.7].map((x) => ({ x, y: 4.3, pose: "sit" })),
@@ -23,7 +26,7 @@ export const ZONES = {
     label: "Tennis de table",
     group: "pair", // deux joueurs, un de chaque côté de la table
     after: 15,
-    duration: [12, 18],
+    duration: ACTIVITY,
     go: "Va jouer au tennis de table",
     doing: (partner) => `Joue au tennis de table avec ${partner}`,
     ball: { period: 0.75, arc: 0.5 },
@@ -36,7 +39,7 @@ export const ZONES = {
     label: "Discussion",
     group: "circle", // plusieurs agents autour d'une table, qui se répondent
     after: 10,
-    duration: [10, 18],
+    duration: ACTIVITY,
     go: "Va discuter avec les collègues",
     doing: () => "Discute en groupe",
     seats: [
@@ -50,7 +53,7 @@ export const ZONES = {
     label: "Dortoir",
     group: "solo",
     after: 45, // on ne va dormir qu'après un long moment sans rien à faire
-    duration: [20, 35],
+    duration: ACTIVITY,
     go: "Va faire une sieste",
     doing: () => "Fait une sieste",
     seats: [1.4, 3.2, 5.0, 6.8].map((x) => ({ x: x + 0.8, y: 3.6, pose: "lie" })),
@@ -59,7 +62,7 @@ export const ZONES = {
     label: "Salle de sport",
     group: "solo",
     after: 25,
-    duration: [12, 20],
+    duration: ACTIVITY,
     go: "Va à la salle de sport",
     doing: (_, seat) => (seat.pose === "run" ? "Court sur le tapis" : "Soulève des haltères"),
     seats: [
@@ -73,7 +76,7 @@ export const ZONES = {
     label: "Piscine",
     group: "solo",
     after: 30,
-    duration: [14, 24],
+    duration: ACTIVITY,
     go: "Va à la piscine",
     doing: () => "Nage",
     seats: [
