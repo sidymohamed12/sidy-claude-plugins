@@ -407,9 +407,9 @@ describe("robustesse", () => {
   });
 });
 
-describe("on se détend longtemps", () => {
-  test("une pause sans rien faire dure de 2 à 5 minutes, la première est courte", () => {
-    assert.deepEqual(L.DWELL, [120, 300]);
+describe("on ne reste pas planté", () => {
+  test("entre deux activités, la pause est courte, la première aussi", () => {
+    assert.ok(L.DWELL[1] <= 15);
     assert.ok(L.FIRST_DWELL[1] <= 10);
   });
 });

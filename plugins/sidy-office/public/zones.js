@@ -16,7 +16,6 @@ export const ZONES = {
   tele: {
     label: "Télé",
     group: "solo", // chacun prend une place
-    after: 12, // secondes de repos avant d'avoir envie d'y aller
     duration: ACTIVITY,
     go: "Va regarder la télé",
     doing: () => "Regarde la télé",
@@ -25,7 +24,6 @@ export const ZONES = {
   "tennis-de-table": {
     label: "Tennis de table",
     group: "pair", // deux joueurs, un de chaque côté de la table
-    after: 15,
     duration: ACTIVITY,
     go: "Va jouer au tennis de table",
     doing: (partner) => `Joue au tennis de table avec ${partner}`,
@@ -38,7 +36,6 @@ export const ZONES = {
   discussion: {
     label: "Discussion",
     group: "circle", // plusieurs agents autour d'une table, qui se répondent
-    after: 10,
     duration: ACTIVITY,
     go: "Va discuter avec les collègues",
     doing: () => "Discute en groupe",
@@ -52,7 +49,6 @@ export const ZONES = {
   dortoir: {
     label: "Dortoir",
     group: "solo",
-    after: 45, // on ne va dormir qu'après un long moment sans rien à faire
     duration: ACTIVITY,
     go: "Va faire une sieste",
     doing: () => "Fait une sieste",
@@ -61,7 +57,6 @@ export const ZONES = {
   "salle-de-sport": {
     label: "Salle de sport",
     group: "solo",
-    after: 25,
     duration: ACTIVITY,
     go: "Va à la salle de sport",
     doing: (_, seat) => (seat.pose === "run" ? "Court sur le tapis" : "Soulève des haltères"),
@@ -75,10 +70,10 @@ export const ZONES = {
   piscine: {
     label: "Piscine",
     group: "solo",
-    after: 30,
     duration: ACTIVITY,
     go: "Va à la piscine",
     doing: () => "Nage",
+    water: { x: 0.6, y: 1.0, w: 8.3, h: 3.9 }, // le bassin : on y nage, on n'y marche pas
     seats: [
       { x: 2.2, y: 2.9, pose: "swim" },
       { x: 4.7, y: 3.7, pose: "swim" },
@@ -87,12 +82,26 @@ export const ZONES = {
   },
   gaming: {
     label: "Gaming",
-    group: "solo",
-    after: 20,
+    group: "pair", // une partie à deux, manette en main, devant la télé
     duration: ACTIVITY,
-    go: "Va jouer aux jeux vidéo",
-    doing: () => "Joue aux jeux vidéo",
-    seats: [1.9, 4.75, 7.6].map((x) => ({ x, y: 3.9, pose: "game" })),
+    go: "Va jouer à la console",
+    doing: (partner) => `Joue à la console avec ${partner}`,
+    seats: [
+      { x: 3.9, y: 4.2, pose: "game" },
+      { x: 5.6, y: 4.2, pose: "game" },
+    ],
+  },
+  balle: {
+    label: "Jeu de balle",
+    group: "pair",
+    duration: ACTIVITY,
+    go: "Va jouer à la balle",
+    doing: (partner) => `Joue à la balle avec ${partner}`,
+    ball: { period: 1.3, arc: 1.6 },
+    seats: [
+      { x: 2.4, y: 4.0, pose: "stand" },
+      { x: 7.1, y: 4.0, pose: "stand" },
+    ],
   },
 };
 
@@ -107,4 +116,18 @@ export function pickZones(ids) {
     return DEFAULT_ZONES;
   }
   return [...new Set(ids)].filter((id) => Object.hasOwn(ZONES, id));
+}
+
+/** Le point est dans l'eau d'une piscine du plan. */
+export function inWater(zones, p) {
+  return zones.some((z) => {
+    const w = z.def.water;
+    return (
+      w &&
+      p.x >= z.x + w.x &&
+      p.x <= z.x + w.x + w.w &&
+      p.y >= z.y + w.y &&
+      p.y <= z.y + w.y + w.h
+    );
+  });
 }

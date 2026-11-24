@@ -36,6 +36,7 @@ import {
 } from "./sprites.js";
 import { Leisure, KIND, ballAt } from "./leisure.js";
 import { drawZoneLive } from "./zones-draw.js";
+import { inWater } from "./zones.js";
 
 const SPEED = 3.4; // tuiles par seconde
 const ERROR_FLASH_MS = 1800;
@@ -62,6 +63,19 @@ const HAND_LIFT = 7; // hauteur des mains, en pixels, d'où part la balle
 const reducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
+
+/** Manette tenue à deux mains devant le joueur (vu de dos, elle dépasse sur les côtés). */
+function drawController(ctx, x, y, t) {
+  const ox = Math.round(x - 6);
+  const oy = Math.round(y - 18);
+  const wiggle = Math.floor(t * 5) % 2;
+  ctx.fillStyle = "#1A1F2B";
+  ctx.fillRect(ox - 2, oy + 7 + wiggle, 16, 3);
+  ctx.fillStyle = "#E5484D";
+  ctx.fillRect(ox + 11, oy + 7 + wiggle, 1, 1);
+  ctx.fillStyle = "#2F6FEB";
+  ctx.fillRect(ox + 12, oy + 8 + wiggle, 1, 1);
+}
 
 /** Réduit la photo au format du cadre (recadrée au centre, vers le haut pour garder le visage). */
 function pixelPortrait(img) {
@@ -935,6 +949,10 @@ export class Office {
     const y = c.y * TILE;
     const tt = reducedMotion ? 0 : t;
     const blink = Math.floor((t + c.x) * 10) % 37 === 0;
+    if (c.path.length > 0 && inWater(this.layout.zones, c)) {
+      drawSwimmer(ctx, x, y, c.look, tt); // dans le bassin, on nage jusqu'à sa ligne
+      return;
+    }
     if (c.path.length > 0) {
       const step = Math.floor(c.walked * 4) % 2;
       drawStanding(ctx, x, y, c.look, {
@@ -1029,9 +1047,15 @@ export class Office {
       case "swim":
         drawSwimmer(ctx, x, y, c.look, tt);
         return true;
-      case "game":
+      case "game": {
         drawSeatedBack(ctx, x, y, c.look, "typing", tt);
+        drawController(ctx, x, y, tt);
+        // de temps en temps, une bulle manette : on voit qu'il joue
+        if (Math.floor((act.elapsed + act.slot * 2) / 3) % 2 === 0) {
+          drawBubble(ctx, x + 10, y - SPRITE_H + 5, "game", tt);
+        }
         return true;
+      }
       case "run":
         drawStanding(ctx, x, y, c.look, {
           facing: "back",

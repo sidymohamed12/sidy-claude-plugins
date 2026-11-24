@@ -218,6 +218,7 @@ const ZONE_IDS = [
   "salle-de-sport",
   "piscine",
   "gaming",
+  "balle",
 ];
 
 /** Zones à afficher : toutes par défaut, aucune avec une liste vide, sinon celles qui existent. */
