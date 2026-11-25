@@ -21,9 +21,9 @@ Spring ne charge un profil que si le fichier suit la convention `application-<pr
 
 | Fichier                | Rôle                                                                                                                                                                                  |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `application.yml`      | Socle commun : nom de l'app, `app.timezone` (défaut UTC), pool Hikari, `ddl-auto: validate`, `open-in-view: false`, Flyway, probes Actuator, cache, limites par défaut. Aucun secret. |
-| `application-dev.yml`  | Swagger activé (racine), logs en console niveau `DEBUG` sur les packages de l'app, valeurs locales pratiques (PostgreSQL et Redis locaux).                                            |
-| `application-test.yml` | Tests : Testcontainers, hash de mot de passe rapide, limites de débit très hautes, schedulers désactivés.                                                                             |
+| `application.yml`      | Socle commun : nom de l'app, `app.timezone` (défaut UTC), pool Hikari, `ddl-auto: validate`, `open-in-view: false`, `default_batch_fetch_size: 20`, Flyway, probes Actuator, cache, limites par défaut. Aucun secret. |
+| `application-dev.yml`  | Swagger activé (racine), logs en console niveau `DEBUG` sur les packages de l'app, `org.hibernate.SQL: DEBUG` et `generate_statistics` pour repérer un N+1, valeurs locales pratiques (PostgreSQL et Redis locaux).                                            |
+| `application-test.yml` | Tests : Testcontainers, `ddl-auto: validate` (pas de H2), `fail_on_pagination_over_collection_fetch: true`, hash de mot de passe rapide, limites de débit très hautes, schedulers désactivés.                                                                             |
 | `application-prod.yml` | **Uniquement des variables d'environnement**, aucune valeur par défaut pour un secret, Swagger désactivé, logs `INFO`, erreurs sans détail technique.                                 |
 
 **Profil par défaut : `dev`.** Sans profil explicite, l'application démarre en `dev` (Swagger, logs `DEBUG`, PostgreSQL et Redis locaux), ce qui donne un lancement local sans configuration. C'est `application.yml` qui le déclare :
