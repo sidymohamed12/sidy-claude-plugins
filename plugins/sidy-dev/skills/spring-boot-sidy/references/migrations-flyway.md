@@ -17,7 +17,7 @@ Complète la section 9 du skill `spring-boot-sidy`. **À lire avant d'écrire un
 - Séquentielle `V{n}__…` (défaut du skill). Flyway compare les versions numériquement (`V10` après `V9`) ; la colonne `version` de `flyway_schema_history` est du texte : trier sur `installed_rank`, jamais sur `max(version)`.
 - **Deux branches qui créent la même version** ne provoquent aucun conflit Git (noms de fichier différents) : l'erreur `Found more than one migration with version 5` n'apparaît qu'au démarrage. Ce qui protège, c'est le test de CI (section 8). Renuméroter la migration qui arrive en second **seulement si elle n'a été appliquée dans aucun environnement partagé**.
 - Migration de version inférieure à la dernière appliquée (`Ignored`, échec de validation) : la renuméroter à la suite. `out-of-order: true` reste exceptionnel (correctif urgent), puis retour à `false` : l'ordre réel d'exécution diffère sinon selon les environnements.
-- Numérotation par horodatage (`V202611251400__…`) : possible si les branches vivent longtemps, mais l'ordre suit la création et non le merge. À ne proposer que si Sidy le décide.
+- **Séquentielle privilégiée.** Numérotation par horodatage (`V202611251400__…`) : permise quand le cas est concret (plusieurs équipes, branches qui vivent longtemps, collisions répétées), mais l'ordre suit alors la création et non le merge. `architecte` tranche selon le projet et le consigne dans un ADR ; ne jamais mélanger les deux styles dans un même projet.
 
 ## 3. Changements rétrocompatibles ou cassants : expand / contract
 
@@ -91,7 +91,41 @@ Flyway refuse une base non vide sans historique. `baseline-on-migrate: true` + `
 - La version vit à deux endroits qui doivent concorder : les fichiers dans Git (ce que l'application attend) et `flyway_schema_history` (ce qui est appliqué). `flyway info` donne les statuts : `Pending`, `Success`, `Failed`, `Ignored` (version inférieure à la dernière appliquée), `Missing` (appliquée mais script absent), `Future` (appliquée, inconnue de cette application).
 - Un schéma **plus récent** que l'application (retour arrière de l'application) est toléré : `Future` est ignoré, l'ancienne instance démarre. Le vrai risque est SQL à l'exécution (colonne supprimée que l'ancienne version utilise) : d'où la règle N / N-1. **Retour arrière de l'application ≠ retour arrière de la base** (voir `ci.md`).
 - Noter, dans les notes de version ou le `CHANGELOG` du projet, quelle version de schéma embarque chaque version de l'application et le schéma minimal qu'elle exige.
-- Garde-fou de démarrage (bornes min / max de version, échec net si le schéma est hors intervalle) : **optionnel, à proposer seulement si Sidy le demande**. Il interdit le retour arrière applicatif simple, c'est un choix à assumer. Ne pas exposer `/actuator/flyway` (Actuator limité aux sondes, `infra.md`).
+- **Garde-fou de démarrage** (échec net si le schéma est hors de l'intervalle que l'application supporte) : à utiliser **quand le besoin est concret** (schéma partagé par plusieurs applications, panne claire préférée à une erreur SQL en cours d'exécution). Il interdit le retour arrière applicatif simple : `architecte` en décide cas par cas. Les bornes viennent de la livraison (propriétés YAML), jamais d'un nombre en dur oublié. Ne pas exposer `/actuator/flyway` (Actuator limité aux sondes, `infra.md`).
+
+```java
+@Component
+class SchemaVersionGuard implements ApplicationRunner {
+
+    private static final String EMPTY_SCHEMA = "Aucune migration appliquée : schéma vide";
+    private static final String OUT_OF_RANGE = "Schéma V%s hors de l'intervalle compatible V%s à V%s";
+
+    private final Flyway flyway;
+    private final MigrationVersion minimum;
+    private final MigrationVersion maximum;
+
+    SchemaVersionGuard(Flyway flyway, SchemaVersionProperties properties) {
+        this.flyway = flyway;
+        this.minimum = MigrationVersion.fromVersion(properties.minimum());
+        this.maximum = MigrationVersion.fromVersion(properties.maximum());
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
+        MigrationInfo current = flyway.info().current();
+        if (current == null) {
+            throw new IllegalStateException(EMPTY_SCHEMA);
+        }
+        MigrationVersion version = current.getVersion();
+        if (version.compareTo(minimum) < 0 || version.compareTo(maximum) > 0) {
+            throw new IllegalStateException(OUT_OF_RANGE.formatted(version, minimum, maximum));
+        }
+    }
+}
+```
+
+  Test (`should_reject_schema_when_version_is_out_of_range`, `@ParameterizedTest`) : construire le garde **avant** la lambda, qui ne contient que `guard.run(null)` (S5778).
+- **Test « version attendue »** (`flyway.info().current()` égale une constante) : utile quand on veut qu'ajouter une migration soit visible en revue ; la constante se met à jour à chaque migration. À activer quand l'équipe le demande, pas par défaut.
 
 ## 8. Dérive du schéma, CI et tests
 

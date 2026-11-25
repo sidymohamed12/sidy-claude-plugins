@@ -151,7 +151,28 @@ Mesurer proprement, sinon le test est vert alors que le N+1 existe :
 - compter la requête de comptage quand le use case renvoie un `Page` ;
 - le seuil est une **constante nommée** adaptée au comportement attendu, pas un nombre au hasard.
 
-Pour compter le SQL réellement envoyé en test d'intégration (`@SpringBootTest`), il existe `datasource-proxy` : dépendance hors BOM, **absente du catalogue de versions**. Ne l'ajouter que sur demande de Sidy, en vérifiant sa version stable.
+Pour compter le SQL réellement envoyé dans un test de bout en bout (`@SpringBootTest`, use case complet, sans dépendre d'Hibernate), utiliser `net.ttddyy:datasource-proxy` en scope `test`. C'est une dépendance **hors BOM et hors catalogue** : l'ajouter quand le besoin est concret (Hibernate Statistics ne suffit pas), après avoir vérifié sa version stable actuelle et l'avoir épinglée dans une propriété du `pom.xml`, comme les autres.
+
+```java
+@TestConfiguration
+public class QueryCountTestConfig {
+
+    @Bean
+    static BeanPostProcessor queryCountingDataSourcePostProcessor() {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) {
+                if (bean instanceof DataSource dataSource && !(bean instanceof ProxyDataSource)) {
+                    return ProxyDataSourceBuilder.create(dataSource).name("query-counter").countQuery().build();
+                }
+                return bean;
+            }
+        };
+    }
+}
+```
+
+Le test fait `QueryCountHolder.clear()` avant le scénario, puis `assertThat(QueryCountHolder.getGrandTotal().getSelect()).isLessThanOrEqualTo(MAX_SELECT_COUNT)` (constante nommée), avec les mêmes règles de mesure que ci-dessus.
 
 ## 6. À éviter
 
