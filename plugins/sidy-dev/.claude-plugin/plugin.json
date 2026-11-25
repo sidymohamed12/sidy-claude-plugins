@@ -1,7 +1,7 @@
 {
   "name": "sidy-dev",
-  "version": "1.9.0",
-  "description": "Conventions Spring Boot, Angular et design front de Sidy : 5 skills (spring-boot-sidy, angular-sidy, design-sidy, pentest-sidy, git-sidy) et 8 agents (architecte, backend-dev, reviewer, security-reviewer, security-fixer, designer, frontend-dev, pentest-actif).",
+  "version": "1.10.0",
+  "description": "Conventions Spring Boot, Angular et design front de Sidy : 5 skills (spring-boot-sidy, angular-sidy, design-sidy, pentest-sidy, git-sidy) et 9 agents (architecte, backend-dev, reviewer, security-reviewer, security-fixer, designer, frontend-dev, pentest-actif, documentaliste).",
   "author": {
     "name": "Sidy Mohamed SAIZONOU"
   },

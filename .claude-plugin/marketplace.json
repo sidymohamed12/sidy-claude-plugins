@@ -10,14 +10,14 @@
     {
       "name": "sidy-dev",
       "source": "./plugins/sidy-dev",
-      "description": "Conventions Spring Boot, Angular et design front de Sidy : 5 skills (spring-boot-sidy, angular-sidy, design-sidy, pentest-sidy, git-sidy) et 8 agents (architecte, backend-dev, reviewer, security-reviewer, security-fixer, designer, frontend-dev, pentest-actif).",
-      "version": "1.9.0"
+      "description": "Conventions Spring Boot, Angular et design front de Sidy : 5 skills (spring-boot-sidy, angular-sidy, design-sidy, pentest-sidy, git-sidy) et 9 agents (architecte, backend-dev, reviewer, security-reviewer, security-fixer, designer, frontend-dev, pentest-actif, documentaliste).",
+      "version": "1.10.0"
     },
     {
       "name": "sidy-office",
       "source": "./plugins/sidy-office",
       "description": "Le bureau des agents : une page web locale en pixel art qui montre Claude et tes agents en train de travailler, en direct. L'équipe est détectée automatiquement et se personnalise avec sidy-office.json.",
-      "version": "1.13.0"
+      "version": "1.14.0"
     }
   ]
 }

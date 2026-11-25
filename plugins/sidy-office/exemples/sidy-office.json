@@ -8,7 +8,9 @@
     "frontend-dev",
     "reviewer",
     "security-reviewer",
-    "pentest-actif"
+    "security-fixer",
+    "pentest-actif",
+    "documentaliste"
   ],
   "agents": {
     "claude": {
@@ -60,11 +62,27 @@
       "cheveux": "#141414",
       "accessoire": "casquette"
     },
+    "security-fixer": {
+      "role": "Corrige un constat de sécurité",
+      "couleur": "#B03A3A",
+      "peau": 4,
+      "cheveux": "#2B2118",
+      "coupe": "rase",
+      "accessoire": "casque"
+    },
     "pentest-actif": {
       "role": "Teste l'app qui tourne",
       "couleur": "#232A36",
       "peau": 3,
       "accessoire": "capuche"
+    },
+    "documentaliste": {
+      "role": "Documente après chaque dev",
+      "couleur": "#C99A06",
+      "peau": 1,
+      "cheveux": "#1E1E1E",
+      "coupe": "afro",
+      "accessoire": "lunettes"
     }
   }
 }
