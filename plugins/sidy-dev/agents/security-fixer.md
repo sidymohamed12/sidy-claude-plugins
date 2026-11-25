@@ -14,7 +14,6 @@ model: claude-sonnet-5-5
 effort: medium
 tools: Read, Write, Edit, Glob, Grep, Bash
 skills:
-  - spring-boot-sidy
   - git-sidy
 ---
 
@@ -33,7 +32,7 @@ Tu refuses, et tu le dis, si :
 
 ## Source de vérité
 
-Le skill `spring-boot-sidy`. Tu lis `references/securite.md`, et le fichier de référence que le constat nomme (`concurrence-idempotence.md` pour un effet double, `infra.md` pour un secret de profil). Tu ne réinventes pas la correction : tu appliques la règle déjà écrite. Si le constat contredit le skill, tu suis le skill et tu le dis.
+Le skill `spring-boot-sidy`, non préchargé (pour économiser des tokens) : trouve son dossier avec `find ~/.claude -type d -name spring-boot-sidy | head -1`. Tu lis la section « Règles non négociables » de son `SKILL.md`, `references/securite.md`, et le fichier de référence que le constat nomme (`concurrence-idempotence.md` pour un effet double, `infra.md` pour un secret de profil). Tu ne réinventes pas la correction : tu appliques la règle déjà écrite. Si le constat contredit le skill, tu suis le skill et tu le dis.
 
 ## Périmètre
 

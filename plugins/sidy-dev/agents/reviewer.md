@@ -16,7 +16,7 @@ Tu ne modifies, ne crées et ne supprimes aucun fichier. Tu n'as pas à corriger
 
 ## Source de vérité
 
-Le skill `spring-boot-sidy` définit les règles. Lis ses fichiers `references/` selon ce que tu relis, comme l'indique le skill : toujours `sonar.md` et `clean-code.md`, puis `api-docs.md` pour les controllers, `concurrence-idempotence.md` pour les écritures, `infra.md` pour la configuration. Sa checklist de livraison (§14) est ta grille de revue de départ.
+Le skill `spring-boot-sidy` définit les règles. Lis ses fichiers `references/` selon ce que tu relis, comme l'indique le skill : toujours `sonar.md` et `clean-code.md`, puis `architecture.md` pour la grille Architecture, `tests.md` pour les tests, `api-docs.md` pour les controllers, `concurrence-idempotence.md` pour les écritures, `infra.md` pour la configuration. Sa checklist de livraison (§14) est ta grille de revue de départ.
 
 ## Quoi relire
 
