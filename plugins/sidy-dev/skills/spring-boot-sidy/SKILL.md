@@ -1,6 +1,6 @@
 ---
 name: "spring-boot-sidy"
-description: "Conventions back-end Spring Boot de Sidy : Clean Architecture (Uncle Bob), DDD, SOLID, TDD, clean code, règles Sonar, design patterns, Builder, PostgreSQL + Flyway, Redis (cache, rate-limiting, révocation JWT), sécurité (CSRF, injections SQL), ShedLock, Docker, Actuator, Kubernetes, profils YAML, docs. À utiliser dès que l'utilisateur parle de Spring Boot, back-end Java, API REST, entité JPA, use case, service, controller, migration Flyway, JWT, Redis, Docker, Kubernetes, Actuator, tests JUnit/Mockito, ou demande de coder, relire ou refactorer du code Java côté serveur, même sans dire « skill »."
+description: "Conventions back-end Spring Boot de Sidy : Clean Architecture (Uncle Bob), DDD, SOLID, TDD, clean code, règles Sonar, design patterns, Builder, PostgreSQL + Flyway (index, migrations expand / contract), N+1, soft delete, Redis (cache, rate-limiting, révocation JWT), sécurité (CSRF, injections SQL), ShedLock, Docker, Actuator, Kubernetes, profils YAML, docs. À utiliser dès que l'utilisateur parle de Spring Boot, back-end Java, API REST, entité JPA, use case, service, controller, migration Flyway, JWT, Redis, Docker, Kubernetes, Actuator, tests JUnit/Mockito, ou demande de coder, relire ou refactorer du code Java côté serveur, même sans dire « skill »."
 ---
 
 # Spring Boot — façon Sidy
@@ -25,6 +25,10 @@ Cible (nouveau projet, nov. 2026) : **Spring Boot 4.2.0**, **Java 25** (LTS), **
 | `references/architecture.md` | **créer ou déplacer une classe, un package, une feature** : arborescence feature → domain / application / infrastructure, règle de dépendance, ports (§1) |
 | `references/builder-patterns.md` | **objet à 4 paramètres ou plus, paramètres optionnels, choix d'un design pattern** (§5 et §6) |
 | `references/tests.md` | **écrire ou relire des tests** : 3 lois du TDD, F.I.R.S.T., tests par couche, exceptions (§12) |
+| `references/index-postgresql.md` | **migration qui crée un index, requête de filtre, de recherche ou de tri** : fonction sur colonne, `LIKE`, `pg_trgm`, composite, partiel, `CONCURRENTLY`, `EXPLAIN` |
+| `references/migrations-flyway.md` | **toute migration, changement de colonne ou de contrainte, config Flyway, CI des migrations** : expand / contract, grosses tables, échec et `repair`, baseline, versionnement, dérive |
+| `references/jpa-n-plus-1.md` | **association JPA, requête de liste, adapter de persistance** : `LAZY`, `@EntityGraph`, `@BatchSize`, pagination d'une collection, test de comptage de requêtes |
+| `references/soft-delete.md` | **suppression de données** : `deleted_at`, `@SQLDelete` + `@SQLRestriction`, unique partiel, purge ShedLock, droit à l'effacement |
 | `references/versions.md` | **nouveau projet ou montée de version** : catalogue Boot 4.2 / Java 25 / springdoc / Bucket4j / ShedLock / Jackson 3 |
 | `references/setup-projet.md` | **nouveau projet** : socle à livrer dès le départ (§0) |
 | `references/livraison.md` | **fin de tâche ou début de revue** : checklist de livraison (§14) |
@@ -77,8 +81,11 @@ Elles s'appliquent à chaque projet, sans que l'utilisateur ait à les rappeler.
 28. **Domaine sans dépendance externe** : `domain` n'importe que `java.*` ; builders, `equals`, `hashCode` écrits à la main, pas de Lombok (§1, §5).
 29. **Exceptions traitées en un seul endroit** : `GlobalExceptionHandler` unique, hiérarchie d'exceptions dans `shared/domain/exception` (`references/api-docs.md`, section 6).
 30. **Aucun import entre features** : communication par les ports `out` de `shared/domain/port/out` (ou événements de `shared/domain/events`) (§1).
-31. **Indexation toujours gérée** : index sur chaque clé étrangère et sur les colonnes filtrées / triées, définis dans les migrations Flyway (§9).
+31. **Indexation toujours gérée** : index sur chaque clé étrangère et sur les colonnes filtrées / triées, définis dans les migrations Flyway, jamais de fonction sur la colonne indexée (§9, `references/index-postgresql.md`).
 32. **Race conditions évitées et idempotence toujours** : contrainte `UNIQUE` / `@Version` / `UPDATE` atomique, `Idempotency-Key` sur les `POST` à effet, listeners et jobs rejouables (`references/concurrence-idempotence.md`).
+33. **Migrations sûres** : en avant seulement, jamais modifier une migration appliquée, `ddl-auto: validate` dans tous les profils (pas de H2), changement cassant en expand / contract, grosses tables par lots avec `lock_timeout` et `NOT VALID`, test de migration en CI (`references/migrations-flyway.md`).
+34. **Pas de N+1** : associations `LAZY` écrites explicitement, jamais `EAGER`, chargement décidé par la requête de l'adapter, jamais de `JOIN FETCH` de collection avec `Pageable`, test de comptage de requêtes sur chaque liste importante (`references/jpa-n-plus-1.md`).
+35. **Suppression logique décidée par agrégat** : `deleted_at`, `@SQLDelete` + `@SQLRestriction`, unique partiel, purge ShedLock avec rétention, anonymisation ou suppression physique pour le droit à l'effacement (`references/soft-delete.md`).
 
 ## Questions à poser au démarrage d'un nouveau projet
 
@@ -93,6 +100,7 @@ Poser en un seul bloc, en sautant ce qui est déjà précisé. Ne jamais décide
 7. Langue des identifiants du code et des messages d'erreur renvoyés à l'API.
 8. Déploiement : hébergement, base de données dans Compose ou managée, CI (GitHub Actions + Sonar : gabarits `templates/ci/`), Kubernetes ou non.
 9. Services annexes à prévoir dans les compose (mail catcher, stockage objet, broker…).
+10. Suppression des données : quels agrégats en suppression logique (historique, audit, obligation légale), quelle rétention avant purge, quels besoins d'effacement des données personnelles ?
 
 ## 0. Setup d'un nouveau projet
 
@@ -170,18 +178,12 @@ Détails et exemples dans `references/clean-code.md`, à lire avant d'écrire ou
 
 - **Flyway toujours** : starter Boot + module PostgreSQL, `src/main/resources/db/migration`, fichiers `V{n}__description_en_snake_case.sql`. **Ne jamais modifier une migration déjà appliquée**. Socle YAML : `validate-on-migrate: true`, `clean-disabled: true`, `lock-retry-count: 50`, `postgresql.transactional-lock: false` (requis pour `CREATE INDEX CONCURRENTLY` + fichier `.sql.conf` avec `executeInTransaction=false`). Placeholder `app_role: ${spring.datasource.username:app}` pour les `GRANT`. En prod : compte Flyway distinct (`FLYWAY_USER` / `FLYWAY_PASSWORD`), idéalement one-shot `migrate` puis app avec `FLYWAY_ENABLED=false`. Aucune migration destructive sans accord explicite.
 - Contraintes (`NOT NULL`, `UNIQUE`, `FOREIGN KEY`, `CHECK`) et index définis en SQL, pas laissés à Hibernate (`ddl-auto=validate`, pas de `@Table(indexes = …)`).
-- **Indexation, à traiter dans chaque migration qui touche le schéma** :
-  - **Index sur chaque clé étrangère** (PostgreSQL ne les crée pas) ;
-  - index sur les colonnes des `WHERE`, `JOIN` et `ORDER BY` des requêtes réellement écrites (filtres de recherche, tri par défaut des listes paginées) ;
-  - index composite : colonnes d'égalité d'abord, puis de plage / tri ; index partiel (`WHERE deleted_at IS NULL`) ou unique partiel quand il réduit le volume ;
-  - `GIN` pour `jsonb` et recherche texte (`pg_trgm`), `GiST` pour le géospatial ;
-  - nommage `idx_<table>_<colonnes>`, `uk_…`, `fk_…` ;
-  - sur une grosse table en production : `CREATE INDEX CONCURRENTLY`, dans une migration non transactionnelle (`executeInTransaction=false` dans le fichier `.conf` de la migration, à vérifier selon la version de Flyway) ;
-  - vérifier avec `EXPLAIN (ANALYZE, BUFFERS)` ; ne pas sur-indexer (chaque index ralentit les écritures) ; repérer les index inutilisés via `pg_stat_user_indexes` ;
-  - un test Testcontainers échoue si une clé étrangère n'a pas d'index (requête sur `pg_constraint` / `pg_index`, à valider sur la base du projet).
+- **Indexation, à traiter dans chaque migration qui touche le schéma** : index sur chaque clé étrangère (PostgreSQL ne les crée pas) et sur les colonnes des `WHERE`, `JOIN` et `ORDER BY` des requêtes réellement écrites ; composite égalités d'abord, plage ou tri en dernier ; partiel ou unique partiel quand il réduit le volume ; `GIN` / `pg_trgm` pour la recherche de texte ; nommage `idx_` / `uk_` / `fk_` / `ck_` ; `CREATE INDEX CONCURRENTLY` (un fichier = un index) sur une grosse table ; `EXPLAIN (ANALYZE, BUFFERS)` pour vérifier. Détail, règles et tests : `references/index-postgresql.md` (**à lire avant d'écrire un index ou une requête de recherche**).
+- **Migrations** (changement cassant, grosses tables, échec, baseline, versionnement, CI) : `references/migrations-flyway.md`.
 - Auditing (`createdAt`, `updatedAt`, `createdBy`) via `AuditingEntityListener`.
 - **Concurrence et idempotence** (détails dans `references/concurrence-idempotence.md`) : toute écriture est rejouable sans effet en double ; la base arbitre (contrainte `UNIQUE`, mise à jour atomique) ; `Idempotency-Key` sur les `POST` à effet. Rappel : `@Version` (verrou optimiste) sur les agrégats modifiés en parallèle ; verrou pessimiste ou contrainte unique pour compteurs, stocks et numéros séquentiels ; `OptimisticLockingFailureException` → `409`.
-- **Performance** : éviter le N+1 (`@EntityGraph`, `JOIN FETCH`, projections), `LAZY` par défaut, pagination côté base, jamais de `findAll()` sans pagination sur une grosse table.
+- **Performance** : pas de N+1 (associations `LAZY` explicites, `@EntityGraph` / `JOIN FETCH` / `@BatchSize` / projections, détail dans `references/jpa-n-plus-1.md`), pagination côté base, jamais de `findAll()` sans pagination sur une grosse table.
+- **Suppression** : données métier en suppression logique selon la décision par agrégat (`references/soft-delete.md`), données temporaires en `DELETE` physique.
 - Requêtes **toujours paramétrées** (voir `references/securite.md`, section 3). Utilisateur applicatif PostgreSQL en moindres privilèges.
 
 ## 10. Sécurité (résumé : lire `references/securite.md`)
@@ -202,8 +204,8 @@ Cache Redis avec TTL et invalidation explicite (Decorator du port de lecture), S
 2. **Domaine** (JDK uniquement, builders à la main) : test d'abord, puis `model` (avec `equals` / `hashCode`), `valueobject`, `command`, `event`, `exception`, `service` si besoin, et les ports `in` / `out` (`domain/port`).
 3. **Application** : test d'abord (ports `out` mockés), puis `usecase` (implémentations des ports `in`), `service`, `listener` et `facade` si besoin.
 3 bis. **Écritures** : prévoir concurrence et idempotence (`references/concurrence-idempotence.md`), test de concurrence d'abord.
-4. **Migration Flyway** : nouveau fichier `V{n}__…sql`, **avec les index** (clés étrangères, filtres, tris) (et mise à jour de `.env.example` / YAML si de nouvelles clés apparaissent).
-5. **Infrastructure — persistance** : test `@DataJpaTest` d'abord, puis `entity` JPA, `repository`, `mapper` (entity ⇄ model), `adapter` qui implémente le port `out` (et cache / autres packages techniques si pertinent).
+4. **Migration Flyway** : nouveau fichier `V{n}__…sql`, **avec les index** (clés étrangères, filtres, tris) (et mise à jour de `.env.example` / YAML si de nouvelles clés apparaissent). Changement cassant ou grosse table : `references/migrations-flyway.md`.
+5. **Infrastructure — persistance** : test `@DataJpaTest` d'abord, puis `entity` JPA, `repository`, `mapper` (entity ⇄ model), `adapter` qui implémente le port `out` (et cache / autres packages techniques si pertinent). Associations `LAZY`, requête de l'adapter qui charge ce que le mapper lit, test de comptage de requêtes pour une liste (`references/jpa-n-plus-1.md`) ; suppression logique : `references/soft-delete.md`.
 6. **Infrastructure — web** : test `@WebMvcTest` d'abord, puis `dto/request` et `dto/response` documentés, interface `XxxController` dans `web/controller/` (Swagger complet), records de `web/doc` si besoin, implémentation `XxxControllerImpl` dans `web/controller/implement/`, `web/mapper`, exceptions de la feature en sous-classes des catégories de `shared/domain/exception` (le handler global ne change pas).
 7. **Sécurité** : règles d'accès, rate-limit adapté, tests de sécurité de la route.
 8. **Documentation** : requêtes dans `docs/http/`, ADR si décision structurante, diagramme ou flow si processus non trivial.

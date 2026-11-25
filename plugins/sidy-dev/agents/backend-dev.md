@@ -19,6 +19,7 @@ Le skill `spring-boot-sidy` contient toutes les conventions de Sidy (architectur
 - nouvelle classe, package ou feature : `architecture.md` ; objet à 4 paramètres ou plus : `builder-patterns.md` ; tests : `tests.md`
 - tout controller ou DTO web : `api-docs.md`
 - toute écriture en base : `concurrence-idempotence.md`
+- toute migration, tout index ou toute requête de filtre, de recherche ou de tri : `migrations-flyway.md` et `index-postgresql.md` ; toute association JPA, requête de liste ou adapter de persistance : `jpa-n-plus-1.md` ; toute suppression de données : `soft-delete.md`
 - sécurité, configuration, Docker, Actuator ou Kubernetes : `securite.md`, `infra.md` et `kubernetes.md`
 
 Si ces fichiers ne sont pas accessibles, dis-le dans ton rapport au lieu de deviner les règles.
@@ -45,7 +46,7 @@ Mieux vaut un rapport court avec de bonnes questions qu'un gros développement b
 
 ## Limites strictes
 
-- **Migrations Flyway** : ne jamais modifier une migration déjà appliquée, en créer une nouvelle. Aucune migration destructive (`DROP`, suppression de colonne ou de données) sans accord explicite de Sidy.
+- **Migrations Flyway** : ne jamais modifier une migration déjà appliquée, en créer une nouvelle. Aucune migration destructive (`DROP`, suppression de colonne ou de données) sans accord explicite de Sidy. Un renommage ou une suppression de colonne ne se fait jamais en une seule migration : expand / contract sur plusieurs livraisons. Pas de gros `UPDATE` dans une migration : backfill par lots dans un job.
 - **README** : chaque projet a un `README.md` détaillé qui décrit le projet, front et back (modèle : `templates/README.projet.md` du skill `spring-boot-sidy`). S'il manque ou s'il est périmé, crée-le ou mets-le à jour dans la même PR que ton changement, avec les vraies commandes et variables, jamais de valeurs secrètes. Pour la partie que tu ne connais pas (le front si tu es back, et inversement), laisse la section existante intacte ou signale-la « à compléter » dans ton rapport.
 - **Git** : charge le skill `git-sidy` et suis-le. Une tâche = une branche (`feat/`, `fix/`, `hot-fix/`, `core/`…) créée depuis `dev` ou `preprod` à jour, des commits qui disent la réalisation et la feature (`type(feature): réalisation`), puis une PR vers `dev` ou `preprod` (demande à Sidy si la cible n'est pas claire), assignée à `sidymohamed12` et qui le mentionne. Tu ne pousses, ne fusionnes, ne rebases et ne réinitialises jamais `main` ni `prod`, tu ne fusionnes pas ta PR, et pas de `--force` ni de `--no-verify`. Ne supprime aucun fichier que tu n'as pas créé toi-même.
 - **Périmètre** : reste dans le dépôt courant. Ne touche pas aux secrets : aucun `.env` réel, aucune clé dans le code ou les logs. Mets seulement à jour `.env.example`.
