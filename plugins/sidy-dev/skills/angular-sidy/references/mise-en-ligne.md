@@ -1,13 +1,13 @@
 # Mise en ligne d'un site public
 
-Références ajoutées au skill `angular-sidy`. À lire avant de livrer ou de déployer un site public (vitrine, e-commerce, plateforme avec comptes). Un back-office privé n'a besoin que de HTTPS, des clés et des liens. Le SEO et le déploiement de base sont dans `seo-deploiement.md`, les pages légales et les cookies dans `pages-cookies.md`.
+Références ajoutées au skill `angular-sidy`. À lire avant de livrer ou de déployer un site public (vitrine, e-commerce, plateforme avec comptes). Un back-office privé n'a besoin que des points sur le contenu mixte, les clés et les liens. Le SEO et le déploiement de base sont dans `seo-deploiement.md`, les pages légales et les cookies dans `pages-cookies.md`.
 
-## 1. HTTPS forcé
+## 1. HTTPS côté front
 
-- Toute requête en `http://` est redirigée en 301 vers `https://`, sur le domaine nu comme sur `www`. Netlify et Vercel le font seuls ; sur un VPS, le serveur web (Nginx, Caddy) porte la redirection.
-- En-tête `Strict-Transport-Security: max-age=31536000; includeSubDomains` dans `_headers` ou la config du serveur. Pas de `preload` sans demande de Sidy (difficile à annuler).
+La redirection HTTP → HTTPS et l'en-tête HSTS sont posés par l'hébergeur ou le serveur : hors périmètre de ce skill. Le front garantit seulement qu'il ne casse pas le HTTPS :
+
 - Aucun contenu mixte : toutes les URLs d'API, d'images, de polices et de scripts sont en `https://`, tirées de `@env/environment` ; `canonical` et `og:url` en `https://`. Cookies `Secure` en production.
-- Contrôle : `curl -sI http://<domaine>` répond 301 vers `https://`, et la console du navigateur ne signale aucun contenu mixte.
+- Contrôle : la console du navigateur ne signale aucun contenu mixte sur le site déployé ; `grep -rn "http://" src public` ne trouve aucune URL de ressource en clair.
 
 ## 2. Clés API hors du front
 
@@ -47,24 +47,20 @@ Ne jamais inventer le contenu. Poser ces questions d'abord, en un seul bloc, en 
 
 Les réponses manquantes restent en `[À COMPLÉTER : …]`, avec date de dernière mise à jour et sommaire ancré, comme les autres pages légales. Rappeler que le texte doit être validé par un juriste. À l'inscription : case **non cochée par défaut** avec lien vers les CGU, et le back enregistre la version acceptée et la date.
 
-## 6. Anti-spam des formulaires
+## 6. Anti-spam des formulaires (côté front)
 
-Le front ne protège pas à lui seul : toute vérification est refaite dans le back.
+Le front ne protège pas à lui seul : le back refait toute vérification. Côté front :
 
-- **Champ piège (honeypot)** : un champ invisible (`aria-hidden="true"`, `tabindex="-1"`, `autocomplete="off"`, positionné hors écran, pas en `display: none` seul). S'il est rempli, le back rejette la demande sans message d'erreur explicite.
-- **Délai minimal** : le back refuse un envoi arrivé quelques secondes après l'affichage du formulaire (horodatage fourni au chargement).
-- **Limitation de débit** dans le back (déjà une règle du back : Redis). Le front gère la réponse `429` avec un message clair et le délai d'attente indiqué, et désactive le bouton pendant l'envoi.
-- **Captcha** seulement si le spam persiste ou sur les formulaires sensibles (inscription, contact public) : Cloudflare Turnstile ou hCaptcha plutôt que reCAPTCHA. Chargé dynamiquement, et seulement après consentement s'il pose des cookies. Le jeton est validé par le back. Accessible au clavier et au lecteur d'écran.
+- **Champ piège (honeypot)** : un champ invisible (`aria-hidden="true"`, `tabindex="-1"`, `autocomplete="off"`, positionné hors écran, pas en `display: none` seul), envoyé avec le formulaire pour que le back le contrôle.
+- **Réponse `429`** (trop de requêtes) : message clair avec le délai d'attente indiqué, bouton désactivé pendant l'envoi.
+- **Captcha** seulement si le spam persiste ou sur les formulaires sensibles (inscription, contact public) : Cloudflare Turnstile ou hCaptcha plutôt que reCAPTCHA. Chargé dynamiquement, et seulement après consentement s'il pose des cookies. Le jeton est envoyé au back, qui le valide. Accessible au clavier et au lecteur d'écran.
 - Pas d'adresse e-mail en clair dans le HTML quand un formulaire de contact suffit.
 
-## 7. Search Console
+## 7. Sitemap, robots et indexation
 
-À faire après le premier déploiement en production, par Sidy (son compte Google) ; l'agent prépare, il ne fait pas.
-
-- Préparer : `sitemap.xml` accessible et à jour, `robots.txt` sans `Disallow` sur le site de production, aucun `noindex` sur les pages publiques. **Les environnements de recette et de préproduction restent en `noindex` et `Disallow: /`** ; contrôler que ce réglage ne passe pas en production.
-- À faire par Sidy : ajouter le site comme propriété (de préférence « Domaine », par un enregistrement DNS TXT), envoyer l'URL du sitemap, demander l'indexation de l'accueil, relire les rapports d'indexation et de performances (Core Web Vitals) une semaine plus tard.
-- Le rapport de l'agent liste ces étapes dans « À signaler ».
+- `sitemap.xml` accessible et à jour, avec l'URL de production (tirée de l'environnement) ; `robots.txt` sans `Disallow` sur le site de production.
+- Aucun `noindex` sur les pages publiques de production. **Les environnements de recette et de préproduction restent en `noindex` et `Disallow: /`** ; contrôler que ce réglage ne passe pas en production.
 
 ## Contrôle avant la mise en ligne
 
-HTTPS redirigé et HSTS · aucune clé secrète dans le dépôt ni dans `dist/` · image de partage 1200 × 630 et balises complètes · aucun lien interne cassé, 404 correcte · CGU (si comptes, achats ou contenus) · anti-spam sur chaque formulaire public · sitemap et robots corrects, `noindex` seulement hors production · Search Console listée pour Sidy.
+Aucun contenu mixte · aucune clé secrète dans le dépôt ni dans `dist/` · image de partage 1200 × 630 et balises complètes · aucun lien interne cassé, 404 correcte · CGU (si comptes, achats ou contenus) · anti-spam côté front sur chaque formulaire public · sitemap et robots corrects, `noindex` seulement hors production.
