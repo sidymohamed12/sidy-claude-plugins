@@ -8,7 +8,8 @@
     "frontend-dev",
     "reviewer",
     "security-reviewer",
-    "pentest-actif"
+    "pentest-actif",
+    "documentaliste"
   ],
   "agents": {
     "claude": {
@@ -65,6 +66,14 @@
       "couleur": "#232A36",
       "peau": 3,
       "accessoire": "capuche"
+    },
+    "documentaliste": {
+      "role": "Documente après chaque dev",
+      "couleur": "#C99A06",
+      "peau": 1,
+      "cheveux": "#1E1E1E",
+      "coupe": "afro",
+      "accessoire": "lunettes"
     }
   }
 }

@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-25, `sidy-office` v1.14.0)** — `documentaliste` a son personnage dans l'exemple `sidy-office.json` (jaune, afro, lunettes), en dernier de l'ordre de l'équipe.
+>
 > **Mise à jour (2026-11-25, `sidy-dev` v1.10.0)** — nouvel agent **`documentaliste`** : après chaque fin de développement, il repère ce qu'il faut documenter ou modifier (README, `docs/http`, flows et diagrammes tels que construits), signale les écarts avec les ADR à `architecte` et ne touche jamais au code.
 >
 > **Mise à jour (2026-11-25, `sidy-office` v1.13.0)** — `architecte` a son personnage dans l'exemple `sidy-office.json` (bleu, cheveux longs) et passe en tête de l'ordre de l'équipe. Il apparaissait déjà seul, avec un look généré ; copie l'exemple dans `~/.claude/` pour lui donner celui-ci.

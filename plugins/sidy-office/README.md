@@ -117,7 +117,7 @@ Un agent présent dans le fichier mais introuvable sur ta machine (par exemple `
 
 Si le fichier contient une erreur, ou un réglage inconnu ou invalide (une `coupe` qui n'existe pas, une couleur mal écrite, une faute de frappe dans une clé), la page l'indique en haut et le bureau continue avec les autres réglages. Les changements s'appliquent au prochain rechargement de la page.
 
-Le fichier [`exemples/sidy-office.json`](exemples/sidy-office.json) reproduit l'équipe de Sidy (`architecte`, `backend-dev`, `designer`, `frontend-dev`, `reviewer`, `security-reviewer`, `pentest-actif`) : copie-le dans `~/.claude/` pour partir de là.
+Le fichier [`exemples/sidy-office.json`](exemples/sidy-office.json) reproduit l'équipe de Sidy (`architecte`, `backend-dev`, `designer`, `frontend-dev`, `reviewer`, `security-reviewer`, `pentest-actif`, `documentaliste`) : copie-le dans `~/.claude/` pour partir de là.
 
 ## Comment ça marche
 
