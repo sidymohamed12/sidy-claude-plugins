@@ -8,6 +8,7 @@
     "frontend-dev",
     "reviewer",
     "security-reviewer",
+    "security-fixer",
     "pentest-actif",
     "documentaliste"
   ],
@@ -60,6 +61,14 @@
       "peau": 1,
       "cheveux": "#141414",
       "accessoire": "casquette"
+    },
+    "security-fixer": {
+      "role": "Corrige un constat de sécurité",
+      "couleur": "#B03A3A",
+      "peau": 4,
+      "cheveux": "#2B2118",
+      "coupe": "rase",
+      "accessoire": "casque"
     },
     "pentest-actif": {
       "role": "Teste l'app qui tourne",
