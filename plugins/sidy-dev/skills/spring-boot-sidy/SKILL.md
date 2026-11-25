@@ -26,6 +26,8 @@ Cible (nouveau projet, nov. 2026) : **Spring Boot 4.2.0**, **Java 25** (LTS), **
 | `references/builder-patterns.md` | **objet à 4 paramètres ou plus, paramètres optionnels, choix d'un design pattern** (§5 et §6) |
 | `references/tests.md` | **écrire ou relire des tests** : 3 lois du TDD, F.I.R.S.T., tests par couche, exceptions (§12) |
 | `references/versions.md` | **nouveau projet ou montée de version** : catalogue Boot 4.2 / Java 25 / springdoc / Bucket4j / ShedLock / Jackson 3 |
+| `references/setup-projet.md` | **nouveau projet** : socle à livrer dès le départ (§0) |
+| `references/livraison.md` | **fin de tâche ou début de revue** : checklist de livraison (§14) |
 
 Un nouveau projet impose de lire `securite.md` et `infra.md`. `clean-code.md` et `sonar.md` se lisent avant d'écrire ou de relire du code, `api-docs.md` avant de toucher à un controller, `architecture.md` avant de créer une classe ou un package, `tests.md` avant d'écrire un test.
 
@@ -94,18 +96,7 @@ Poser en un seul bloc, en sautant ce qui est déjà précisé. Ne jamais décide
 
 ## 0. Setup d'un nouveau projet
 
-Livrer, dès le départ, tout ce socle (détails dans les références) :
-
-- `pom.xml` / `build.gradle` : parent Boot **4.2.0** ; starters **sans version** : `webmvc` (ou `web`), `validation`, `data-jpa`, `security`, `actuator`, `data-redis`, `cache`, **`spring-boot-starter-flyway`** + `flyway-database-postgresql` (runtime, sans version), driver `postgresql` ; hors BOM : springdoc **3.2.1**, MapStruct **1.6.3**, Lombok **1.18.48**, Bucket4j **8.23.0** (`bucket4j_jdk17-core` + `bucket4j_jdk17-lettuce`), ShedLock **7.11.0** (`shedlock-spring` + `shedlock-provider-jdbc-template`) ; tests : `test`, Testcontainers, `awaitility`, `jacoco`. **Pas** de `jackson-databind` 2.x ni de `spring-boot-jackson2` sauf migration temporaire écrite.
-- `application.yml`, `application-dev.yml`, `application-test.yml`, `application-prod.yml`, `logback-spring.xml`, `.env.example`, `.gitignore` (dont `.env`).
-- Migration Flyway `V1__init.sql` et migration de la table `shedlock` (avec `GRANT` vers le rôle applicatif via placeholder `${app_role}`).
-- Configuration : `SecurityConfig` (CSRF : préférer `csrf.spa()` Security 7 + matcher Sidy), CORS, `RateLimitFilter`, `OriginCheckFilter`, `BrowserNavigationBlockFilter`, `CacheConfig` (**JsonMapper** Jackson 3, pas `ObjectMapper` Jackson 2), `SchedulingConfig`, bean `Clock` UTC, handler d'erreurs global, OpenAPI.
-- `Dockerfile`, `.dockerignore`, `docker-compose.dev.yml`, `docker-compose.mid-dev.yml`, `docker-compose.prod.yml`.
-- `.github/workflows/ci.yml`, `deploy.yml` et `.github/dependabot.yml` : copie de `templates/ci/` (`references/ci.md`), avec `next-version.mjs` dans `.github/scripts/`.
-- `deploy/k8s/` : copie de `templates/k8s/` (sans `secret.example.yaml` ; `job-flyway.yaml` s'applique à part, avant le `kustomize`), image et namespace adaptés. Secret réel hors git.
-- `README.md` détaillé qui décrit tout le projet, front et back : copie de `templates/README.projet.md`, rempli avec les vraies commandes, variables et versions, et tenu à jour à chaque changement qui touche l'architecture, le démarrage, la configuration ou le déploiement.
-- `docs/` avec `adr/` (premier ADR : choix d'architecture), `http/`, `diagrams/`, `flows/`.
-- Spring : `spring.jpa.hibernate.ddl-auto=validate`, `spring.jpa.open-in-view=false`, configuration typée avec `@ConfigurationProperties` sur un `record` validé (jamais de `@Value` éparpillés), secrets uniquement via variables d'environnement.
+Nouveau projet : lire `references/setup-projet.md` (socle complet à livrer dès le départ : build, YAML, migrations, configuration de sécurité, Docker, CI, Kubernetes, README, `docs/`) ainsi que `securite.md` et `infra.md`.
 
 ## 1. Architecture — Clean Architecture et DDD
 
@@ -216,7 +207,7 @@ Cache Redis avec TTL et invalidation explicite (Decorator du port de lecture), S
 6. **Infrastructure — web** : test `@WebMvcTest` d'abord, puis `dto/request` et `dto/response` documentés, interface `XxxController` dans `web/controller/` (Swagger complet), records de `web/doc` si besoin, implémentation `XxxControllerImpl` dans `web/controller/implement/`, `web/mapper`, exceptions de la feature en sous-classes des catégories de `shared/domain/exception` (le handler global ne change pas).
 7. **Sécurité** : règles d'accès, rate-limit adapté, tests de sécurité de la route.
 8. **Documentation** : requêtes dans `docs/http/`, ADR si décision structurante, diagramme ou flow si processus non trivial.
-9. **Vérification** : checklist ci-dessous.
+9. **Vérification** : checklist de `references/livraison.md`.
 
 ## 14. Livraison
 
@@ -224,33 +215,4 @@ Cache Redis avec TTL et invalidation explicite (Decorator du port de lecture), S
 - Toujours livrer le code **et** ses tests ensemble.
 - Signaler tout changement de contrat d'API (le front Angular doit suivre), toute nouvelle migration et toute nouvelle variable d'environnement.
 
-Checklist avant de livrer :
-
-- [ ] `domain` n'importe que `java.*` (aucun Lombok, Spring, Jakarta, SLF4J, Jackson) ; builders du domaine écrits à la main.
-- [ ] Exceptions : un seul `GlobalExceptionHandler`, aucun `try/catch` ni `@ExceptionHandler` local dans les controllers.
-- [ ] Règle de dépendance respectée (aucun import `infrastructure` dans `domain`/`application`) ; agrégats avec comportement, pas de modèle anémique.
-- [ ] `equals` / `hashCode` présents dans chaque classe de `domain/model` (identité pour les entités, `record` pour les value objects) ; aucun `==` sur des objets qui redéfinissent `equals`.
-- [ ] Structure respectée (`domain/port` pour les ports, `application/usecase` pour leurs implémentations, `infrastructure/persistence/{entity,repository,mapper,adapter}`, `infrastructure/web/...`) ; aucun import d'une feature par une autre (passage par `shared/domain/port/out` ou événement).
-- [ ] Chaque controller a son interface `XxxController` (`web/controller/`) et son implémentation `XxxControllerImpl` (`web/controller/implement/`) ; Swagger complet (réponses, requêtes, DTO, erreurs) ; records de documentation dans `web/doc` ; test de complétude au vert.
-- [ ] Mots de passe (et codes PIN) hashés, jamais en clair, jamais loggés ni renvoyés.
-- [ ] Streams utilisés quand ils sont lisibles (`toList()` / `collect`, jamais `forEach(list::add)`) ; aucun import, champ, méthode, variable ni paramètre inutilisé ; aucun `Thread.sleep` dans les tests.
-- [ ] Tests écrits d'abord et cohérents avec le code (unitaires + slice concernée + tests de sécurité).
-- [ ] Aucune entité exposée par l'API ; DTO validés ; tris en liste blanche ; requêtes paramétrées.
-- [ ] CSRF traité (jeton CSRF sur les requêtes portant le cookie, contrôle `Origin`, ADR du transport des jetons), rate-limit configuré, jetons révocables via Redis.
-- [ ] Aucun mois numérique (`Month.X` partout), aucun ternaire imbriqué, aucun littéral dupliqué.
-- [ ] Pas de surcharge pour simuler des paramètres optionnels : Builder utilisé.
-- [ ] Clean code : noms qui révèlent l'intention, fonctions courtes (≤ 4 arguments, aucun booléen), commande/requête séparées, aucun `null` retourné ni passé, exceptions avec contexte, aucun code mort, commentaires = documentation ou explication, façade si une classe (surtout un controller) dépasse 4 dépendances.
-- [ ] Tests : un concept par test, F.I.R.S.T., écrits avant le code ; lambdas `assertThrows` / `assertThatThrownBy` avec un seul appel (S5778).
-- [ ] Pas d'issue Sonar évidente (imports inutilisés, `System.out`, `catch` vide, complexité).
-- [ ] Écritures sans race condition (`UNIQUE`, `@Version`, `UPDATE` conditionnel) et idempotentes (`Idempotency-Key`, `eventId` traité une seule fois) ; test de concurrence écrit.
-- [ ] Migration Flyway ajoutée si le schéma change, aucune migration existante modifiée ; index créés (clés étrangères, colonnes filtrées / triées).
-- [ ] Toute nouvelle clé de `application-prod.yml` présente dans `.env.example` (et dans le compose prod si transmise).
-- [ ] Toute tâche `@Scheduled` protégée par ShedLock ; cache avec TTL et invalidation.
-- [ ] Fuseau jamais en dur : `app.timezone` (YAML) ; heures via `Clock` / `Instant` ; logs sans donnée sensible.
-- [ ] Hikari configuré explicitement (taille, timeouts, `max-lifetime`) ; CORS en liste blanche d'origines, jamais `*` en prod ; `app.security.bloquer-navigation-directe` présent dans le YAML et `.env.example`.
-- [ ] Swagger désactivé en prod ; Dockerfile non-root avec healthcheck.
-- [ ] CI : `ci.yml` vert (tests, couverture, Quality Gate, manifestes, image publiée avec un tag `vX.Y.Z` à chaque merge dans `dev`, `preprod`, `main`, `prod`) ; `deploy.yml` par digest, environnement `production` avec relecteurs ; `main` et `prod` protégées.
-- [ ] Actuator : `liveness` = `livenessState` seul ; `readiness` = `readinessState,db,redis,diskSpace` ; `validate-group-membership` pas à `false` ; seuls `GET /actuator/health/liveness` et `readiness` sont publics ; les sondes ne passent pas par le rate-limit.
-- [ ] Déploiement Kubernetes : Job Flyway (`prod,migration`) terminé avant le roll ; `preStop` + `terminationGracePeriodSeconds` ≥ preStop + 30 s ; `FLYWAY_ENABLED=false` sur les pods de l'app ; aucun secret dans les manifestes ; routes : `/api` seulement, jamais `/actuator`, pas d'`ingress-nginx` (archivé).
-- [ ] `README.md` du projet détaillé (front et back) et à jour avec le changement.
-- [ ] `docs/http/` à jour, ADR / diagrammes / flows ajoutés si nécessaire.
+Checklist avant de livrer : `references/livraison.md` (à lire en fin de tâche, ou au début d'une revue).

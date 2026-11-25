@@ -2,6 +2,8 @@
 
 Historique des mises à jour de `sidy-dev` et `sidy-office`, de la plus récente à la plus ancienne. Le guide d'installation et d'utilisation est dans le [README](README.md).
 
+> **Mise à jour (2026-11-25, `sidy-dev` v1.12.0)** — moins de tokens au démarrage des agents : `frontend-dev` ne précharge plus `design-sidy` (il intègre la maquette de `designer` et lit `design-sidy` à la demande) ; `spring-boot-sidy` déplace, sans modification, `§0 Setup d'un nouveau projet` et la checklist de `§14` dans `references/setup-projet.md` et `references/livraison.md` ; `git-sidy` déplace ses exemples, le repli API et le détail des garde-fous dans `references/garde-fous-et-exemples.md`. Aucun changement de modèle.
+
 > **Mise à jour (2026-11-25, `sidy-dev` v1.11.1)** — `documentaliste`, `architecte`, `security-reviewer` et `security-fixer` ne préchargent plus `spring-boot-sidy` et `angular-sidy` en entier : ils trouvent le dossier du skill et lisent seulement les sections et fichiers `references/` utiles. `backend-dev` et `reviewer` renvoient vers les nouveaux fichiers `references/`.
 
 > **Mise à jour (2026-11-25, `sidy-dev` v1.11.0)** — skills allégés : `spring-boot-sidy`, `design-sidy` et `angular-sidy` gardent un noyau court et déplacent, sans modification, leurs sections les plus lourdes dans `references/` (`architecture.md`, `builder-patterns.md`, `tests.md` ; `motion.md`, `ressources.md` ; `etats-donnees.md`, `pages-cookies.md`). La numérotation des § est conservée et chaque section garde un renvoi.
