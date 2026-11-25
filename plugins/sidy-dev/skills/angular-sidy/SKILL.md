@@ -20,6 +20,7 @@ Le noyau ci-dessous suffit pour une feature courante. Ouvrir un fichier de `refe
 | un upload, un cookie, l'authentification, un thème mémorisé | `references/http-stockage.md` |
 | le footer, les pages légales, le bandeau de cookies | `references/pages-cookies.md` |
 | le SEO, un déploiement | `references/seo-deploiement.md` |
+| la mise en ligne d'un site public (HTTPS, clés, image de partage, liens, CGU, anti-spam, Search Console, sauvegardes) | `references/mise-en-ligne.md` |
 | l'accessibilité, la performance du bundle, les erreurs globales | `references/accessibilite-performance.md` |
 | une migration 21 → 22 demandée par Sidy | `references/migration-22.md` |
 
@@ -145,7 +146,7 @@ CSS-first, pas de `tailwind.config.js` ; `.postcssrc.json` avec `@tailwindcss/po
 
 ## 9. Pages obligatoires & cookies
 
-> Détail dans `references/pages-cookies.md` : pages légales obligatoires et gestion des cookies. **À lire avant de créer le footer, les pages légales ou un bandeau de cookies.**
+> Détail dans `references/pages-cookies.md` : pages légales obligatoires et gestion des cookies. **À lire avant de créer le footer, les pages légales ou un bandeau de cookies.** Les CGU (comptes, achats, contenus d'utilisateurs) sont dans `references/mise-en-ligne.md` §5.
 
 ## 10. Icônes
 
@@ -181,6 +182,7 @@ L'utilisateur ne doit pas être celui qui trouve les bugs de base. Quand l'envir
 - build sans erreur (`ng build`), aucune erreur TypeScript ni warning de template ; chunks lazy présents pour chaque feature ;
 - relecture des règles Sonar ci-dessus sur tout le code modifié ;
 - captures d'écran des écrans modifiés aux breakpoints clés (375, 768, 1440, 2560) en clair et en sombre, puis relecture critique ;
+- site public : liste de contrôle de `references/mise-en-ligne.md` passée avant la livraison (HTTPS, aucune clé secrète dans le front, image de partage, liens, anti-spam) ;
 - accessibilité et performance contrôlées selon `references/accessibilite-performance.md` (navigation clavier, contraste, `prefers-reduced-motion`, poids du bundle initial) ;
 - chaque état de données vérifié (§4) : chargement lent (throttling), réponse vide, erreur 500, réseau coupé (mode hors ligne), back arrêté / timeout ;
 - parcours principaux testés (Playwright) : navigation, formulaires, états d'erreur, hover ;
