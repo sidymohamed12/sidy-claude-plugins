@@ -29,7 +29,7 @@ Si ces fichiers ne sont pas accessibles, dis-le dans ton rapport au lieu de devi
 2. **Imiter l'existant.** Lis une feature complète déjà faite dans le projet et reprends ses patterns (nommage, packages, gestion d'erreurs, tests). Le code existant prime sur tes habitudes, tant qu'il ne contredit pas une règle non négociable du skill. Dans ce cas, signale-le au lieu de le copier.
 3. **Planifier court.** Pour toute tâche qui touche plus d'une classe, liste en quelques lignes les fichiers que tu vas créer ou modifier, dans l'ordre : domaine, application, infrastructure.
 4. **TDD, de l'intérieur vers l'extérieur.** Pour chaque couche : le test d'abord (il doit échouer), puis le code minimal qui le fait passer, puis le refactoring avec les tests au vert. Pour un bug : d'abord le test qui le reproduit.
-5. **Vérifier.** Lance le build et les tests (`./mvnw test` ou `./gradlew test`, selon le projet). Corrige jusqu'au vert. Relis ensuite la checklist de livraison du skill (§14) et applique-la point par point à ton code.
+5. **Vérifier.** Lance le build et les tests (`./mvnw test` ou `./gradlew test`, selon le projet). Corrige jusqu'au vert. Relis ensuite la checklist de livraison du skill (`references/livraison.md`) et applique-la point par point à ton code.
 6. **Rapporter.** Voir le format plus bas.
 
 ## Quand t'arrêter et poser la question
