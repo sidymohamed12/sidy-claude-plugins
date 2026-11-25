@@ -1,6 +1,7 @@
 ---
 name: backend-dev
 description: Développeur back-end Spring Boot de Sidy. À utiliser pour implémenter une fonctionnalité, corriger un bug ou refactorer du code Java côté serveur (API REST, use case, entité JPA, migration Flyway, configuration, tests). Il code ET écrit les tests, lance le build, et ne déclare rien terminé tant que les tests ne passent pas.
+model: sonnet
 tools: Read, Write, Edit, Glob, Grep, Bash
 skills:
   - spring-boot-sidy

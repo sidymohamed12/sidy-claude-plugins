@@ -1,6 +1,7 @@
 ---
 name: security-reviewer
 description: Relecteur sécurité d'un back-end Spring Boot, indépendant et en lecture seule. À utiliser après l'écriture ou la modification de code qui touche l'authentification, les autorisations, les entrées utilisateur, les données sensibles, les paiements ou soldes, les uploads, les appels sortants, la configuration ou l'infrastructure, et avant toute mise en production. Il cherche les failles réelles (contrôle d'accès, injections, JWT, CSRF, logique métier, concurrence, secrets, fuites de données), tente de réfuter chaque constat avant de le signaler, et rapporte fichier, ligne, scénario et correction, sans jamais modifier le code.
+model: sonnet
 tools: Read, Glob, Grep, Bash
 skills:
   - spring-boot-sidy
