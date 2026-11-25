@@ -20,7 +20,7 @@ Le noyau ci-dessous suffit pour une feature courante. Ouvrir un fichier de `refe
 | un upload, un cookie, l'authentification, un thème mémorisé | `references/http-stockage.md` |
 | le footer, les pages légales, le bandeau de cookies | `references/pages-cookies.md` |
 | le SEO, un déploiement | `references/seo-deploiement.md` |
-| la mise en ligne d'un site public (HTTPS, clés, image de partage, liens, CGU, anti-spam, Search Console, sauvegardes) | `references/mise-en-ligne.md` |
+| la mise en ligne d'un site public (HTTPS, clés, image de partage, liens, CGU, anti-spam, Search Console) | `references/mise-en-ligne.md` |
 | l'accessibilité, la performance du bundle, les erreurs globales | `references/accessibilite-performance.md` |
 | une migration 21 → 22 demandée par Sidy | `references/migration-22.md` |
 

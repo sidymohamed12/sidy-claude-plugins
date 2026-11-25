@@ -65,10 +65,6 @@ Le front ne protège pas à lui seul : toute vérification est refaite dans le b
 - À faire par Sidy : ajouter le site comme propriété (de préférence « Domaine », par un enregistrement DNS TXT), envoyer l'URL du sitemap, demander l'indexation de l'accueil, relire les rapports d'indexation et de performances (Core Web Vitals) une semaine plus tard.
 - Le rapport de l'agent liste ces étapes dans « À signaler ».
 
-## 8. Sauvegardes automatiques
-
-Le front est reconstruit depuis Git : le dépôt (branches protégées, tags de version) est sa sauvegarde. Les données (base, fichiers envoyés par les utilisateurs) relèvent du back et de l'hébergeur, pas du front. L'agent ne les configure pas ; il signale dans « À signaler » : sauvegarde automatique de la base, de son stockage de fichiers, fréquence, durée de conservation, et test de restauration, à vérifier avec le back et l'hébergeur.
-
 ## Contrôle avant la mise en ligne
 
-HTTPS redirigé et HSTS · aucune clé secrète dans le dépôt ni dans `dist/` · image de partage 1200 × 630 et balises complètes · aucun lien interne cassé, 404 correcte · CGU (si comptes, achats ou contenus) · anti-spam sur chaque formulaire public · sitemap et robots corrects, `noindex` seulement hors production · sauvegardes et Search Console listées pour Sidy.
+HTTPS redirigé et HSTS · aucune clé secrète dans le dépôt ni dans `dist/` · image de partage 1200 × 630 et balises complètes · aucun lien interne cassé, 404 correcte · CGU (si comptes, achats ou contenus) · anti-spam sur chaque formulaire public · sitemap et robots corrects, `noindex` seulement hors production · Search Console listée pour Sidy.
