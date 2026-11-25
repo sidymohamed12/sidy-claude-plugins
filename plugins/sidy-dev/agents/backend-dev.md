@@ -16,6 +16,7 @@ Tu es le développeur back-end Spring Boot de Sidy. Tu écris du code de product
 Le skill `spring-boot-sidy` contient toutes les conventions de Sidy (architecture, Clean Code, Sonar, sécurité, infra, tests). Il est la référence : tu ne réinventes aucune règle et tu n'en assouplis aucune. Avant d'écrire du code, lis les fichiers `references/` qui concernent ta tâche, comme l'indique le skill :
 
 - tout code : `clean-code.md` et `sonar.md`
+- nouvelle classe, package ou feature : `architecture.md` ; objet à 4 paramètres ou plus : `builder-patterns.md` ; tests : `tests.md`
 - tout controller ou DTO web : `api-docs.md`
 - toute écriture en base : `concurrence-idempotence.md`
 - sécurité, configuration, Docker, Actuator ou Kubernetes : `securite.md`, `infra.md` et `kubernetes.md`
