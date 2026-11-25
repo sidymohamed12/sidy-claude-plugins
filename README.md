@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-25, `sidy-dev` v1.9.0)** — nouvel agent **`architecte`** : il planifie avant le code (lots, tâches, ordre des agents, contrats d'API, décisions à valider dans `docs/plans/`) et arbitre en cours de chaîne quand un agent s'arrête ou qu'une revue bloque. Il ne touche jamais au code.
+>
 > **Mise à jour (2026-11-24, `sidy-office` v1.12.0)** — on peut jouer seul à la console et à la balle (jongles), plus de balle parasite à la console, et des longueurs dans la piscine.
 >
 > **Mise à jour (2026-11-24, `sidy-office` v1.11.0)** — les zones d'abord : les agents libres sont presque toujours dans une zone, et d'abord dans les vides. Nouvelle zone jeu de balle, gaming à deux à la manette devant la télé, nage dans la piscine, sieste bien visible.
@@ -40,7 +42,7 @@
 
 # sidy-dev : skills et agents Claude Code
 
-Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 5 skills et 7 agents prêts à l'emploi.
+Plugin Claude Code qui applique les conventions de développement de Sidy (Spring Boot, Angular et design front) : 5 skills et 8 agents prêts à l'emploi.
 
 ## Ce que contient le plugin
 
@@ -51,6 +53,7 @@ Plugin Claude Code qui applique les conventions de développement de Sidy (Sprin
 | Skill | `design-sidy`       | Design front toutes stacks : concepts, maquette d'abord, motion GSAP / Three.js, images, polices, icônes  |
 | Skill | `pentest-sidy`      | Méthode de test de sécurité dynamique (DAST) d'une app Spring Boot qui tourne, sur cible autorisée        |
 | Skill | `git-sidy`          | Workflow Git : branches `feat/` `fix/` `hot-fix/` `core/`, commits explicites, PR vers dev ou preprod, jamais de push sur main ou prod |
+| Agent | `architecte`        | Planifie avant le code et arbitre en cours de route : lots, tâches, ordre des agents, décisions à valider |
 | Agent | `backend-dev`       | Code le back-end Spring Boot avec ses tests et lance le build                                             |
 | Agent | `reviewer`          | Relit le code façon Sonar (lecture seule)                                                                 |
 | Agent | `security-reviewer` | Relit la sécurité du back-end (lecture seule)                                                             |
@@ -70,7 +73,7 @@ Dans Claude Code :
 /plugin install sidy-dev@sidy
 ```
 
-Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 5 skills et ses 7 agents.
+Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doit apparaître, avec ses 5 skills et ses 8 agents.
 
 ## Utilisation
 
@@ -79,6 +82,7 @@ Quitte puis relance Claude Code. Pour vérifier, tape `/plugin` : `sidy-dev` doi
 Nomme l'agent dans ta demande :
 
 ```
+Utilise l'agent architecte pour planifier la feature « Ordonnance » (back et front) avant de coder.
 Utilise l'agent backend-dev pour créer un CRUD « Produit » avec ses tests.
 Utilise l'agent reviewer pour relire mes derniers changements.
 Utilise l'agent security-reviewer pour auditer l'authentification.
@@ -90,6 +94,7 @@ Utilise l'agent security-fixer pour corriger le constat S-03 du rapport de secur
 
 | Besoin                                            | Agent               |
 | ------------------------------------------------- | ------------------- |
+| Planifier une feature ou arbitrer en cours de route | `architecte`      |
 | Écrire ou modifier du code Spring Boot            | `backend-dev`       |
 | Relire la qualité du code Java                    | `reviewer`          |
 | Relire la sécurité du back-end                    | `security-reviewer` |
@@ -98,7 +103,7 @@ Utilise l'agent security-fixer pour corriger le constat S-03 du rapport de secur
 | Tester une app Spring Boot qui tourne (DAST)      | `pentest-actif`     |
 | Corriger un constat de sécurité confirmé          | `security-fixer`    |
 
-`reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent. `designer` n'écrit que `DESIGN.md` et le dossier `design/`, jamais le code de l'application, et s'arrête à chaque étape pour te faire valider. `pentest-actif` envoie de vraies requêtes : il ne teste qu'une application que tu possèdes ou es autorisé à tester, te demande la cible et deux comptes avant de commencer, et s'arrête à la preuve de la faille. `security-fixer` ne corrige que des constats déjà confirmés (par `security-reviewer` après contre-épreuve, ou par `pentest-actif`), un seul à la fois, et ne modifie qu'un fichier de production par passage, plus son test. Si le correctif demande un second fichier, il le dit et te donne un bloc « Passage suivant » à lui redonner. Il ne commit pas.
+`architecte` n'écrit que son plan dans `docs/plans/` et jamais le code : il intervient avant la chaîne (plan, ordre des agents, décisions à valider) et pendant (il arbitre quand un agent s'arrête sur une question, qu'une revue bloque ou que le plan ne tient plus). `reviewer` et `security-reviewer` ne modifient aucun fichier : ils lisent et rapportent. `designer` n'écrit que `DESIGN.md` et le dossier `design/`, jamais le code de l'application, et s'arrête à chaque étape pour te faire valider. `pentest-actif` envoie de vraies requêtes : il ne teste qu'une application que tu possèdes ou es autorisé à tester, te demande la cible et deux comptes avant de commencer, et s'arrête à la preuve de la faille. `security-fixer` ne corrige que des constats déjà confirmés (par `security-reviewer` après contre-épreuve, ou par `pentest-actif`), un seul à la fois, et ne modifie qu'un fichier de production par passage, plus son test. Si le correctif demande un second fichier, il le dit et te donne un bloc « Passage suivant » à lui redonner. Il ne commit pas.
 
 ### Utiliser les skills
 
