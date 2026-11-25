@@ -1,13 +1,13 @@
 ---
 name: "angular-sidy"
-description: "Conventions Angular 21 de Sidy : architecture, signals, règles Sonar, états de données, Tailwind v4 @theme, responsive, vérification. Détails à la demande dans references/ : setup projet, HTTP et cookies, SEO et déploiement, pages légales, accessibilité et performance."
+description: "Conventions Angular 22 de Sidy : architecture, signals, règles Sonar, états de données, Tailwind v4 @theme, responsive, vérification. Détails à la demande dans references/ : setup projet, HTTP et cookies, SEO et déploiement, pages légales, accessibilité et performance."
 ---
 
-# Angular 21 — façon Sidy
+# Angular 22 — façon Sidy
 
 Avant d'écrire du code dans un projet existant : lire une feature déjà faite et en reproduire exactement les patterns (nommage, découpage, services, icônes, couleurs). Les fichiers fournis par l'utilisateur (ex. `auth.service.ts`, modèles) sont canoniques : les utiliser tels quels.
 
-Cible : **Angular 21** (zoneless, standalone, signals). Si le projet existant est sur une version antérieure, s'aligner sur sa version. Si le projet est en **Angular 22 ou plus** : s'aligner sur sa version sans le rétrograder, appliquer le reste du skill et signaler les écarts (en 22 : `resource` / `httpResource` / Signal Forms stables, `OnPush` par défaut, `withFetch()` déprécié). Ne jamais migrer un projet de version sans demande.
+Cible : **Angular 22** (zoneless, `OnPush` par défaut, standalone, signals ; TypeScript 6, Node 26). Si le projet existant est sur une version antérieure (21 ou moins), s'aligner sur sa version : en 21 on écrit `ChangeDetectionStrategy.OnPush` et `@Injectable({ providedIn: 'root' })`, `resource` / `httpResource` / Signal Forms sont expérimentaux et on ne les utilise pas sans accord de Sidy. Ne jamais migrer un projet de version sans demande ; à sa demande, `ng update` puis revue de `references/migration-22.md`.
 
 ## Quoi lire, et quand
 
@@ -21,6 +21,7 @@ Le noyau ci-dessous suffit pour une feature courante. Ouvrir un fichier de `refe
 | le footer, les pages légales, le bandeau de cookies | `references/pages-cookies.md` |
 | le SEO, un déploiement | `references/seo-deploiement.md` |
 | l'accessibilité, la performance du bundle, les erreurs globales | `references/accessibilite-performance.md` |
+| une migration 21 → 22 demandée par Sidy | `references/migration-22.md` |
 
 ## Questions à poser au démarrage d'un nouveau projet
 
@@ -30,6 +31,7 @@ Si ce n'est pas déjà précisé :
 2. Bibliothèque d'icônes : Font Awesome ou Phosphor ?
 3. Palette / typographie du projet (aucune valeur par défaut).
 4. Type de projet pour le SEO (vitrine, e-commerce, app privée…).
+5. Formulaires : Reactive Forms (défaut historique) ou Signal Forms (stables en 22) ?
 
 ## 0. Setup d'un nouveau projet (toujours)
 
@@ -58,11 +60,12 @@ Un élément reste dans sa feature ; partagé → `shared/` (UI) ou `core/` (sin
 
 ## 2. Composants & TypeScript
 
-- Standalone implicite (ne pas écrire `standalone: true`), `ChangeDetectionStrategy.OnPush`, zoneless.
+- Standalone implicite (ne pas écrire `standalone: true`). `OnPush` et zoneless sont le défaut en 22 : ne pas écrire `changeDetection` ; `ChangeDetectionStrategy.Eager` (ancien `Default`) seulement pour un composant qui l'exige, avec un commentaire qui dit pourquoi.
+- Services singleton : `@Service()` (remplace `@Injectable({ providedIn: 'root' })`) ; `injectAsync()` pour charger un service lourd à la demande.
 - `inject()` uniquement. API signals : `input()`, `input.required()`, `output()`, `model()`, `viewChild()`.
 - Champs privés natifs `#field`. Piège : `ReturnType<typeof this.#methode>` invalide → fonction module-level.
 - Pages (smart) injectent et orchestrent ; components (dumb) sans service métier.
-- État : `signal()`, `computed()`, `linkedSignal()`, `effect()` ; async : `resource()` / `httpResource()` ou service + signals ; `toSignal()` pour RxJS. Pas de NgRx sauf besoin global réel.
+- État : `signal()`, `computed()`, `linkedSignal()`, `effect()` ; async : `httpResource()` pour une lecture (GET), `resource()` / `rxResource()` pour le reste, `chain()` pour enchaîner deux ressources dépendantes, sinon service + signals ; `toSignal()` pour RxJS. Pas de NgRx sauf besoin global réel.
 - Panneaux d'une page pilotés par un seul signal (`panneau = signal<'creer' | 'editer' | 'detail' | null>(null)`).
 - `forkJoin` pour les chargements combinés ; `debounceTime` + `distinctUntilChanged` pour la recherche.
 - `as const` sur chaque branche d'un ternaire.
@@ -105,7 +108,8 @@ Le code livré ne doit déclencher aucune alerte SonarQube / SonarLint :
 
 - Reactive Forms avec `NonNullableFormBuilder` (`.group()` directement).
 - `FormArray` pour les listes dynamiques. Erreurs sous le champ, shake sur soumission invalide.
-- Jamais de template-driven. Signal Forms seulement sur demande.
+- Jamais de template-driven.
+- Signal Forms (`@angular/forms/signals`) sont stables en 22 mais ne sont pas le défaut : sur un projet qui utilise Reactive Forms, rester dessus ; sur un nouveau projet, poser la question (voir « Questions à poser »). Ne jamais mélanger les deux dans un même formulaire.
 
 ## 6. Templates
 
@@ -159,7 +163,7 @@ Tout le design (concepts, maquette d'abord, palette, typo, icônes, images, moti
 Côté Angular uniquement :
 
 - les tokens du design system vont dans le `@theme` de `src/styles.css` (§7) ;
-- un composant inspiré d'un exemple React (reactbits, shadcn, 21st, Magic UI…) est réécrit en Angular 21 (standalone, signals, `@if` / `@for`), sans dépendance React ;
+- un composant inspiré d'un exemple React (reactbits, shadcn, 21st, Magic UI…) est réécrit en Angular 22 (standalone, signals, `@if` / `@for`), sans dépendance React ;
 - GSAP et Three.js : création dans `afterNextRender()`, nettoyage dans `DestroyRef.onDestroy` (détails dans `design-sidy` §13–14).
 
 ## 12. Responsive (obligatoire)
@@ -181,7 +185,7 @@ L'utilisateur ne doit pas être celui qui trouve les bugs de base. Quand l'envir
 - chaque état de données vérifié (§4) : chargement lent (throttling), réponse vide, erreur 500, réseau coupé (mode hors ligne), back arrêté / timeout ;
 - parcours principaux testés (Playwright) : navigation, formulaires, états d'erreur, hover ;
 - aucun appel à `localStorage` / `sessionStorage` dans le code (recherche globale) ;
-- aucun `.spec.ts` n'est généré (`skipTests` est voulu) : n'en écrire que sur demande de Sidy (Vitest est le lanceur de tests par défaut d'Angular 21) ; les parcours importants se vérifient avec Playwright ;
+- aucun `.spec.ts` n'est généré (`skipTests` est voulu) : n'en écrire que sur demande de Sidy (Vitest est le lanceur de tests par défaut depuis Angular 21) ; les parcours importants se vérifient avec Playwright ;
 - `README.md` du projet à jour pour la partie front (stack, structure, commandes, variables d'environnement, thème). S'il n'existe pas, le créer depuis `spring-boot-sidy/templates/README.projet.md` : un projet a un seul README détaillé qui décrit le front **et** le back ;
 - si une étape n'a pas pu être exécutée, le dire clairement et indiquer la commande à lancer.
 

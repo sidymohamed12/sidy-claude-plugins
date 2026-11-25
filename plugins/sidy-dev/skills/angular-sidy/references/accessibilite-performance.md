@@ -6,7 +6,7 @@ Contenu ajouté au skill `angular-sidy` (références, pas de section numéroté
 
 - Structure : `header`, `nav`, `main`, `footer` ; un seul `h1`, niveaux de titres sans saut ; lien d'évitement « Aller au contenu » en premier dans le layout.
 - Clavier : tout ce qui se clique se règle au clavier (`button` ou `a`, jamais un `div` cliquable). Focus toujours visible (`:focus-visible`, jamais `outline: none` sans remplacement). Ordre de tabulation logique.
-- Modales, tiroirs et menus : focus placé dedans à l'ouverture, piégé tant qu'ils sont ouverts, rendu au déclencheur à la fermeture, fermeture par `Échap`. Préférer `<dialog>` natif ou `@angular/cdk` plutôt qu'une version maison. `@angular/aria` est en préversion en Angular 21 : ne pas l'utiliser sans demande.
+- Modales, tiroirs et menus : focus placé dedans à l'ouverture, piégé tant qu'ils sont ouverts, rendu au déclencheur à la fermeture, fermeture par `Échap`. Préférer `<dialog>` natif ou `@angular/cdk` plutôt qu'une version maison. `@angular/aria` (composants headless accessibles) est stable en Angular 22 : l'utiliser pour menus, onglets, listes déroulantes et accordéons quand le design l'exige, plutôt que de réécrire la gestion du clavier ; il reste sans style, le design de `designer` s'applique par-dessus.
 - Contraste : 4,5:1 pour le texte courant, 3:1 pour le grand texte et les composants d'interface, en clair **et** en sombre.
 - Zones tactiles d'au moins 44 × 44 px pour les actions principales.
 - Formulaires : `label` associé à chaque champ, erreur reliée au champ (`aria-describedby`), `aria-invalid` sur un champ en erreur, le focus passe au premier champ invalide à la soumission.

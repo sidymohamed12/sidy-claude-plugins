@@ -49,14 +49,14 @@ Toujours importer via ces alias, jamais de `../../../`.
 
 ### app.config.ts (base commune)
 
-`provideZonelessChangeDetection()`, `provideHttpClient(withFetch(), withInterceptors([...]))`, `provideRouter(routes, withComponentInputBinding(), withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }), withViewTransitions())`.
+Zoneless est le défaut (pas de `provideZonelessChangeDetection()` à ajouter en 22 ; le garder seulement sur un projet 21 qui l'avait). `provideHttpClient(withInterceptors([...]))` : le backend Fetch est le défaut en 22 et `withFetch()` est déprécié (sur un projet 21, garder `withFetch()`). Puis `provideRouter(routes, withComponentInputBinding(), withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }), withViewTransitions())`.
 
 ### SSR (optionnel, selon le projet) & splash (toujours)
 
 **Avec SSR** :
 
 - `ng add @angular/ssr`, `outputMode: "server"`, `app.routes.server.ts` (pages statiques/légales en `Prerender`).
-- Ajouter `provideClientHydration(withEventReplay(), withHttpTransferCacheOptions({ includePostRequests: false }))`.
+- Ajouter `provideClientHydration(withHttpTransferCacheOptions({ includePostRequests: false }))` : l'hydratation incrémentale (avec relecture des événements) est le défaut en 22 ; `withNoIncrementalHydration()` pour la désactiver. Sur un projet 21 : `provideClientHydration(withEventReplay(), …)`.
 - Tout accès navigateur protégé (`isPlatformBrowser`, `afterNextRender`).
 
 **Sans SSR** : pas de `provideClientHydration`, pas de fichiers serveur ; le reste est identique.

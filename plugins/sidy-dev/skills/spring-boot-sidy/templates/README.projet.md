@@ -16,7 +16,7 @@ Schéma (Mermaid ou lien vers `docs/diagrams/`) montrant le front, le back, la b
 | Partie | Dossier | Stack |
 |---|---|---|
 | Back-end | `<backend/>` | Java <25>, Spring Boot <4.x>, PostgreSQL, Flyway, Redis |
-| Front-end | `<frontend/>` | <Angular 21, Tailwind v4 / HTML-CSS-JS>, <SSR ou non> |
+| Front-end | `<frontend/>` | <Angular 22, Tailwind v4 / HTML-CSS-JS>, <SSR ou non> |
 
 Back : Clean Architecture (domaine, application, infrastructure, présentation), packages principaux, décisions dans `docs/adr/`.
 Front : structure `core/`, `shared/`, `features/`, routing, gestion des états, thème et design (`DESIGN.md`).

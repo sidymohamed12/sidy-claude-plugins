@@ -2,7 +2,7 @@
 
 Sous-sections de la section 3 du skill `angular-sidy`, déplacées ici sans modification (hors encadré ci-dessous) pour alléger le `SKILL.md`. À lire pour un envoi de fichier, un cookie, un thème mémorisé ou une authentification.
 
-> **Upload et `withFetch()`.** Le backend `fetch` n'expose pas la progression d'envoi : avec `withFetch()` (base commune de `app.config.ts`), `reportProgress: true` ne donne pas de vraie barre sur les uploads. Pour un projet qui envoie des fichiers avec progression, ne pas activer `withFetch()` (backend XHR par défaut en Angular 21), ou le signaler à Sidy avant de livrer. En Angular 22, `withFetch()` est déprécié et la progression d'envoi demande `withXhr()`.
+> **Upload et backend HTTP.** En Angular 22 le backend Fetch est le défaut et `withFetch()` est déprécié ; la progression d'envoi demande `provideHttpClient(withXhr(), …)`, et `reportUploadProgress` sous Fetch lève une exception. Un projet qui envoie des fichiers avec barre de progression ajoute donc `withXhr()`. Sur un projet 21, ne pas activer `withFetch()` (XHR par défaut).
 
 ### Uploads de fichiers
 

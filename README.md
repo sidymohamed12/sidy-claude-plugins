@@ -9,7 +9,7 @@ Plugin Claude Code qui applique les conventions de développement de Sidy (Sprin
 | Type  | Nom                 | À quoi il sert                                                                                            |
 | ----- | ------------------- | --------------------------------------------------------------------------------------------------------- |
 | Skill | `spring-boot-sidy`  | Conventions back-end : Clean Architecture, DDD, SOLID, TDD, règles Sonar, sécurité, Flyway, Redis, Docker |
-| Skill | `angular-sidy`      | Conventions Angular 21 : signals, zoneless, Tailwind v4, états de données, accessibilité, SEO              |
+| Skill | `angular-sidy`      | Conventions Angular 22 : signals, zoneless, Tailwind v4, états de données, accessibilité, SEO              |
 | Skill | `design-sidy`       | Design front toutes stacks : concepts, maquette d'abord, motion GSAP / Three.js, images, polices, icônes  |
 | Skill | `pentest-sidy`      | Méthode de test de sécurité dynamique (DAST) d'une app Spring Boot qui tourne, sur cible autorisée        |
 | Skill | `git-sidy`          | Workflow Git : branches `feat/` `fix/` `hot-fix/` `core/`, commits explicites, PR vers dev ou preprod, jamais de push sur main ou prod |
