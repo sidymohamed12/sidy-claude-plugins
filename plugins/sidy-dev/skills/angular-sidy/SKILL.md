@@ -1,13 +1,27 @@
 ---
 name: "angular-sidy"
-description: "Conventions Angular 21 de Sidy : setup projet (angular.json, ngx-env, paths, SSR optionnel + splash), architecture, signals, Tailwind v4 @theme, états de données, cookies, SEO, pages légales, Sonar, vérification et déploiement."
+description: "Conventions Angular 22 de Sidy : architecture, signals, règles Sonar, états de données, Tailwind v4 @theme, responsive, vérification. Détails à la demande dans references/ : setup projet, HTTP et cookies, SEO et déploiement, pages légales, accessibilité et performance."
 ---
 
-# Angular 21 — façon Sidy
+# Angular 22 — façon Sidy
 
 Avant d'écrire du code dans un projet existant : lire une feature déjà faite et en reproduire exactement les patterns (nommage, découpage, services, icônes, couleurs). Les fichiers fournis par l'utilisateur (ex. `auth.service.ts`, modèles) sont canoniques : les utiliser tels quels.
 
-Cible : **Angular 21** (zoneless, standalone, signals). Si le projet existant est sur une version antérieure, s'aligner sur sa version.
+Cible : **Angular 22** (zoneless, `OnPush` par défaut, standalone, signals ; TypeScript 6, Node 26). Si le projet existant est sur une version antérieure (21 ou moins), s'aligner sur sa version : en 21 on écrit `ChangeDetectionStrategy.OnPush` et `@Injectable({ providedIn: 'root' })`, `resource` / `httpResource` / Signal Forms sont expérimentaux et on ne les utilise pas sans accord de Sidy. Ne jamais migrer un projet de version sans demande ; à sa demande, `ng update` puis revue de `references/migration-22.md`.
+
+## Quoi lire, et quand
+
+Le noyau ci-dessous suffit pour une feature courante. Ouvrir un fichier de `references/` seulement quand la tâche le demande :
+
+| La tâche touche… | Lire |
+|---|---|
+| un nouveau projet (config, routing, SSR, splash) | `references/setup-projet.md` |
+| une zone qui affiche des données distantes | `references/etats-donnees.md` |
+| un upload, un cookie, l'authentification, un thème mémorisé | `references/http-stockage.md` |
+| le footer, les pages légales, le bandeau de cookies | `references/pages-cookies.md` |
+| le SEO, un déploiement | `references/seo-deploiement.md` |
+| l'accessibilité, la performance du bundle, les erreurs globales | `references/accessibilite-performance.md` |
+| une migration 21 → 22 demandée par Sidy | `references/migration-22.md` |
 
 ## Questions à poser au démarrage d'un nouveau projet
 
@@ -17,88 +31,11 @@ Si ce n'est pas déjà précisé :
 2. Bibliothèque d'icônes : Font Awesome ou Phosphor ?
 3. Palette / typographie du projet (aucune valeur par défaut).
 4. Type de projet pour le SEO (vitrine, e-commerce, app privée…).
+5. Formulaires : Reactive Forms (défaut historique) ou Signal Forms (stables en 22) ?
 
 ## 0. Setup d'un nouveau projet (toujours)
 
-### angular.json — schematics
-
-Dans `projects.<nom>` :
-
-```json
-"schematics": {
-  "@schematics/angular:component":   { "type": "component", "skipTests": true },
-  "@schematics/angular:service":     { "type": "service",   "skipTests": true },
-  "@schematics/angular:directive":   { "type": "directive", "skipTests": true },
-  "@schematics/angular:interceptor": { "typeSeparator": ".", "skipTests": true },
-  "@schematics/angular:pipe":        { "typeSeparator": ".", "skipTests": true },
-  "@schematics/angular:guard":       { "typeSeparator": ".", "skipTests": true },
-  "@schematics/angular:resolver":    { "typeSeparator": ".", "skipTests": true }
-}
-```
-
-Résultat : `xxx.component.ts`, `xxx.service.ts`, `auth.guard.ts`, `auth.interceptor.ts`, sans `.spec.ts`.
-
-### Environnements — @ngx-env/builder + src/environments
-
-- `ng add @ngx-env/builder` : builders `@ngx-env/builder:application`, `:dev-server`, `:extract-i18n`.
-- Variables dans `.env` (préfixe `NG_APP_`), `.env.example` versionné, `.env` dans `.gitignore`. Typage dans `src/env.d.ts`.
-- `src/environments/` : `environment.ts` (dev), `environment.staging.ts`, `environment.prod.ts`, qui lisent `import.meta.env.NG_APP_*`. Le code importe uniquement `@env/environment`.
-- `fileReplacements` par configuration (`production`, `staging`).
-- Budgets de production ajustés au projet ; `optimization.fonts.inline: false` si les Google Fonts posent problème.
-
-### tsconfig.json — paths
-
-```json
-"compilerOptions": {
-  "baseUrl": "./src",
-  "paths": {
-    "@core/*":     ["app/core/*"],
-    "@shared/*":   ["app/shared/*"],
-    "@features/*": ["app/features/*"],
-    "@layouts/*":  ["app/layouts/*"],
-    "@env/*":      ["environments/*"]
-  }
-}
-```
-
-Toujours importer via ces alias, jamais de `../../../`.
-
-### app.config.ts (base commune)
-
-`provideZonelessChangeDetection()`, `provideHttpClient(withFetch(), withInterceptors([...]))`, `provideRouter(routes, withComponentInputBinding(), withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }), withViewTransitions())`.
-
-### SSR (optionnel, selon le projet) & splash (toujours)
-
-**Avec SSR** :
-
-- `ng add @angular/ssr`, `outputMode: "server"`, `app.routes.server.ts` (pages statiques/légales en `Prerender`).
-- Ajouter `provideClientHydration(withEventReplay(), withHttpTransferCacheOptions({ includePostRequests: false }))`.
-- Tout accès navigateur protégé (`isPlatformBrowser`, `afterNextRender`).
-
-**Sans SSR** : pas de `provideClientHydration`, pas de fichiers serveur ; le reste est identique.
-
-**Splash screen (dans les deux cas)** dans `src/index.html` : `<div id="splash">` (logo + loader en CSS inline, couleurs du projet, compatible dark). Retiré côté navigateur une fois l'app prête (après hydratation si SSR, après bootstrap sinon) via `afterNextRender` dans `App` ou `ApplicationRef.whenStable()`, avec un fondu puis `remove()`. Respecter `prefers-reduced-motion`. Avec SSR, le splash ne doit pas masquer le contenu aux robots ni si le JS échoue (`<noscript>` + timeout CSS de sécurité).
-
-### Routing — lazy loading obligatoire
-
-```ts
-export const routes: Routes = [
-  { path: '', loadComponent: () => import('@layouts/main-layout/main-layout.component').then(m => m.MainLayoutComponent), children: [
-    { path: '', loadChildren: () => import('@features/accueil/accueil.routes').then(m => m.ACCUEIL_ROUTES) },
-    { path: 'politique-de-confidentialite', loadComponent: () => import('@features/legal/pages/politique-confidentialite/politique-confidentialite.component').then(m => m.PolitiqueConfidentialiteComponent), title: 'Politique de confidentialité' },
-    { path: 'mentions-legales', loadComponent: … },
-    { path: 'cookies', loadComponent: … },
-  ]},
-  { path: '**', loadComponent: () => import('@features/not-found/not-found.component').then(m => m.NotFoundComponent), title: 'Page introuvable' },
-];
-```
-
-- **Toutes** les routes sont lazy : `loadChildren` pour une feature, `loadComponent` pour une page ou un layout. Aucun `component:` importé en dur dans `app.routes.ts` ni dans les `<feature>.routes.ts`.
-- Chaque feature expose `<feature>.routes.ts`, lui-même composé de `loadComponent`.
-- Aucun import statique d'une page depuis une autre feature (sinon elle quitte son chunk). Vérifier dans le résultat du build que chaque feature a son propre chunk lazy.
-- Préchargement : `withPreloading(PreloadAllModules)` ou stratégie personnalisée selon le projet ; `@defer` pour les blocs lourds dans une page.
-- `title` sur chaque route + `TitleStrategy` personnalisée (`« Page | Nom du site »`).
-- Guards fonctionnels sur les routes protégées (`canMatch` pour ne pas télécharger le chunk d'une zone interdite).
+> Détail dans `references/setup-projet.md` : `angular.json` (schematics), environnements `@ngx-env`, alias `tsconfig`, `app.config.ts`, SSR optionnel et splash, routing 100 % lazy. **À lire avant de créer un projet, jamais pour une feature dans un projet existant.** Règle à retenir sans l'ouvrir : toutes les routes sont lazy (`loadChildren` / `loadComponent`) et on importe via les alias `@core/`, `@shared/`, `@features/`, `@layouts/`, `@env/`, jamais via `../../`.
 
 ## 1. Architecture
 
@@ -123,11 +60,12 @@ Un élément reste dans sa feature ; partagé → `shared/` (UI) ou `core/` (sin
 
 ## 2. Composants & TypeScript
 
-- Standalone implicite (ne pas écrire `standalone: true`), `ChangeDetectionStrategy.OnPush`, zoneless.
+- Standalone implicite (ne pas écrire `standalone: true`). `OnPush` et zoneless sont le défaut en 22 : ne pas écrire `changeDetection` ; `ChangeDetectionStrategy.Eager` (ancien `Default`) seulement pour un composant qui l'exige, avec un commentaire qui dit pourquoi.
+- Services singleton : `@Service()` (remplace `@Injectable({ providedIn: 'root' })`) ; `injectAsync()` pour charger un service lourd à la demande.
 - `inject()` uniquement. API signals : `input()`, `input.required()`, `output()`, `model()`, `viewChild()`.
 - Champs privés natifs `#field`. Piège : `ReturnType<typeof this.#methode>` invalide → fonction module-level.
 - Pages (smart) injectent et orchestrent ; components (dumb) sans service métier.
-- État : `signal()`, `computed()`, `linkedSignal()`, `effect()` ; async : `resource()` / `httpResource()` ou service + signals ; `toSignal()` pour RxJS. Pas de NgRx sauf besoin global réel.
+- État : `signal()`, `computed()`, `linkedSignal()`, `effect()` ; async : `httpResource()` pour une lecture (GET), `resource()` / `rxResource()` pour le reste, `chain()` pour enchaîner deux ressources dépendantes, sinon service + signals ; `toSignal()` pour RxJS. Pas de NgRx sauf besoin global réel.
 - Panneaux d'une page pilotés par un seul signal (`panneau = signal<'creer' | 'editer' | 'detail' | null>(null)`).
 - `forkJoin` pour les chargements combinés ; `debounceTime` + `distinctUntilChanged` pour la recherche.
 - `as const` sur chaque branche d'un ternaire.
@@ -158,21 +96,9 @@ Le code livré ne doit déclencher aucune alerte SonarQube / SonarLint :
 - Rafraîchissement automatique (listes de suivi en temps réel) : polling (≈ 30 s) suspendu quand l'onglet est caché et arrêté à la destruction du composant (`DestroyRef`).
 - Timeout sur les requêtes (constante, ex. 15 s via `timeout()` dans un interceptor) pour détecter un back qui ne répond pas.
 
-### Uploads de fichiers
-
-- Envoi avec `reportProgress: true` + barre de progression réelle (pas un spinner).
-- Contrôles côté client alignés sur le back (taille max, extensions) avec message clair avant envoi.
-- Gérer le HTTP 413 (proxy / limite serveur) et les codes d'erreur d'import du back.
-- Texte d'aide expliquant le format attendu (colonnes, images intégrées, modèle téléchargeable si pertinent).
-
-### Stockage côté navigateur : cookies, pas localStorage
-
-- **Jamais de `localStorage` ni de `sessionStorage`.** Toute persistance passe par des cookies.
-- `CookieService` dans `core/cookies/` : lecture/écriture/suppression, compatible SSR (côté serveur, lecture depuis l'en-tête `cookie` de la requête via `REQUEST` ; côté navigateur, `document.cookie`). L'état exposé en signals.
-- Attributs par défaut : `Path=/`, `SameSite=Lax` (ou `Strict`), `Secure` en production, `Max-Age` explicite. Valeurs encodées (`encodeURIComponent`), noms en constantes.
-- **Tokens d'authentification** : idéalement en cookie `HttpOnly` posé par le back (Spring Boot), envoyé avec `withCredentials: true` ; le front ne lit jamais le token. Si le back ne le permet pas encore, le signaler à l'utilisateur plutôt que de retomber sur `localStorage`. Avec des cookies d'auth, prévoir la protection CSRF (XSRF-TOKEN / `withXsrfConfiguration`).
-- Préférences (thème, langue, consentement) : cookies non `HttpOnly`, ce qui permet aussi au SSR de rendre directement le bon thème sans flash.
-- Ne stocker que le strict nécessaire (taille < 4 Ko par cookie, aucune donnée personnelle sensible).
+> Détail dans `references/http-stockage.md` : uploads (progression réelle, contrôles, 413), `CookieService`, attributs des cookies, jeton d'authentification, CSRF. **À lire avant un upload, un cookie ou une authentification.**
+>
+> **Règle absolue : jamais de `localStorage` ni de `sessionStorage`.** Toute persistance passe par des cookies (via `CookieService`), et le jeton d'authentification idéalement en cookie `HttpOnly` posé par le back. Si le back ne le permet pas, le signaler au lieu de retomber sur `localStorage`.
 
 ## 4. États de données et du template (obligatoire)
 
@@ -182,7 +108,8 @@ Le code livré ne doit déclencher aucune alerte SonarQube / SonarLint :
 
 - Reactive Forms avec `NonNullableFormBuilder` (`.group()` directement).
 - `FormArray` pour les listes dynamiques. Erreurs sous le champ, shake sur soumission invalide.
-- Jamais de template-driven. Signal Forms seulement sur demande.
+- Jamais de template-driven.
+- Signal Forms (`@angular/forms/signals`) sont stables en 22 mais ne sont pas le défaut : sur un projet qui utilise Reactive Forms, rester dessus ; sur un nouveau projet, poser la question (voir « Questions à poser »). Ne jamais mélanger les deux dans un même formulaire.
 
 ## 6. Templates
 
@@ -214,13 +141,7 @@ CSS-first, pas de `tailwind.config.js` ; `.postcssrc.json` avec `@tailwindcss/po
 
 ## 8. SEO (adapté au projet)
 
-- `SeoService` dans `core/seo/` basé sur `Title` et `Meta` : title, description, canonical, Open Graph, Twitter Card, `robots`. Données par route via `data: { seo: {…} }` appliquées à chaque navigation.
-- JSON-LD selon le type de projet (`Organization`, `LocalBusiness`, `Product`, `Article`, `BreadcrumbList`…).
-- `index.html` : `lang="fr"`, meta par défaut, favicon, `theme-color`, preconnect fonts.
-- `public/robots.txt` et `public/sitemap.xml` (URL de prod depuis l'environnement).
-- Sans SSR, signaler à l'utilisateur que le SEO reste limité (rendu côté client) ; proposer le prerender si des pages publiques doivent être indexées.
-- Back-offices / apps privées : SEO minimal + `noindex` global.
-- Un seul `h1` par page ; `alt` sur toutes les images.
+> Détail dans `references/seo-deploiement.md` : `SeoService`, JSON-LD, `robots.txt`, `sitemap.xml`, limites sans SSR. **À lire pour un projet public ou une page indexable.** Toujours : un seul `h1` par page, `alt` sur toutes les images, `noindex` global sur un back-office.
 
 ## 9. Pages obligatoires & cookies
 
@@ -233,12 +154,16 @@ CSS-first, pas de `tailwind.config.js` ; `.postcssrc.json` avec `@tailwindcss/po
 
 ## 11. Design
 
-Tout le design (concepts, maquette d'abord, palette, typo, icônes, images, motion design GSAP / Three.js, anti « look IA », composants, sources d'inspiration, vérification visuelle) est défini dans le skill **`design-sidy`** : le charger avant toute page, refonte ou choix visuel.
+Tout le design (concepts, maquette d'abord, palette, typo, icônes, images, motion design GSAP / Three.js, anti « look IA », composants, sources d'inspiration, vérification visuelle) est défini dans le skill **`design-sidy`**, appliqué par l'agent `designer`. Source de vérité, dans cet ordre :
+
+1. `design/HANDOFF.md`, `DESIGN.md` et la maquette validée, s'ils existent : les intégrer fidèlement, sans rien réinventer.
+2. Écran simple dans un projet qui a déjà son design system : reprendre ses tokens et composants ; lire seulement la section utile de `design-sidy` (couleurs §3, typo §4, micro-interactions §12, `references/motion.md`, `references/ressources.md`).
+3. Écran structurant (accueil, refonte, identité) sans maquette ni `DESIGN.md` : ne pas l'inventer, demander de passer d'abord par `designer`.
 
 Côté Angular uniquement :
 
 - les tokens du design system vont dans le `@theme` de `src/styles.css` (§7) ;
-- un composant inspiré d'un exemple React (reactbits, shadcn, 21st, Magic UI…) est réécrit en Angular 21 (standalone, signals, `@if` / `@for`), sans dépendance React ;
+- un composant inspiré d'un exemple React (reactbits, shadcn, 21st, Magic UI…) est réécrit en Angular 22 (standalone, signals, `@if` / `@for`), sans dépendance React ;
 - GSAP et Three.js : création dans `afterNextRender()`, nettoyage dans `DestroyRef.onDestroy` (détails dans `design-sidy` §13–14).
 
 ## 12. Responsive (obligatoire)
@@ -256,18 +181,17 @@ L'utilisateur ne doit pas être celui qui trouve les bugs de base. Quand l'envir
 - build sans erreur (`ng build`), aucune erreur TypeScript ni warning de template ; chunks lazy présents pour chaque feature ;
 - relecture des règles Sonar ci-dessus sur tout le code modifié ;
 - captures d'écran des écrans modifiés aux breakpoints clés (375, 768, 1440, 2560) en clair et en sombre, puis relecture critique ;
+- accessibilité et performance contrôlées selon `references/accessibilite-performance.md` (navigation clavier, contraste, `prefers-reduced-motion`, poids du bundle initial) ;
 - chaque état de données vérifié (§4) : chargement lent (throttling), réponse vide, erreur 500, réseau coupé (mode hors ligne), back arrêté / timeout ;
 - parcours principaux testés (Playwright) : navigation, formulaires, états d'erreur, hover ;
 - aucun appel à `localStorage` / `sessionStorage` dans le code (recherche globale) ;
+- aucun `.spec.ts` n'est généré (`skipTests` est voulu) : n'en écrire que sur demande de Sidy (Vitest est le lanceur de tests par défaut depuis Angular 21) ; les parcours importants se vérifient avec Playwright ;
 - `README.md` du projet à jour pour la partie front (stack, structure, commandes, variables d'environnement, thème). S'il n'existe pas, le créer depuis `spring-boot-sidy/templates/README.projet.md` : un projet a un seul README détaillé qui décrit le front **et** le back ;
 - si une étape n'a pas pu être exécutée, le dire clairement et indiquer la commande à lancer.
 
 ## 14. Déploiement
 
-- Netlify (SPA sans SSR) : toujours `public/_redirects` avec `/*  /index.html  200`.
-- Avec SSR : utiliser l'adaptateur adapté à l'hébergeur, pas de `_redirects` SPA.
-- En-têtes de sécurité et de cache configurés côté hébergeur (`_headers` sur Netlify) : cache long pour les fichiers hachés, pas de cache pour `index.html`.
-- Variables d'environnement de prod définies sur l'hébergeur, jamais commitées.
+> Détail dans `references/seo-deploiement.md` : Netlify (`_redirects` SPA), SSR, en-têtes de cache et de sécurité, variables d'environnement de production. **À lire avant de configurer un déploiement.**
 
 ## 15. Livraison
 

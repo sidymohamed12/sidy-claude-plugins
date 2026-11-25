@@ -5,7 +5,7 @@ description: "Direction artistique et design front de Sidy (toutes stacks) : bri
 
 # Design front — façon Sidy
 
-S'applique à tout front : Angular 21 (avec `angular-sidy` pour le code), HTML/CSS/JS + Tailwind sans build, landing pages, back-offices, apps web. Ce skill décide **à quoi ça ressemble et comment ça bouge** ; le skill de la stack décide **comment c'est codé**.
+S'applique à tout front : Angular 22 (avec `angular-sidy` pour le code), HTML/CSS/JS + Tailwind sans build, landing pages, back-offices, apps web. Ce skill décide **à quoi ça ressemble et comment ça bouge** ; le skill de la stack décide **comment c'est codé**.
 
 Sources dont ce skill est tiré (à relire au besoin) : taste-skill (Leonxlnx), impeccable (pbakaus), frontend-design (anthropics/skills), ui-ux-pro-max, awesome-design-md (format DESIGN.md), skillui (extraction de design system) ; inspiration visuelle : reactbits, uiverse, shadcn/ui, awwwards, 21st.dev, freefrontend, details.so, animata, hover.dev, Magic UI ; icônes : Phosphor, Lucide, Iconoir, Heroicons, Feather, Font Awesome Free, Iconify ; images : Pexels, Unsplash, Pixabay, Vecteezy, PikWizard, Shutterstock ; polices : Abstract Fonts, Font Squirrel, UrbanFonts, FontSpace, FontM, DaFont, Befonts, Fontspring, 1001 Fonts.
 
