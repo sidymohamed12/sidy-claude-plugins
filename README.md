@@ -1,3 +1,5 @@
+> **Mise à jour (2026-11-25, `sidy-office` v1.13.0)** — `architecte` a son personnage dans l'exemple `sidy-office.json` (bleu, cheveux longs) et passe en tête de l'ordre de l'équipe. Il apparaissait déjà seul, avec un look généré ; copie l'exemple dans `~/.claude/` pour lui donner celui-ci.
+>
 > **Mise à jour (2026-11-25, `sidy-dev` v1.9.0)** — nouvel agent **`architecte`** : il planifie avant le code (lots, tâches, ordre des agents, contrats d'API, décisions à valider dans `docs/plans/`) et arbitre en cours de chaîne quand un agent s'arrête ou qu'une revue bloque. Il ne touche jamais au code.
 >
 > **Mise à jour (2026-11-24, `sidy-office` v1.12.0)** — on peut jouer seul à la console et à la balle (jongles), plus de balle parasite à la console, et des longueurs dans la piscine.

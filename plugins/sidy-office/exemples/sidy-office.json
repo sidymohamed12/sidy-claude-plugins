@@ -2,6 +2,7 @@
   "titre": "Le bureau de Sidy",
   "zones": ["tele", "tennis-de-table", "discussion", "dortoir", "salle-de-sport", "piscine", "gaming", "balle"],
   "ordre": [
+    "architecte",
     "backend-dev",
     "designer",
     "frontend-dev",
@@ -15,6 +16,14 @@
       "couleur": "#2F4B8F",
       "peau": 4,
       "accessoire": "cravate"
+    },
+    "architecte": {
+      "role": "Planifie et arbitre la chaîne",
+      "couleur": "#2F6FEB",
+      "peau": 2,
+      "cheveux": "#2B2118",
+      "coupe": "longue",
+      "accessoire": "aucun"
     },
     "backend-dev": {
       "role": "Code le back-end Spring Boot",
