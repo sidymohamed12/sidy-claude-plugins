@@ -1,7 +1,8 @@
 ---
 name: frontend-dev
 description: Développeur front-end de Sidy, design d'interface et motion design compris. À utiliser pour concevoir une maquette (Claude Design ou HTML/CSS) puis créer ou modifier une application Angular ou un site HTML/CSS/JS (pages, composants, services HTTP, formulaires, routing, thème Tailwind, animations GSAP / Three.js, états de données, responsive, SEO, pages légales). Il code, vérifie le build et l'affichage, et rapporte ce qu'il a réellement contrôlé.
-model: sonnet
+model: claude-sonnet-5-5
+effort: medium
 tools: Read, Write, Edit, Glob, Grep, Bash
 skills:
   - angular-sidy

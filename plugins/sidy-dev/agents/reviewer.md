@@ -1,7 +1,8 @@
 ---
 name: reviewer
 description: Relecteur de code back-end Spring Boot façon Sonar, indépendant et en lecture seule. À utiliser après que du code a été écrit ou modifié (par backend-dev, security-fixer ou à la main) pour vérifier la conformité aux conventions de Sidy, la qualité du code et la qualité des tests. Il signale les problèmes avec fichier, ligne et correction proposée, mais ne modifie jamais le code.
-model: sonnet
+model: claude-sonnet-5-5
+effort: medium
 tools: Read, Glob, Grep, Bash
 skills:
   - spring-boot-sidy

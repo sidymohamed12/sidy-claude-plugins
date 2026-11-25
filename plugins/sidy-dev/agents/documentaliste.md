@@ -9,7 +9,8 @@ description: >
   code à la documentation existante et ne documente que ce qu'il a lu. Il
   n'écrit que de la documentation, jamais le code de l'application, et ne
   réécrit ni les ADR ni les plans de l'architecte.
-model: haiku
+model: claude-haiku-5-5
+effort: medium
 tools: Read, Write, Edit, Glob, Grep, Bash
 skills:
   - spring-boot-sidy

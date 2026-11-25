@@ -8,7 +8,8 @@ description: >
   puis maquette HTML/CSS jouable. Il s'arrête à chaque étape pour faire
   valider Sidy et ne touche jamais au code de l'application : l'intégration
   revient à frontend-dev.
-model: sonnet
+model: claude-sonnet-5-5
+effort: medium
 tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 skills:
   - design-sidy

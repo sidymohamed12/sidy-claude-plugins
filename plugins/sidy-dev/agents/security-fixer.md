@@ -10,7 +10,8 @@ description: >
   rend un bloc « Passage suivant » à relancer (3 passages au plus). Il ne
   cherche pas d'autres failles et il n'implémente pas de feature
   (backend-dev).
-model: sonnet
+model: claude-sonnet-5-5
+effort: medium
 tools: Read, Write, Edit, Glob, Grep, Bash
 skills:
   - spring-boot-sidy

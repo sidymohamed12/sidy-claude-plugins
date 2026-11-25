@@ -12,6 +12,7 @@ description: >
   conception : il n'écrit que dans docs/ et ne touche jamais au code de
   l'application.
 model: claude-opus-5-5
+effort: medium
 tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 skills:
   - spring-boot-sidy
