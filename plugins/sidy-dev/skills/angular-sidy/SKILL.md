@@ -176,40 +176,7 @@ Le code livré ne doit déclencher aucune alerte SonarQube / SonarLint :
 
 ## 4. États de données et du template (obligatoire)
 
-Toute zone qui affiche des données distantes (page, liste, tableau, carte KPI, détail, graphique, select alimenté par l'API) gère **tous** ces états. Aucun écran blanc, aucun spinner infini, aucune erreur silencieuse.
-
-| État                  | Quand                                                                       | Affichage                                                                                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `chargement`          | Premier chargement                                                          | **Skeleton** à la forme du contenu final (mêmes dimensions, même nombre de lignes/cartes), pas un spinner centré                                                                 |
-| `rechargement`        | Refresh, filtre, pagination avec données déjà affichées                     | Données conservées + indicateur discret (barre fine, opacité réduite), pas de retour au skeleton                                                                                 |
-| `succes`              | Données reçues                                                              | Le contenu                                                                                                                                                                       |
-| `vide`                | Réponse OK mais aucune donnée                                               | Message explicite + icône + action utile (« Créer le premier… »). **Distinguer** « aucune donnée » de « aucun résultat pour ces filtres » (bouton « Réinitialiser les filtres ») |
-| `erreur`              | 4xx/5xx, code métier                                                        | Message français clair (via la table des codes) + bouton « Réessayer » ; 403 → accès refusé, 404 → élément introuvable                                                           |
-| `hors-ligne`          | Pas de connexion internet                                                   | Message « Vous êtes hors ligne » + nouvelle tentative automatique au retour du réseau                                                                                            |
-| `serveur-injoignable` | Back qui ne répond pas (statut `0` avec réseau actif, timeout, 502/503/504) | Message « Le service ne répond pas, réessayez dans un instant » + « Réessayer » ; ne pas confondre avec le hors-ligne                                                            |
-
-### Mise en œuvre
-
-- Type commun dans `shared/models/` :
-  ```ts
-  export type EtatDonnees =
-    | "chargement"
-    | "rechargement"
-    | "succes"
-    | "vide"
-    | "erreur"
-    | "hors-ligne"
-    | "serveur-injoignable";
-  ```
-  État calculé par un `computed()` (ou dérivé de `resource()` / `httpResource()` : `isLoading()`, `error()`, `value()`), jamais par une cascade de booléens (`isLoading`, `hasError`, `isEmpty`…).
-- Classification centralisée de l'erreur dans `core/` (fonction `classerErreur(err): EtatDonnees`) : `navigator.onLine` faux → `hors-ligne` ; statut `0`, `TimeoutError`, 502/503/504 → `serveur-injoignable` ; le reste → `erreur` avec message métier.
-- `NetworkService` dans `core/network/` : signal `enLigne` basé sur les événements `online` / `offline` (protégé SSR). Bandeau global discret « Hors ligne » dans le layout, et relance automatique des chargements en échec au retour du réseau.
-- Composants réutilisables dans `shared/components/states/` : `skeleton` (variantes ligne, carte, tableau, KPI, détail), `etat-vide`, `etat-erreur` (avec `output()` réessayer), `etat-hors-ligne`, `etat-serveur-injoignable`. Les features les composent, sans réécrire ces états à chaque fois.
-- Template : un seul `@switch (etat())` par zone de données, chaque cas traité explicitement.
-- Granularité : chaque bloc indépendant a son propre état (une carte KPI en erreur ne bloque pas le reste du dashboard).
-- Actions (création, édition, suppression) : bouton désactivé + indicateur pendant l'envoi, message de succès, erreur affichée sans perdre la saisie, aucun double envoi.
-- `@defer` : toujours avec `@placeholder` / `@loading` (skeleton) et `@error`.
-- Skeleton : animation sobre (`animate-pulse` ou shimmer CSS), respect de `prefers-reduced-motion`, compatible dark, `aria-busy="true"` sur la zone ; les états d'erreur et hors-ligne sont annoncés (`role="alert"` / `aria-live`).
+> **Obligatoire.** Toute zone qui affiche des données distantes gère tous les états (chargement, rechargement, succès, vide, erreur, hors-ligne…) : aucun écran blanc, aucun spinner infini. Détail et tableau des états dans `references/etats-donnees.md`. **À lire avant de créer ou modifier un composant qui affiche des données.**
 
 ## 5. Formulaires
 
@@ -257,47 +224,7 @@ CSS-first, pas de `tailwind.config.js` ; `.postcssrc.json` avec `@tailwindcss/po
 
 ## 9. Pages obligatoires & cookies
 
-- **404** (`features/not-found`) : route `**`, design soigné, liens de retour ; avec SSR, renvoyer un vrai statut 404.
-- **Politique de confidentialité**, **Mentions légales**, **Politique cookies** dans `features/legal/`, liées dans le footer.
-
-### Rédaction des pages légales : poser les questions d'abord
-
-Ne jamais inventer d'informations légales. Avant de rédiger, poser ces questions (en un seul bloc, en sautant celles déjà connues) :
-
-**Mentions légales**
-
-- Éditeur : personne physique ou société ? Raison sociale, forme juridique, capital, NINEA / RCCM (ou SIRET/RCS hors Sénégal).
-- Adresse du siège, téléphone, email de contact.
-- Directeur de la publication.
-- Hébergeur (nom, adresse, contact) : Netlify, Vercel, OVH, VPS…
-- Concepteur / développeur du site à créditer ?
-- Propriété des contenus, logos, photos (droits, crédits).
-
-**Politique de confidentialité**
-
-- Public visé : Sénégal uniquement (loi n° 2008-12, CDP) ou aussi l'Europe (RGPD) ?
-- Données collectées : formulaires (contact, inscription, commande), comptes, paiement, géolocalisation, données de santé ou sensibles ?
-- Finalités et bases légales (contrat, consentement, intérêt légitime, obligation légale).
-- Durées de conservation.
-- Destinataires et sous-traitants (hébergeur, emailing, paiement, analytics, SMS…) ; transferts hors du pays ?
-- Responsable du traitement et contact pour exercer les droits (accès, rectification, suppression, opposition).
-- Déclaration ou autorisation CDP effectuée ? Numéro de récépissé ?
-
-**Cookies**
-
-- Outils utilisés : analytics (Google Analytics, Matomo…), pixels publicitaires, chat, cartes, vidéos intégrées ?
-- Cookies strictement nécessaires (session, auth, panier, langue, thème).
-- Durée de validité du consentement souhaitée.
-
-Ensuite, rédiger les pages à partir des réponses ; les infos manquantes restent en `[À COMPLÉTER : …]` bien visibles. Rappeler que le texte doit être validé par un juriste pour un projet sensible. Le contenu est structuré en données TS (sections, titres, paragraphes), avec date de dernière mise à jour et sommaire ancré. La politique cookies liste tous les cookies réellement posés par l'application (nom, finalité, durée).
-
-### Consentement cookies
-
-- `CookieConsentService` dans `core/cookie-consent/` : catégories (`necessaires` toujours actifs, `mesure`, `marketing`, `preferences`), état en signal, persistance dans un cookie (via `CookieService`) avec version et date, expiration (≈ 6 à 13 mois) puis re-demande.
-- `CookieBannerComponent` dans `shared/` : « Tout accepter », « Tout refuser » (même poids visuel) et « Personnaliser » (modale avec toggles par catégorie), accessible clavier, responsive.
-- Aucun script non nécessaire (analytics, pixels) chargé avant consentement : chargement dynamique conditionné par le service. Un cookie de préférence n'est posé que si la catégorie `preferences` est acceptée.
-- Lien « Gérer les cookies » dans le footer pour rouvrir les préférences et retirer son consentement (suppression des cookies concernés).
-- Les catégories affichées dépendent des réponses aux questions cookies ci-dessus.
+> Détail dans `references/pages-cookies.md` : pages légales obligatoires et gestion des cookies. **À lire avant de créer le footer, les pages légales ou un bandeau de cookies.**
 
 ## 10. Icônes
 

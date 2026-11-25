@@ -147,35 +147,11 @@ Avant toute maquette, le design system existe en vrai, pas seulement dans `DESIG
 
 ## 7. Icônes
 
-- **Bibliothèques d'icônes (gratuites)** — en choisir **une seule par projet, jamais mélangées**, d'après le concept :
-
-| Bibliothèque | Style | Licence / remarque |
-| --- | --- | --- |
-| [Phosphor](https://phosphoricons.com/) | 6 graisses (thin → fill, duotone), très complète | MIT |
-| [Lucide](https://lucide.dev/icons/) | trait régulier 2 px, très complète, paquets Angular / JS / SVG | ISC |
-| [Iconoir](https://iconoir.com/) | trait fin et régulier, `regular` / `solid` | MIT |
-| [Heroicons](https://heroicons.com/) | outline / solid / mini, sobre (univers Tailwind) | MIT |
-| [Feather](https://feathericons.com/) | trait minimal, petit jeu (~290 icônes) ; Lucide en est la suite plus complète | MIT |
-| [Font Awesome](https://fontawesome.com/) | très large, dont marques | **Free** uniquement, jamais les styles Pro |
-| [Iconify](https://icon-sets.iconify.design/) | moteur de recherche sur 200+ jeux | licence **propre à chaque jeu** : vérifier qu'elle est libre (MIT, Apache, ISC, CC BY…) ; ne prendre les icônes que dans le jeu retenu pour le projet |
-
-- Un seul style dans la bibliothèque (ex. Phosphor `regular` + `fill` pour l'état actif ; Heroicons `outline` + `solid` actif), même graisse et même taille de trait partout.
-- Vérifier que l'icône existe. **(interdit)** emojis ou glyphes Unicode à la place d'icônes.
-- Logos d'outils / partenaires réels : leur vrai logo SVG dans ses couleurs, jamais un dessin approximatif.
-- Icône seule → `aria-label` sur le contrôle ; icône décorative → `aria-hidden="true"`.
+> Détail dans `references/ressources.md` : bibliothèques d'icônes autorisées. **À lire avant de choisir des icônes.**
 
 ## 8. Images
 
-- **Des images pour captiver, pas des murs de texte.** En construisant une page (vitrine, site, app web), mettre des images partout où elles aident à comprendre ou à donner envie : hero, sections de présentation, services, étapes, témoignages, équipe, réalisations, chiffres clés illustrés. Une section avec plus de ~3 paragraphes ou une liste longue sans visuel est à revoir : réduire le texte, ajouter une image ou découper. Pas d'image décorative sans rapport avec le contenu, et sur les back-offices seulement là où elle sert (états vides, avatars, aperçus).
-- **Photos réelles du contexte** (lieux, équipes, produits, Sénégal) en priorité ; si aucune : photos de banque d'images du même type de chose, signalées comme provisoires à l'utilisateur, jamais présentées comme celles du client.
-- **Où chercher les images (gratuites uniquement)** : [Pexels](https://www.pexels.com/fr-fr/), [Unsplash](https://unsplash.com/fr) (hors images « Unsplash+ »), [Pixabay](https://pixabay.com/), [Vecteezy](https://www.vecteezy.com/) (filtre « Gratuit », pas « Pro »), [PikWizard](https://pikwizard.com/) (images gratuites uniquement). [Shutterstock](https://www.shutterstock.com/fr/) est payant : seulement pour trouver une idée de cadrage, jamais pour une image utilisée ; si aucune image gratuite ne convient, le dire à l'utilisateur. Chercher avec des mots-clés précis du sujet (en français et en anglais, ex. « Dakar street », « African pharmacist », « wooden desk organizer »), privilégier des personnes et des lieux qui correspondent au public (Afrique de l'Ouest quand c'est le contexte), et garder un même traitement (lumière, couleurs, cadrage) sur toute la page.
-- **Licence vérifiée pour chaque image** : gratuite pour usage commercial, sans filigrane ; respecter l'attribution quand elle est exigée (souvent sur Vecteezy et PikWizard). Jamais d'image premium, à filigrane ou en aperçu. Noter source, auteur et lien de chaque image (fichier `assets/images/CREDITS.md`).
-- Télécharger, redimensionner et convertir les images (AVIF/WebP) dans `assets/images/` ; jamais de lien direct (hotlink) vers la banque d'images en production. Si le téléchargement est impossible depuis l'environnement, donner à l'utilisateur la liste des liens choisis avec l'emplacement prévu de chacune.
-- Pas de légende qui décrit ou s'excuse sous une image ; crédits regroupés dans une ligne du footer.
-- Traitement cohérent, ratios fixes par usage (`aspect-video`, `aspect-[4/3]`, `aspect-square`), `object-cover`. Pas de masque géométrique pour simuler un détourage : un vrai PNG/WebP détouré ou rien.
-- Une même photo jamais deux fois sur la page.
-- Perf : AVIF/WebP, `srcset` à 2× la largeur affichée max, hero < 400 Ko avec `fetchpriority="high"` (jamais lazy), autres < 250 Ko, `loading="lazy"` + `decoding="async"` sous la ligne de flottaison, `width`/`height` ou `aspect-ratio` sur chaque image. Photo sous la ligne de flottaison = `<img>`, pas un `background-image`.
-- `alt` descriptif sur toute image porteuse de sens.
+> Détail dans `references/ressources.md` : sources d'images gratuites, pages riches en images plutôt qu'en texte. **À lire avant de choisir des images.**
 
 ## 9. Fonds
 
@@ -243,102 +219,11 @@ Tokens (à mettre dans `@theme`) :
 
 ## 13. Motion design avec GSAP
 
-### Principe
-
-Sur les vitrines, sites et applications web, **le motion design est un point fort du livrable, pas une option** : la page doit captiver dès l'ouverture et pendant tout le scroll. Captivant ne veut pas dire chargé : chaque animation sert le récit, le contenu ou l'action, et reste fluide (60 fps), accessible et réversible sous `prefers-reduced-motion`.
-
-### Recherche dans les références (avant toute proposition)
-
-1. Pour chaque section, **chercher réellement** les effets candidats dans les références : reactbits.dev, uiverse.io, 21st.dev, freefrontend.com, animata.design, hover.dev, magicui.design, awwwards.com (sites primés pour l'orchestration au scroll), details.so/inspo (détails et micro-interactions de vrais produits), ui.shadcn.com (interactions d'interface), et les règles de motion de taste-skill / impeccable. Ouvrir les pages (navigateur ou WebFetch), ne pas citer de mémoire.
-2. Retenir pour chaque section 1 effet principal (et au besoin 1 alternative), avec le **nom exact de l'effet et le lien** de la page où il a été trouvé.
-3. Écarter ce qui ne sert pas le concept ou le contenu (§10), ce qui est trop lourd pour le mobile, ou ce qui n'a pas de version accessible.
-4. Si une référence n'est pas accessible depuis l'environnement, le dire et décrire l'effet sans lien.
-
-### Proposition à faire valider (avant de coder)
-
-Présenter à l'utilisateur un tableau, **une ligne par section** (dans l'ordre de la page), puis attendre sa validation :
-
-| Section | Animation proposée | Raison | Déclencheur | Référence (effet + lien) | Mobile / reduced-motion |
-| --- | --- | --- | --- | --- | --- |
-| Hero | Titre révélé mot par mot depuis des masques, photo qui se pose | Le nom du projet arrive d'abord, puis l'action | Chargement (une fois) | reactbits — *Split Text* (lien) | Version courte / titre affiché directement |
-| Chiffres clés | Compteurs qui défilent jusqu'à la valeur | Rendre l'impact concret | Scroll (entrée dans l'écran, une fois) | reactbits — *Count Up* (lien) | Valeur finale affichée |
-| … | … | … | Chargement · scroll (entrée) · scroll (scrub / pin) · survol · clic · navigation | … | … |
-
-- **Raison** : ce que l'animation apporte au récit ou à l'usage, en une phrase. Pas de raison → pas d'animation.
-- **Déclencheur** : chargement, scroll (entrée), scroll (scrub / pin), survol, clic, navigation.
-- Ajouter sous le tableau : les **moments forts** retenus (2–3 sur une vitrine), les effets au pointeur, les transitions de pages, Lenis oui / non et pourquoi, le niveau de motion (§13) et le poids JS estimé (GSAP, plugins, Three.js).
-- Proposer au besoin 2 variantes pour les sections clés (hero, moment fort) et laisser l'utilisateur choisir.
-- Le tableau validé est recopié dans la section **Motion** du `DESIGN.md` et sert de référence pendant la maquette, l'intégration et la vérification.
-- Les effets repris sont **réécrits** dans la stack du projet (Angular / HTML + GSAP) avec les tokens du projet : pas de dépendance React, pas de copier-coller brut, licence vérifiée.
-
-### Niveau 1 — Vitrines, sites, portfolios (Convaincre, Exposer) : motion riche
-
-1. **Entrée du hero** orchestrée en timeline (~1.1–1.6 s) : `h1` qui monte ligne par ligne ou mot par mot depuis des masques (SplitText), texte et boutons en cascade, image qui se pose (`scale(1.05 → 1)`, révélation en `clip-path`) ou scène 3D qui s'assemble. Jamais de loader bloquant.
-2. **Chaque section a sa propre entrée, différente de la voisine** (pas le même fade-up partout) : révélation d'image en `clip-path`, titres en SplitText, listes en cascade courte, chiffres qui défilent, lignes / tracés SVG qui se dessinent, cartes qui se posent avec un léger décalage de profondeur.
-3. **2 à 3 moments forts** pinés et scrubés, séparés par des sections plus calmes : chapitres photo, titre qui s'éclaire mot à mot, défilement horizontal de projets, image ou objet 3D qui tourne au scroll, texte géant traversé par une image, changement de couleur de fond entre chapitres.
-4. **Couche interactive** : micro-interactions (§12), un effet lié au pointeur bien choisi (spotlight, image qui suit le survol d'une liste, bouton magnétique discret sur le CTA principal), parallaxe légère sur les images et fonds (jamais sur le texte courant).
-5. **Transitions de pages** (View Transitions API ou overlay GSAP) et liens d'ancres animés ; Lenis possible pour un scroll fluide (voir règles).
-6. Marquee, compteurs, loops dans les visuels autorisés quand ils servent le contenu, avec pause.
-
-### Niveau 2 — Applications web publiques (Expérience) : motion soignée
-
-- Entrée de page courte (titre + contenu en cascade, 400–600 ms) à chaque navigation ; **transitions de route** (View Transitions / GSAP) avec élément partagé quand c'est logique (carte → détail).
-- Listes et grilles qui se posent en cascade courte au premier chargement ; **Flip** pour filtres, tris, ajout / suppression d'éléments.
-- Retours d'action vivants : succès (coche dessinée, compteur qui monte, badge qui apparaît), drawers / bottom sheets qui glissent, toasts, onglets avec indicateur qui glisse, skeleton → contenu en fondu.
-- Pages d'accueil ou d'onboarding de l'app traitées comme une vitrine (niveau 1).
-
-### Niveau 3 — Back-offices (Opérer) : motion allégée
-
-- Présente mais discrète et rapide (≤ 250 ms), jamais au scroll, jamais en boucle décorative.
-- Autorisé : entrée de page légère (fondu + 8 px), cascade courte des KPI cards au chargement, compteurs KPI qui montent une fois, Flip sur tris / filtres / réordonnancement, ouverture de drawers et dialogues, indicateurs d'onglets, toasts, skeleton → contenu, lignes de tableau mises en évidence après une action, graphiques qui se dessinent une fois.
-- Interdit : ScrollTrigger, Lenis, SplitText décoratif, 3D, parallaxe, effets liés au pointeur.
-
-### Niveau Lire (doc, pages légales)
-
-Micro-interactions et ancres animées uniquement.
-
-### Mise en place
-
-- GSAP 3.13+ (tous les plugins sont gratuits : ScrollTrigger, SplitText, Flip). Angular / Vite : `npm i gsap`, import dynamique dans la page qui l'utilise. Sans build : CDN jsDelivr en `defer`. `gsap.registerPlugin(...)` une seule fois.
-- **Angular** : créer les animations dans `afterNextRender()` (jamais côté serveur), à l'intérieur d'un `gsap.context(() => {...}, hostElement)` ; `ctx.revert()` dans `DestroyRef.onDestroy`. En zoneless, aucun `runOutsideAngular` nécessaire.
-- **`gsap.matchMedia()`** pour tout : `(prefers-reduced-motion: no-preference)` pour lancer la motion, `reduce` → état final directement ; breakpoints pour couper les moments lourds sur mobile.
-- **Contenu visible sans JS** : l'état caché initial n'est posé que par le script (classe ajoutée sur `<html>` par JS + filet de sécurité par timeout CSS). Aucun texte invisible pour les robots ou si le JS échoue.
-
-### Règles
-
-- Timeline unique pour l'entrée du hero ; `autoAlpha` plutôt que `opacity` pour masquer.
-- **ScrollTrigger** : entrées de section en `once: true` ou `toggleActions: 'play none none reverse'` ; pin seulement avec `position` stable et hauteur déterministe ; `scrub: 0.5–1.5` ; 3 sections pinées max par page, jamais deux à la suite ; le moment montre un état fini aux deux bouts et se rejoue à l'envers en remontant ; `ScrollTrigger.refresh()` après chargement des images et polices ; `markers: false` en prod.
-- **Smooth-scroll (Lenis)** : scroll natif par défaut ; Lenis autorisé quand le projet le justifie (vitrine ou portfolio avec moments scrubés). Dans ce cas : une seule instance, synchronisée avec ScrollTrigger (`lenis.on('scroll', ScrollTrigger.update)` + `gsap.ticker.add((t) => lenis.raf(t * 1000))` + `gsap.ticker.lagSmoothing(0)`), coupée sous `prefers-reduced-motion`, ancres et navigation clavier fonctionnelles, détruite au démontage (`lenis.destroy()`), jamais de blocage du scroll ni de saut forcé de section. Pas de scroll-snap.
-- **SplitText** : titres courts uniquement (≤ 8 mots), `split.revert()` au nettoyage, `aria-label` conservé.
-- **Stagger** : 30–80 ms par élément, ≤ 8 éléments animés par groupe (au-delà, le reste apparaît avec le dernier) ; `ScrollTrigger.batch` pour les grilles longues.
-- **Flip** : transitions de mise en page (filtre, tri, liste ↔ grille), une paire d'éléments partagés par transition.
-- **quickTo** pour ce qui suit le pointeur ; un ou deux effets liés au pointeur par page, uniquement sur pointeur fin, jamais de curseur qui remplace celui du système.
-- Easing : `power2.out` / `expo.out` pour les entrées, `power2.inOut` pour les déplacements, `none` pour le scrub ; jamais `elastic` / `back` sur de l'UI informative.
-- Toute boucle qui dure plus de 5 s a un bouton pause ; boucles en pause quand l'onglet est caché ; tween infinis tués à la destruction.
-- Mobile : moments légers seulement (transform, clip-path, couleur), sinon image fixe de l'état final.
+> Détail dans `references/motion.md` : recherche des effets dans les références, proposition des animations section par section à faire valider **avant de coder**, niveaux de motion (vitrines et sites : riche ; applications web : soignée ; back-offices : allégée), GSAP, Lenis. **À lire avant de proposer ou d'écrire la moindre animation.**
 
 ## 14. 3D avec Three.js
 
-### Quand
-
-- **Uniquement si la 3D représente un contenu réel** : le produit, un objet du métier, une carte / un territoire, une architecture, l'écran du produit. **(interdit)** 3D décorative (sphères, particules, blobs) sur une vitrine de lieu, de service ou de commerce : photos.
-- Modes Convaincre / Exposer (et page d'accueil d'une app web). **Une seule scène vivante par page** (≤ 2 contextes WebGL au total) ; jamais en calque fixe ni derrière du texte courant.
-- Si le produit a de vraies photos, la photo d'abord ; la 3D quand le brief la demande (configurateur, « voir en 3D », produit qui n'existe qu'en modèle).
-
-### Mise en place
-
-- `npm i three` (Angular / Vite) ou import map vers `three` sur CDN (sans build). **Import dynamique** : la scène ne charge que lorsque sa section approche (`IntersectionObserver` pour monter, jamais pour démarrer / arrêter une motion visible).
-- **Angular** : composant dédié avec `viewChild` sur le `<canvas>`, création dans `afterNextRender()`, `ResizeObserver` pour le redimensionnement, nettoyage complet dans `DestroyRef.onDestroy` (`renderer.dispose()`, `geometry.dispose()`, `material.dispose()`, textures, `renderer.setAnimationLoop(null)`). Jamais côté serveur.
-- Renderer : `antialias: true`, `setPixelRatio(Math.min(devicePixelRatio, 1.5))`, `outputColorSpace = SRGBColorSpace`, `ACESFilmicToneMapping`, fond transparent posé sur le fond de la section (blanc).
-- Modèles **glTF / GLB** compressés (Draco ou Meshopt), textures KTX2 / WebP, **≈ 2 Mo max** compressé ; éclairage simple (HDRI léger ou 2–3 lumières), pas de post-processing lourd.
-- **Poster d'abord** : une image fixe de la scène (WebP) affichée immédiatement, remplacée par le canvas une fois prêt ; même poster si WebGL est absent ou échoue, sur mobile bas de gamme et sous `prefers-reduced-motion`.
-- Perf : rendu à la demande quand rien ne bouge ; boucle en pause hors écran et onglet caché ; baisser le pixel ratio si une frame dépasse ~22 ms ; particules / bruit à mi-résolution et ≤ 30 fps.
-
-### Interaction et motion
-
-- **GSAP pilote la 3D** : rotation / caméra liées à ScrollTrigger (scrub) dans la section du moment, ou timeline au chargement.
-- `OrbitControls` seulement si l'utilisateur doit manipuler : limites d'angle et de zoom, pas de zoom à la molette qui bloque le scroll de la page, rotation auto arrêtée dès l'interaction, bouton pause.
-- Accessibilité : `<canvas role="img" aria-label="…">` ; les infos de la scène existent aussi en texte ; contrôles accessibles au clavier si interactifs.
+> Détail dans `references/motion.md` : Three.js pour la 3D. **À lire avant d'ajouter une scène 3D.**
 
 ## 15. Composants, navigation, états
 
@@ -373,26 +258,7 @@ Chaque zone a un design pour : chargement (skeleton à la forme du contenu), rec
 
 ## 17. Sources d'inspiration
 
-| Site | Pour quoi |
-| --- | --- |
-| [reactbits.dev](https://reactbits.dev/) | Animations de texte, fonds animés, composants interactifs |
-| [uiverse.io](https://uiverse.io/) | Petits éléments HTML/CSS : boutons, loaders, toggles, cartes, inputs |
-| [ui.shadcn.com](https://ui.shadcn.com/) | Composants sobres et accessibles ; référence ARIA / focus pour dialogues, menus, listes |
-| [awwwards.com](https://www.awwwards.com/) | Direction artistique, mises en page, moments GSAP / Three.js primés |
-| [21st.dev](https://21st.dev/) | Sections prêtes à l'emploi : hero, pricing, navbar, dashboard |
-| [freefrontend.com](https://freefrontend.com/) | Exemples CSS/JS classés par type d'élément |
-| [details.so/inspo](https://www.details.so/inspo) | Détails d'interface et micro-interactions de vrais produits, à étudier de près |
-| [animata.design](https://animata.design/components) | Composants animés open source (texte, cartes, fonds, survols) |
-| [hover.dev](https://www.hover.dev/components) | Composants animés (boutons, cartes, navigations, effets de survol) — **gratuits uniquement**, une partie du site est payante |
-| [magicui.design](https://magicui.design/docs/components) | Composants animés open source (texte, marquee, bordures, fonds, effets) — pas les templates Magic UI Pro |
-| [awesome-design-md](https://github.com/voltagent/awesome-design-md) | Exemples de `DESIGN.md` de vrais sites pour structurer le sien |
-
-- Côté composants et effets : n'utiliser que les éléments **gratuits et open source** (reactbits, uiverse, shadcn/ui, freefrontend, animata, Magic UI, composants gratuits de 21st.dev et de hover.dev) ; écarter les composants, templates et blocs payants ou « Pro ». awwwards et details.so servent d'inspiration visuelle seulement.
-- Source d'idées, **pas de code ni de signature à copier** : réécrire dans la stack du projet avec ses tokens, sans dépendance React, sans couleurs ni textes repris.
-- Garder seulement ce qui sert le contenu (§10) ; respect de `prefers-reduced-motion` et du clavier.
-- Vérifier la licence avant de reprendre du code quasi tel quel ; citer la source quand un composant s'en inspire directement.
-- `skillui --url` sur un site de référence : pour analyser une structure (espacements, échelle typo), jamais pour cloner une marque.
-- Si un site n'est pas accessible depuis l'environnement, travailler à partir de la description de l'effet et le dire.
+> Détail dans `references/ressources.md` : sites et dépôts de référence pour chercher des effets et des composants (ressources gratuites uniquement). **À lire avant de chercher de l'inspiration.**
 
 ## 18. Vérification visuelle avant livraison
 

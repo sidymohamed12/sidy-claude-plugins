@@ -22,9 +22,12 @@ Cible (nouveau projet, nov. 2026) : **Spring Boot 4.2.0**, **Java 25** (LTS), **
 | `references/clean-code.md` | **tout code à écrire, relire ou refactorer** : noms, fonctions, formatage, objets, erreurs, tests (3 lois du TDD, F.I.R.S.T.), classes et façades, SOLID, heuristiques |
 | `references/sonar.md` | **tout code à écrire ou relire** : catalogue des règles Sonar à respecter (`equals`/`hashCode`, tests, streams, code inutilisé, conception des classes, concurrence) |
 | `references/api-docs.md` | **tout controller, DTO web ou documentation d'API** : interface `XxxController` + implémentation `XxxControllerImpl`, Swagger complet, records de documentation |
+| `references/architecture.md` | **créer ou déplacer une classe, un package, une feature** : arborescence feature → domain / application / infrastructure, règle de dépendance, ports (§1) |
+| `references/builder-patterns.md` | **objet à 4 paramètres ou plus, paramètres optionnels, choix d'un design pattern** (§5 et §6) |
+| `references/tests.md` | **écrire ou relire des tests** : 3 lois du TDD, F.I.R.S.T., tests par couche, exceptions (§12) |
 | `references/versions.md` | **nouveau projet ou montée de version** : catalogue Boot 4.2 / Java 25 / springdoc / Bucket4j / ShedLock / Jackson 3 |
 
-Un nouveau projet impose de lire `securite.md` et `infra.md`. `clean-code.md` et `sonar.md` se lisent avant d'écrire ou de relire du code, `api-docs.md` avant de toucher à un controller.
+Un nouveau projet impose de lire `securite.md` et `infra.md`. `clean-code.md` et `sonar.md` se lisent avant d'écrire ou de relire du code, `api-docs.md` avant de toucher à un controller, `architecture.md` avant de créer une classe ou un package, `tests.md` avant d'écrire un test.
 
 ## Règles non négociables
 
@@ -106,76 +109,7 @@ Livrer, dès le départ, tout ce socle (détails dans les références) :
 
 ## 1. Architecture — Clean Architecture et DDD
 
-Structure de référence : celle du backend **CETUD Mobilités** (feature d'abord, puis `domain` / `application` / `infrastructure`). Les noms de features sont dans la langue du projet (`actualite`, `course`, `tarification`…), les noms de couches restent ceux ci-dessous. **Un dossier n'est créé que s'il contient quelque chose** : toutes les features n'ont pas `event/`, `valueobject/`, `facade/`, `listener/`, `service/`…
-
-```
-src/main/java/<package-racine>/
-├── <feature>/                          ← un bounded context
-│   ├── domain/                         ← le cœur : zéro Spring, zéro JPA
-│   │   ├── model/                      ← agrégats et entités (avec equals/hashCode)
-│   │   ├── valueobject/                ← value objects (records)
-│   │   ├── command/                    ← commandes d'entrée des use cases (records)
-│   │   ├── event/                      ← événements de domaine (records)
-│   │   ├── exception/                  ← exceptions métier
-│   │   ├── service/                    ← services de domaine (règle qui ne tient dans aucun agrégat)
-│   │   └── port/
-│   │       ├── in/                     ← interfaces des use cases
-│   │       └── out/                    ← interfaces vers la persistance et les systèmes externes
-│   ├── application/                    ← orchestration ; dépend uniquement du domain
-│   │   ├── usecase/                    ← implémentations des ports in (un use case = une classe)
-│   │   ├── service/                    ← services applicatifs partagés entre plusieurs use cases
-│   │   ├── facade/                     ← façades regroupant les use cases d'un controller
-│   │   └── listener/                   ← réactions aux événements de domaine
-│   └── infrastructure/                 ← adaptateurs ; dépend de application et domain
-│       ├── persistence/
-│       │   ├── entity/                 ← entités JPA (Lombok autorisé)
-│       │   ├── repository/             ← repositories Spring Data
-│       │   ├── mapper/                 ← entity ⇄ model
-│       │   ├── adapter/                ← implémentent les ports out de persistance
-│       │   └── converter/              ← AttributeConverter JPA (si besoin)
-│       ├── web/
-│       │   ├── controller/             ← interfaces XxxController (mappings + Swagger complet)
-│       │   │   └── implement/          ← implémentations XxxControllerImpl (@RestController)
-│       │   ├── dto/
-│       │   │   ├── request/
-│       │   │   └── response/
-│       │   ├── mapper/                 ← dto ⇄ command / model (si nécessaire)
-│       │   └── doc/                    ← records de documentation Swagger uniquement
-│       └── <technique>/                ← un package par préoccupation technique :
-│                                         cache/, scheduling/, storage/, notification/, security/,
-│                                         exportation/, importation/, service/ (clients externes)…
-├── shared/                             ← transverse, même découpage domain / application / infrastructure
-│   ├── domain/                         ← events, exception, model, port/out, projection, service, valueobject
-│   ├── application/service/
-│   └── infrastructure/                 ← cache, event, exception, mail, message, metrics, otp, persistence,
-│                                         ratelimit, scheduling, security, storage, util, validation,
-│                                         web/{client, filter, interceptor, response…}, websocket…
-├── config/                             ← classes @Configuration Spring
-└── bootstrap/                          ← initialisation au démarrage
-```
-
-Emplacements usuels des éléments transverses (à adapter au projet) : `RateLimitFilter` dans `shared/infrastructure/ratelimit`, `OriginCheckFilter` et `BrowserNavigationBlockFilter` dans `shared/infrastructure/web/filter`, handler d'erreurs global (`@RestControllerAdvice`) dans `shared/infrastructure/exception`, publication des événements de domaine dans `shared/infrastructure/event`, `SecurityConfig` / `CacheConfig` / `SchedulingConfig` / bean `Clock` / OpenAPI dans `config/`, jetons JWT et révocation Redis dans `auth/infrastructure/security` et `auth/infrastructure/cache`.
-
-**Clean Architecture**
-- Dépendances : `infrastructure` → `application` → `domain`. Jamais l'inverse. Le `domain` (modèle, value objects, commandes, événements, exceptions, services et ports) n'a **aucune dépendance externe : JDK uniquement** (`java.*`) et ses propres packages. Ni Spring, JPA, Jackson, Lombok, Jakarta Validation, SLF4J ni MapStruct.
-- Les **ports** vivent dans `domain/port` : les adaptateurs d'`infrastructure` (controllers) appellent les ports `in` ; les use cases d'`application/usecase` implémentent les ports `in` et appellent les ports `out` ; les `adapter` d'`infrastructure` implémentent les ports `out` (inversion de dépendances).
-- Un **use case = une classe = une intention métier** (`CreateOrderUseCaseImpl implements CreateOrderUseCase`). Les controllers appellent des interfaces de use case (ports `in`) ou une façade.
-- `@Transactional` sur les use cases, pas sur les controllers ni les repositories.
-- **Entre features, jamais d'import direct** : une feature n'importe aucun type d'une autre feature. Elle communique **uniquement par un port `out` situé dans `shared/domain/port/out`** (ex. `CustomerLookupPort`), avec ses types d'échange dans `shared/domain/projection` ou `shared/domain/valueobject`. La feature consommatrice injecte ce port dans son use case ; l'`adapter` qui l'implémente vit dans l'`infrastructure` de la feature **qui fournit** la donnée (il appelle son propre port `in`). Pour le asynchrone : événement dans `shared/domain/events`, consommé par un `application/listener`. Seuls `shared`, `config` et `bootstrap` peuvent être importés par plusieurs features.
-- **Chaque controller a son interface** (`controller/OrderController`, documentation Swagger) **et son implémentation** (`controller/implement/OrderControllerImpl`), voir §8.
-- Un controller ne contient aucune logique métier : valider, déléguer, mapper, répondre. **Au-delà de 4 dépendances injectées, créer une façade** (`application/facade/`) qui regroupe les use cases ; le controller n'injecte que la façade (voir `references/clean-code.md`, section 8).
-- Domaine pur et entités JPA **séparées** (`model` ≠ `entity`, reliés par un `mapper`), sur tous les projets. Pour un très petit projet on allège en ne créant que les dossiers utiles, jamais en supprimant la règle de dépendance ni la séparation DTO / entité.
-
-**DDD**
-- **Langage omniprésent** : les noms du code reprennent le vocabulaire métier, dans la langue choisie pour le projet. Un bounded context par feature cohérente ; la carte des contextes vit dans `docs/diagrams/`.
-- **Agrégats** : une racine d'agrégat qui protège ses invariants ; les objets internes ne sont accessibles que par elle ; autre agrégat référencé **par son identifiant**, jamais par l'objet. **Une transaction = un agrégat.**
-- **Pas de modèle anémique** : le comportement est dans le domaine (`order.confirm()`, `account.withdraw(amount)`), pas dans des services qui manipulent des setters. Pas de setters publics ; création par constructeur privé + Builder ou méthode de fabrique statique.
-- **Value objects** (`domain/valueobject`) immuables et auto-validés, en `record` (`Money`, `PhoneNumber`, `OrderId`), comparés par valeur.
-- **Classes de base (principe, pas imposées)** : une classe de base d'agrégat racine (identité + événements de domaine collectés) et une base de builder peuvent vivre dans `shared/domain/model` ; les erreurs ont une exception racine du projet et une `ErrorCategory` qui pilote le statut HTTP dans le handler unique. Écrites en JDK pur.
-- **Services de domaine** (`domain/service`) pour une règle qui ne tient dans aucun agrégat ; **repository = port `out` par racine d'agrégat** (`domain/port/out`), implémenté par un `adapter` d'`infrastructure/persistence`.
-- **Événements de domaine** (`domain/event`, en `record`) publiés par les use cases via un port `out` (`DomainEventPublisher`, implémenté dans `shared/infrastructure/event`) ; réactions dans `application/listener`.
-- **Couche anticorruption** (adapter + traduction vers le langage du domaine) face à tout système externe.
-- Proportionnalité : un contexte purement CRUD reste léger (peu de comportement) ; les tests et la règle de dépendance restent obligatoires.
+> Détail dans `references/architecture.md` : arborescence de référence (feature → `domain` / `application` / `infrastructure`), règle de dépendance, contenu de chaque package, ports, domaine sans dépendance externe. **À lire avant de créer ou déplacer une classe, un package ou une feature.**
 
 ## 2. SOLID
 
@@ -216,118 +150,11 @@ Détails et exemples dans `references/clean-code.md`, à lire avant d'écrire ou
 
 ## 5. Builder — pas de surcharges
 
-Pas de constructeurs télescopiques ni de méthodes surchargées pour gérer les paramètres optionnels. Dès qu'un objet a **4 paramètres ou plus**, ou des paramètres optionnels, utiliser un Builder.
-
-- Objets de domaine (`domain/model`, `domain/command`) : **builder écrit à la main** (classe statique imbriquée `Builder`), car le domaine n'a aucune dépendance externe, donc pas de Lombok. Constructeur privé ; **les invariants sont validés dans le constructeur** (ou dans `build()`), pour qu'un objet ne soit jamais incohérent.
-- Entités JPA : constructeur `protected` sans argument (exigé par JPA) + `@Builder` sur un constructeur privé avec arguments.
-- DTO web, requêtes : `record` ; `@Builder` (Lombok) sur le record au-delà de 4 champs. **Commandes du domaine** (`domain/command`) : `record` ; au-delà de 4 champs, builder écrit à la main (pas de Lombok dans le domaine).
-- Tests : un *test data builder* par agrégat (`OrderTestBuilder`).
-
-```java
-// domain/model : JDK uniquement, builder écrit à la main
-public final class Order {
-
-    private final OrderId id;
-    private final CustomerId customerId;
-    private final List<OrderLine> lines;
-    private final LocalDate deliveryDate;
-    private final String comment;
-
-    private Order(Builder builder) {
-        if (builder.lines == null || builder.lines.isEmpty()) {
-            throw new InvalidOrderException("An order must contain at least one line");
-        }
-        this.id = builder.id;
-        this.customerId = Objects.requireNonNull(builder.customerId, "customerId");
-        this.lines = List.copyOf(builder.lines);
-        this.deliveryDate = builder.deliveryDate;
-        this.comment = builder.comment;
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public OrderId id() {
-        return id;
-    }
-
-    public CustomerId customerId() {
-        return customerId;
-    }
-
-    public List<OrderLine> lines() {
-        return lines;
-    }
-
-    // equals et hashCode sur l'identité (id) : obligatoires dans domain/model, voir references/sonar.md, section 2
-
-    public static final class Builder {
-
-        private OrderId id;
-        private CustomerId customerId;
-        private List<OrderLine> lines;
-        private LocalDate deliveryDate;
-        private String comment;
-
-        private Builder() {
-        }
-
-        public Builder id(OrderId id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder customerId(CustomerId customerId) {
-            this.customerId = customerId;
-            return this;
-        }
-
-        public Builder lines(List<OrderLine> lines) {
-            this.lines = lines;
-            return this;
-        }
-
-        public Builder deliveryDate(LocalDate deliveryDate) {
-            this.deliveryDate = deliveryDate;
-            return this;
-        }
-
-        public Builder comment(String comment) {
-            this.comment = comment;
-            return this;
-        }
-
-        public Order build() {
-            return new Order(this);
-        }
-    }
-}
-
-Order order = Order.builder()
-        .customerId(customerId)
-        .lines(lines)
-        .deliveryDate(LocalDate.of(2026, Month.NOVEMBER, 5))
-        .build();
-```
+> Détail dans `references/builder-patterns.md`. Règle à retenir : jamais de constructeurs ni de méthodes surchargés pour des paramètres optionnels ; dès 4 paramètres ou plus, un Builder (écrit à la main dans le domaine, `@Builder` sur les entités d'infra). **À lire avant de créer un objet à plusieurs paramètres.**
 
 ## 6. Design patterns
 
-Utiliser un pattern quand il résout un vrai problème (jamais pour décorer) et nommer la classe d'après lui.
-
-| Besoin | Pattern | Exemple Spring Boot |
-|---|---|---|
-| Remplacer un `switch`/`if` sur un type | **Strategy** | `PaymentStrategy` (Wave, Orange Money, carte), injectées en `Map` ou `List` |
-| Créer un objet selon un contexte | **Factory** | `NotificationFactory` |
-| Construire un objet complexe | **Builder** | §5 |
-| Isoler un système externe | **Adapter** (ports & adapters) | `SmsGatewayAdapter implements SmsPort` |
-| Squelette d'algorithme à étapes variables | **Template Method** | import/export de fichiers |
-| Réagir à un événement sans couplage | **Observer** | `ApplicationEventPublisher` + `@TransactionalEventListener` |
-| Ajouter un comportement transversal | **Decorator** / AOP | cache (`CachedProductReader`), audit, métriques |
-| Chaîne de validations | **Chain of Responsibility** | règles de validation d'une commande |
-| Trop de dépendances injectées (surtout un controller) | **Facade** | `OrderFacade` (couche application) qui regroupe les use cases du controller |
-| Filtres dynamiques de recherche | **Specification** | `JpaSpecificationExecutor` |
-| Valeur métier typée | **Value Object** | `Money`, `PhoneNumber`, `OrderId` |
+> Tableau besoin → pattern dans `references/builder-patterns.md`. Un pattern ne sert que s'il résout un vrai problème, et la classe porte son nom.
 
 ## 7. Java moderne, dates et temps
 
@@ -376,75 +203,7 @@ Cache Redis avec TTL et invalidation explicite (Decorator du port de lecture), S
 
 ## 12. TDD et tests (obligatoires)
 
-**Les 3 lois du TDD**
-1. Pas de code de production sans un test qui échoue d'abord.
-2. Écrire juste assez de test pour échouer.
-3. Écrire juste assez de code pour passer le test.
-
-**Cycle Red → Green → Refactor.** Écrire d'abord un test qui échoue pour la plus petite portion de comportement, puis le code minimal qui le fait passer, puis refactorer avec les tests au vert. Un seul test rouge à la fois.
-
-**Règles F.I.R.S.T.** : *Fast* (tests unitaires sans Spring), *Independent* (aucune dépendance entre tests), *Repeatable* (`Clock`, Testcontainers), *Self-validating* (assertions, pas de lecture de logs), *Timely* (écrits avant le code). **Un concept par test** (idéalement un assert). Le code de test est aussi important que le code de production.
-
-- **Livraison : le test est présenté avant l'implémentation** qu'il pilote, et les deux sont livrés ensemble.
-- **Correction de bug** : écrire d'abord le test qui reproduit le bug, puis corriger.
-- Ordre par défaut : de l'intérieur vers l'extérieur — domaine, puis use cases, puis adapters, puis controllers.
-- **Garde-fous d'architecture (ArchUnit, recommandé)** : un test d'architecture vérifie (1) que `..domain..` ne dépend que de `java..` et de `..domain..` (ou `shared.domain`), (2) que `domain` et `application` n'importent jamais `infrastructure`, (3) qu'aucune feature n'importe une autre (règle par tranches `com.<projet>.(*)..` en excluant `shared`, `config`, `bootstrap`), (4) que chaque controller implémente son interface `XxxController` (implémentation `XxxControllerImpl`).
-- Outils choisis selon le projet ; base par défaut : JUnit 5, Mockito, AssertJ, Spring Test, Testcontainers (PostgreSQL, Redis), JaCoCo.
-
-| Niveau | Cible | Outils |
-|---|---|---|
-| Unitaire | domaine et use cases, sans Spring | JUnit 5, Mockito, AssertJ |
-| Slice web | controllers, validation, format d'erreur, sécurité des routes | `@WebMvcTest`, MockMvc |
-| Slice persistance | repositories, requêtes, migrations Flyway | `@DataJpaTest` + Testcontainers PostgreSQL (pas H2 : comportement différent) |
-| Cache / Redis | cache, rate-limiting, révocation JWT | Testcontainers Redis |
-| Intégration | parcours complet d'une feature | `@SpringBootTest` + Testcontainers |
-
-Règles :
-
-- Nommage `should_<résultat>_when_<condition>` ; structure *Given / When / Then* ; une intention par test.
-- Test d'exception : la préparation (*given*) sort de la lambda, qui ne contient **qu'un seul appel** (S5778) :
-
-```java
-CreateOrderCommand command = CreateOrderCommand.builder().customerId(CUSTOMER_ID).lines(List.of()).build();
-
-assertThrows(InvalidOrderException.class, () -> createOrderUseCase.execute(command));
-```
-
-- Chaque use case : cas nominal, erreurs, cas limites. Chaque endpoint : succès, validation (`400`), sécurité (`401`/`403`), introuvable (`404`).
-- Tests de sécurité systématiques : CSRF, injection SQL, rate-limit (`429`), jeton révoqué (`401`), filtre `Sec-Fetch-Mode` (`403`), Swagger absent en profil `prod`.
-- Assertions AssertJ ; temps contrôlé via `Clock` ; constantes pour les valeurs répétées ; `Month.X` pour les dates ; test data builders ; mocker les ports `out`, pas le domaine.
-- JaCoCo configuré, seuil du Quality Gate sur le code neuf.
-
-```java
-@ExtendWith(MockitoExtension.class)
-class CreateOrderUseCaseImplTest {
-
-    private static final String CUSTOMER_ID = "customer-1";
-
-    @Mock
-    private OrderRepository orderRepository;
-
-    @InjectMocks
-    private CreateOrderUseCaseImpl createOrderUseCase;
-
-    @Test
-    void should_save_order_when_command_is_valid() {
-        // given
-        CreateOrderCommand command = CreateOrderCommand.builder()
-                .customerId(CUSTOMER_ID)
-                .deliveryDate(LocalDate.of(2026, Month.NOVEMBER, 5))
-                .build();
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // when
-        Order result = createOrderUseCase.execute(command);
-
-        // then
-        assertThat(result.getCustomerId().value()).isEqualTo(CUSTOMER_ID);
-        verify(orderRepository).save(any(Order.class));
-    }
-}
-```
+> Détail dans `references/tests.md` : 3 lois du TDD, cycle Red → Green → Refactor, F.I.R.S.T. et conventions de test. Règle à retenir : le test d'abord, et tout nouveau code back-end est livré avec ses tests. **À lire avant d'écrire ou de relire des tests.**
 
 ## 13. Workflow pour ajouter une feature (TDD)
 
