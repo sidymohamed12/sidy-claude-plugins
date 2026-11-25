@@ -11,7 +11,7 @@ description: >
   bloque, ou quand le plan ne tient plus. Il lit, décide et documente la
   conception : il n'écrit que dans docs/ et ne touche jamais au code de
   l'application.
-model: sonnet
+model: claude-opus-5-5
 tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 skills:
   - spring-boot-sidy

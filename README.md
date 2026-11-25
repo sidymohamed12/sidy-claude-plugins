@@ -1,4 +1,4 @@
-> **Mise à jour (2026-11-25, `sidy-dev` v1.10.1)** — chaque agent fixe son modèle (`model:`) au lieu d'hériter de celui de ta session : `sonnet` pour tous, `haiku` pour `documentaliste`. Pour ménager un forfait Pro, et parce qu'une session ouverte sur un modèle plus cher ne se répercute plus sur les agents. Voir « Choisir le modèle d'un agent ».
+> **Mise à jour (2026-11-25, `sidy-dev` v1.10.1)** — chaque agent fixe son modèle (`model:`) au lieu d'hériter de celui de ta session : `sonnet` pour la plupart, `claude-opus-5-5` pour `architecte`, `haiku` pour `documentaliste`. Pour ménager un forfait Pro, et parce qu'une session ouverte sur un modèle plus cher ne se répercute plus sur les agents. Voir « Choisir le modèle d'un agent ».
 >
 > **Mise à jour (2026-11-25, `sidy-office` v1.14.0)** — `documentaliste` (jaune, afro, lunettes) et `security-fixer` (rouge, crâne rasé, casque) ont leur personnage dans l'exemple `sidy-office.json`.
 >
@@ -118,7 +118,7 @@ Utilise l'agent documentaliste pour mettre à jour la documentation après la fe
 
 ### Choisir le modèle d'un agent
 
-Chaque agent a une ligne `model:` dans son en-tête, qui décide quel modèle le fait tourner : `haiku` (léger, économe), `sonnet` (équilibré, le défaut ici), `opus` (le plus puissant, le plus coûteux) ou `inherit` (celui de ta session). Un agent sans cette ligne hérite de ta session : ouverte sur un modèle cher, tous les agents le seraient. Ici tous sont sur `sonnet`, sauf `documentaliste` sur `haiku`. Pour en changer un, modifie cette ligne dans son fichier d'agent ; si le résultat est décevant, passe-le au modèle du dessus.
+Chaque agent a une ligne `model:` dans son en-tête, qui décide quel modèle le fait tourner : `haiku` (léger, économe), `sonnet` (équilibré, le défaut ici), `opus` (le plus puissant, le plus coûteux) ou `inherit` (celui de ta session). Un agent sans cette ligne hérite de ta session : ouverte sur un modèle cher, tous les agents le seraient. Ici `architecte` est sur Opus 5.5 (`claude-opus-5-5`, nom complet du modèle, au lieu de l'alias `opus` qui suivrait la dernière version) car ses décisions se propagent à tous les autres agents ; `documentaliste` est sur `haiku` ; les autres sont sur `sonnet`. Pour en changer un, modifie cette ligne dans son fichier d'agent ; si le résultat est décevant, passe-le au modèle du dessus.
 
 ### Utiliser les skills
 
